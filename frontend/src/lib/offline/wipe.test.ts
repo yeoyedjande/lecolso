@@ -13,7 +13,8 @@ describe('clearLocalData', () => {
     const deleteDb = vi.spyOn(db, 'delete').mockResolvedValue(undefined)
     const deletedCaches: string[] = []
     vi.stubGlobal('caches', {
-      keys: () => Promise.resolve(['assets', 'workbox-precache-v2']),
+      keys: () =>
+        Promise.resolve(['assets', 'api-ancien', 'workbox-precache-v2-https://app.exemple.ci/']),
       delete: (key: string) => {
         deletedCaches.push(key)
         return Promise.resolve(true)
@@ -24,8 +25,10 @@ describe('clearLocalData', () => {
 
     await clearLocalData()
 
-    expect(deleteDb).toHaveBeenCalledOnce()
-    expect(deletedCaches).toEqual(['assets', 'workbox-precache-v2'])
+    // La base reste réutilisable après sa suppression (réouverture automatique conservée)
+    expect(deleteDb).toHaveBeenCalledExactlyOnceWith({ disableAutoOpen: false })
+    // Le precache de l'application (sans donnée personnelle) est conservé pour rouvrir hors connexion
+    expect(deletedCaches).toEqual(['assets', 'api-ancien'])
     expect(window.localStorage.getItem('gestion-ecole.school-id')).toBeNull()
     expect(window.localStorage.getItem('autre-application')).toBe('garder')
   })

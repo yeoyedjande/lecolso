@@ -29,8 +29,9 @@ src/
 - TypeScript `strict`, pas de `any`, pas de `as` sauf justification en commentaire.
 - Types d'API uniquement depuis `lib/api/schema.d.ts` (généré par `make types`). Ne redéfinis jamais à la main un type renvoyé par l'API.
 - Données serveur : TanStack Query uniquement (`useQuery` / `useMutation` dans `features/<domaine>/api.ts`), pas d'état global pour elles.
-- Client HTTP : une seule instance `openapi-fetch` dans `lib/api/client.ts`. Son middleware ajoute le token Sanctum et
-  `X-School-Id`, efface la session sur un 401 (`UnauthorizedError`) et lève `ValidationError` (messages par champ) sur un 422.
+- Client HTTP : une seule instance `openapi-fetch` dans `lib/api/client.ts` (cookie de session, voir « Authentification »).
+  Son middleware ajoute `X-School-Id` et le jeton CSRF, efface les données locales sur un 401 (`UnauthorizedError`)
+  et lève `ValidationError` (messages par champ) sur un 422.
   Seuls les hooks de `features/<domaine>/api.ts` importent `api` ; les composants n'importent jamais `openapi-fetch`
   (ESLint `no-restricted-imports`).
 - Formulaires : react-hook-form + zod ; les messages d'erreur 422 du backend sont affichés sur les champs correspondants.
@@ -53,8 +54,9 @@ src/
   file de synchronisation vers `POST /api/v1/sync`, indicateur visible « X éléments en attente ».
 - Service worker : vite-plugin-pwa en `injectManifest`, cache d'abord pour les fichiers de l'application (même origine).
   **Aucune réponse de l'API n'est mise en cache** (données personnelles) ni aucun fichier d'une autre origine (photos
-  par URL signée) : le hors connexion passe uniquement par Dexie. `clearLocalData()` (`lib/offline/wipe.ts`) vide Dexie,
-  Cache Storage et les clés `localStorage` de l'application à la déconnexion et sur tout 401.
+  par URL signée) : le hors connexion passe uniquement par Dexie. `clearLocalData()` (`lib/offline/wipe.ts`) vide Dexie
+  (qui reste réutilisable), Cache Storage sauf le precache de l'application (HTML/JS/CSS, nécessaire hors connexion)
+  et les clés `localStorage` de l'application, à la déconnexion et sur tout 401.
 - Authentification : cookie de session httpOnly (Sanctum, mode SPA), `credentials: 'include'`, en-tête `X-XSRF-TOKEN`
   (cookie `XSRF-TOKEN` récupéré par `/sanctum/csrf-cookie` si absent, nouvel essai unique après un 419). Aucun jeton
   côté JavaScript ; `localStorage` ne garde que l'établissement sélectionné. Hooks : `features/auth/api.ts`.
