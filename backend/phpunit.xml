@@ -29,6 +29,7 @@
         <env name="DB_DATABASE" value="gestion_ecole_test" force="true"/>
         <env name="DB_URL" value="" force="true"/>
         <env name="DB_OWNER_URL" value="" force="true"/>
+        <env name="DB_PLATFORM_URL" value="" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
@@ -39,6 +40,7 @@
         <server name="DB_DATABASE" value="gestion_ecole_test" force="true"/>
         <server name="DB_URL" value="" force="true"/>
         <server name="DB_OWNER_URL" value="" force="true"/>
+        <server name="DB_PLATFORM_URL" value="" force="true"/>
         <server name="MAIL_MAILER" value="array" force="true"/>
         <server name="QUEUE_CONNECTION" value="sync" force="true"/>
         <server name="SESSION_DRIVER" value="array" force="true"/>

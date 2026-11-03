@@ -65,7 +65,13 @@ export default defineRailway((ctx) => {
     healthcheckTimeout: 60,
     replicas: REGION,
     domains: [`api.${DOMAIN}`],
-    env: backendEnv,
+    env: {
+      ...backendEnv,
+      // Super-admin : rôle de connexion séparé app_platform (BYPASSRLS), mot de passe propre.
+      // Fourni au seul service api (routes /api/v1/platform/*), jamais à worker ni scheduler.
+      DB_PLATFORM_USERNAME: "app_platform",
+      DB_PLATFORM_PASSWORD: preserve(),
+    },
   });
 
   const worker = service("worker", {

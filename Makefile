@@ -4,7 +4,7 @@ DC       := docker compose $(PROFILES)
 APP      := $(DC) exec app
 NODE     := $(DC) run --rm --no-deps frontend
 
-.PHONY: up down restart logs sh install migrate fresh test test-back test-front lint lint-back lint-front types check
+.PHONY: up down restart logs sh install migrate db-roles fresh test test-back test-front lint lint-back lint-front types check
 
 up: ## Démarre la stack
 	$(DC) up -d --build
@@ -26,6 +26,9 @@ install: ## Dépendances PHP et JS
 
 migrate: ## Migrations (rôle propriétaire) + données de démo
 	$(APP) php artisan migrate --database=pgsql_owner --seed
+
+db-roles: ## Rejoue la création des rôles PostgreSQL (app_user, app_platform) sur un volume existant
+	$(DC) exec -T postgres psql -v ON_ERROR_STOP=1 -U app_owner -d gestion_ecole -f /docker-entrypoint-initdb.d/01-roles.sql
 
 fresh: ## Repart d'une base vide avec les données de démo
 	$(APP) php artisan migrate:fresh --database=pgsql_owner --seed

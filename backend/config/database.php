@@ -102,6 +102,24 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        // Rôle super-admin app_platform (BYPASSRLS) : connexion SÉPARÉE, utilisée uniquement via
+        // App\Support\Tenancy\Platform::run(), dans les routes /api/v1/platform/* (middleware EnsureSuperAdmin).
+        // app_user ne peut pas endosser ce rôle. Identifiants fournis au seul service api.
+        'pgsql_platform' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_PLATFORM_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'gestion_ecole'),
+            'username' => env('DB_PLATFORM_USERNAME', 'app_platform'),
+            'password' => env('DB_PLATFORM_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+        ],
+
         // Rôle propriétaire app_owner : migrations uniquement (php artisan migrate --database=pgsql_owner).
         // Ne jamais l'utiliser pour les requêtes de l'application : il contourne la RLS.
         'pgsql_owner' => [

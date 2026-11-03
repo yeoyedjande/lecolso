@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domains\Tenancy\Http\Middleware\EnsureSuperAdmin;
+use App\Domains\Tenancy\Http\Middleware\ResolveSchool;
 use App\Support\Routing\DomainRoutes;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,7 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            // Routes d'un établissement : après auth:sanctum
+            'school' => ResolveSchool::class,
+            // Routes /api/v1/platform/* : après auth:sanctum
+            'super_admin' => EnsureSuperAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // API uniquement : toutes les erreurs sont rendues en JSON
