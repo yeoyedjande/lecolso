@@ -29,8 +29,14 @@ src/
 - TypeScript `strict`, pas de `any`, pas de `as` sauf justification en commentaire.
 - Types d'API uniquement depuis `lib/api/schema.d.ts` (généré par `make types`). Ne redéfinis jamais à la main un type renvoyé par l'API.
 - Données serveur : TanStack Query uniquement (`useQuery` / `useMutation` dans `features/<domaine>/api.ts`), pas d'état global pour elles.
+- Client HTTP : une seule instance `openapi-fetch` dans `lib/api/client.ts`. Son middleware ajoute le token Sanctum et
+  `X-School-Id`, efface la session sur un 401 (`UnauthorizedError`) et lève `ValidationError` (messages par champ) sur un 422.
+  Seuls les hooks de `features/<domaine>/api.ts` importent `api` ; les composants n'importent jamais `openapi-fetch`
+  (ESLint `no-restricted-imports`).
 - Formulaires : react-hook-form + zod ; les messages d'erreur 422 du backend sont affichés sur les champs correspondants.
 - Aucun texte en dur dans les composants : tout passe par i18n (`t('students.list.title')`), français par défaut.
+  ESLint l'impose (`i18next/no-literal-string` en mode `jsx-text-only`, en erreur) sur `src/**/*.tsx`, sauf tests,
+  stories et `src/components/ui` (shadcn). Les clés sont typées depuis `src/i18n/fr.json` : une clé inconnue ne compile pas.
 - Montants : composant `<MoneyAmount value={15000} />` → « 15 000 FCFA ». Dates : JJ/MM/AAAA. Téléphones : `+225 07 00 00 00 00`.
 - L'URL de l'API vient uniquement de `import.meta.env.VITE_API_URL` (fixée au build sur Railway).
 - L'en-tête `X-School-Id` est ajouté par le client HTTP à partir de l'établissement sélectionné ; ne l'ajoute jamais ailleurs.

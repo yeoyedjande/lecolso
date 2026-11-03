@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "Gestion École"
+  },
+  "home": {
+    "title": "Gestion École",
+    "subtitle": "Plateforme de gestion des établissements scolaires"
+  },
+  "health": {
+    "title": "État du service",
+    "api": "API : {{status}}",
+    "database": "Base de données",
+    "redis": "Redis",
+    "status": {
+      "ok": "OK",
+      "error": "en erreur",
+      "unavailable": "indisponible",
+      "unreachable": "injoignable",
+      "checking": "vérification…"
+    },
+    "unreachableHelp": "Impossible de joindre le serveur. Vérifiez votre connexion internet puis réessayez.",
+    "retry": "Réessayer"
+  }
+}

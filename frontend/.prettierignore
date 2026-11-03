@@ -1,0 +1,10 @@
+dist
+dev-dist
+coverage
+playwright-report
+test-results
+package-lock.json
+CLAUDE.md
+# Fichiers générés : ne jamais reformater (la CI vérifie qu'ils sont identiques à la génération)
+src/lib/api/schema.d.ts
+src/routeTree.gen.ts
