@@ -1,0 +1,84 @@
+{
+    "openapi": "3.1.2",
+    "info": {
+        "title": "Gestion Ecole",
+        "version": "0.0.1",
+        "description": "API de la plateforme Gestion \u00c9cole. Les routes m\u00e9tier exigent un token Sanctum et l'en-t\u00eate X-School-Id."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080/api/v1"
+        }
+    ],
+    "paths": {
+        "/health": {
+            "get": {
+                "operationId": "health",
+                "description": "V\u00e9rifie la base de donn\u00e9es et Redis. R\u00e9pond 200 si tout est disponible, 503 sinon\n(utilis\u00e9 comme healthcheck par Railway au d\u00e9ploiement). Route publique, hors tenant.",
+                "summary": "\u00c9tat de l'API",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "La base de donn\u00e9es et Redis r\u00e9pondent.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResource"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Au moins un composant est indisponible (aucun d\u00e9tail d'erreur renvoy\u00e9).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResource"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "HealthResource": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ok",
+                            "error"
+                        ]
+                    },
+                    "database": {
+                        "type": "string",
+                        "enum": [
+                            "ok",
+                            "error"
+                        ]
+                    },
+                    "redis": {
+                        "type": "string",
+                        "enum": [
+                            "ok",
+                            "error"
+                        ]
+                    }
+                },
+                "required": [
+                    "status",
+                    "database",
+                    "redis"
+                ],
+                "title": "HealthResource"
+            }
+        }
+    }
+}
