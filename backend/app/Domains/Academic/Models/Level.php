@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Academic\Models;
 
+use App\Support\Audit\Auditable;
 use App\Support\Tenancy\BelongsToSchool;
 use Database\Factories\LevelFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 final class Level extends Model
 {
+    use Auditable;
     use BelongsToSchool;
 
     /** @use HasFactory<LevelFactory> */

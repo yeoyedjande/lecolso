@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Identity\Models;
 
 use App\Domains\Identity\Enums\Role;
+use App\Support\Audit\Auditable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,6 +33,8 @@ use Laravel\Sanctum\HasApiTokens;
  */
 final class User extends Authenticatable
 {
+    use Auditable;
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
@@ -73,6 +76,16 @@ final class User extends Authenticatable
         return ! RoleAssignment::ofUser($this)
             ->where('role', '!=', Role::Guardian->value)
             ->exists();
+    }
+
+    /**
+     * Réinitialisation de mot de passe et droits super-admin : tracés, sans jamais le mot de passe lui-même.
+     *
+     * @return list<string>
+     */
+    protected function auditInclude(): array
+    {
+        return ['must_change_password', 'is_super_admin'];
     }
 
     protected static function newFactory(): UserFactory

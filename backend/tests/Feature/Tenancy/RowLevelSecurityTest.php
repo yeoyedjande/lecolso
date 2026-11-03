@@ -102,7 +102,7 @@ it('active la RLS avec une politique sur toutes les tables qui ont une colonne s
         order by c.table_name
         SQL);
 
-    expect(array_column($tables, 'table_name'))->toContain('cycles', 'levels', 'role_assignments');
+    expect(array_column($tables, 'table_name'))->toContain('activity_log', 'cycles', 'levels', 'role_assignments');
 
     foreach ($tables as $table) {
         expect($table['rls'])->toBeTrue()

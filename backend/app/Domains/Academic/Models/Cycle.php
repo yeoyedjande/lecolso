@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Academic\Models;
 
+use App\Support\Audit\Auditable;
 use App\Support\Cycles\CycleSettings;
 use App\Support\Tenancy\BelongsToSchool;
 use Database\Factories\CycleFactory;
@@ -26,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 final class Cycle extends Model
 {
+    use Auditable;
     use BelongsToSchool;
 
     /** @use HasFactory<CycleFactory> */

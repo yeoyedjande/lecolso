@@ -6,6 +6,7 @@ namespace App\Domains\Identity\Models;
 
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Identity\Enums\Role;
+use App\Support\Audit\Auditable;
 use App\Support\Tenancy\BelongsToSchool;
 use Database\Factories\RoleAssignmentFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +28,7 @@ use InvalidArgumentException;
  */
 final class RoleAssignment extends Model
 {
+    use Auditable;
     use BelongsToSchool;
 
     /** @use HasFactory<RoleAssignmentFactory> */

@@ -59,4 +59,24 @@ ni de pousser sur `main` (voir `.claude/settings.json`).
 
 ## Comptes de démo
 
-À compléter à l'étape 5 du sprint 0.
+Créés par `make migrate` ou `make fresh` (seeder `DemoSeeder`), en local et en staging uniquement : le seeder refuse
+de s'exécuter en production. Connexion par téléphone (« 07 00 00 00 03 » ou « +2250700000003 ») ou par e-mail.
+
+**Mot de passe commun : `Demo2026!`** (aucun changement de mot de passe demandé à la première connexion).
+
+| Compte | Téléphone | E-mail | Rôle |
+| --- | --- | --- | --- |
+| Super-admin Démo | +225 07 00 00 00 01 | superadmin@demo.lecolso.ci | super-admin de la plateforme |
+| Konan Promoteur | +225 07 00 00 00 02 | promoteur@demo.lecolso.ci | promoteur des deux écoles |
+| Yao Directeur | +225 07 00 00 00 03 | directeur@demo.lecolso.ci | directeur, Les Lauriers (toute l'école) |
+| Aminata Directrice maternelle | +225 07 00 00 00 04 | directrice.maternelle@demo.lecolso.ci | directrice, Les Lauriers, **maternelle uniquement** |
+| Awa Secrétaire | +225 07 00 00 00 05 | secretaire@demo.lecolso.ci | secrétaire, Les Lauriers |
+| Moussa Comptable | +225 07 00 00 00 06 | comptable@demo.lecolso.ci | comptable, Les Lauriers |
+| Fatou Enseignante | +225 07 00 00 00 07 | enseignante@demo.lecolso.ci | enseignante, Les Lauriers, primaire |
+| Kouadio Parent | +225 07 00 00 00 08 | parent@demo.lecolso.ci | parent dans les deux écoles |
+| Mariam Directrice | +225 07 00 00 00 09 | directrice@demo.lecolso.ci | directrice, Petits Génies |
+
+| École | Cycles |
+| --- | --- |
+| Les Lauriers | garderie, maternelle, primaire |
+| Petits Génies | garderie, maternelle |

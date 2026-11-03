@@ -5,6 +5,8 @@ Une ligne par décision, la plus récente en haut.
 
 | Date | Domaine | Question | Décision |
 | --- | --- | --- | --- |
+| 03/11/2026 | Audit | Que contient le journal d'audit ? | Un journal par école (`school_id` + RLS) : qui a modifié quoi, avant/après. Jamais de mot de passe, de jeton ni d'information médicale. Une action sans école (changer son propre mot de passe, action super-admin hors école) n'y figure pas ; journal de plateforme plus tard si besoin. Conservation prévue 365 jours, purge à planifier |
+| 03/11/2026 | Démo | Où peut-on créer les données de démo ? | En local et en staging seulement ; refus explicite en production. Mot de passe commun `Demo2026!`, comptes listés dans le README |
 | 03/11/2026 | Sécurité | Comment s'authentifie-t-on en V1 ? | Une seule connexion pour tous : identifiant (téléphone ou e-mail) + mot de passe. **Pas de 2FA ni d'OTP SMS en V1** (remplace la décision précédente sur l'OTP parents et la 2FA du personnel). L'interface `SmsSender` reste pour les notifications |
 | 03/11/2026 | Identity | Qui crée les comptes, et le mot de passe oublié ? | Le personnel de l'école crée le compte avec un mot de passe provisoire, à changer à la première connexion (`must_change_password`). Mot de passe oublié : un directeur ou une secrétaire de l'école génère un nouveau mot de passe provisoire (dans la limite de ses cycles) ; pas de lien par e-mail en V1 |
 | 03/11/2026 | Sécurité | Combien de temps dure une session ? | Personnel : 8 h d'inactivité, sans « se souvenir de moi ». Comptes sans rôle du personnel (parents) : « se souvenir de moi » 30 jours |

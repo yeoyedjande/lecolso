@@ -101,6 +101,24 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
   journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
 
+## Journal d'audit
+
+- spatie/laravel-activitylog, modèle `App\Support\Audit\Activity` : table `activity_log` avec `school_id` obligatoire et RLS.
+- Un modèle se journalise avec le trait `Support\Audit\Auditable` : champs modifiables qui ont changé (`auditInclude()`
+  pour des champs non modifiables en masse, `auditExcept()` pour en retirer), auteur = utilisateur connecté.
+- École de l'entrée : celle de l'objet (sa colonne `school_id`, ou lui-même pour une école), sinon l'école courante ;
+  sans école déterminable, rien n'est écrit (ex. changement de son propre mot de passe hors école).
+- Jamais journalisés : `Support\Audit\SensitiveAttributes` (`password`, `remember_token`, `allergies`, `medical_*`,
+  `health_*`…), exclus à la source et retirés une seconde fois avant l'écriture. Ajouter ici toute nouvelle colonne sensible.
+- Purge (365 jours) : pas encore planifiée ; elle devra passer par `Platform` (la RLS masque tout sans contexte).
+
+## Données de démo
+
+- `DemoSeeder` (appelé par `DatabaseSeeder`) : 2 écoles, un compte par rôle ; comptes et mot de passe dans le README.
+- Refus explicite en production (exception avant toute écriture) ; local, staging et tests autorisés.
+- Écriture par `Platform::run()` avec des `school_id` explicites (jamais de contournement de la RLS dans `app/`) ;
+  idempotent (écoles par slug, comptes par téléphone).
+
 ## Migrations
 
 - Une migration par table ou par changement cohérent. Colonnes : `uuid('id')->primary()`, `foreignUuid('school_id')->constrained()->cascadeOnDelete()`,
