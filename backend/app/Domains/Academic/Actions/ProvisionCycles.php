@@ -40,13 +40,15 @@ final readonly class ProvisionCycles
         }
 
         return $this->context->run($school, fn (): Collection => $this->db->connection(TenantContext::CONNECTION)
-            ->transaction(function () use ($catalog, $codes): Collection {
+            ->transaction(function () use ($catalog, $codes, $school): Collection {
                 $positions = array_flip(array_keys($catalog));
 
                 foreach ($codes as $code) {
                     $entry = $catalog[$code];
 
-                    $cycle = Cycle::query()->firstOrCreate(['code' => $code], [
+                    // Filtre explicite sur l'école : le scope « école courante » ne s'applique pas dans
+                    // Platform::run (seeders), où un autre établissement a des cycles de même code
+                    $cycle = Cycle::query()->where('school_id', $school->id)->firstOrCreate(['code' => $code], [
                         'name' => $entry['name'],
                         'position' => $positions[$code],
                         'settings' => CycleSettings::fromArray($entry['settings']),
@@ -60,7 +62,7 @@ final readonly class ProvisionCycles
                     }
                 }
 
-                return Cycle::query()->with('levels')->orderBy('position')->get();
+                return Cycle::query()->where('school_id', $school->id)->with('levels')->orderBy('position')->get();
             }));
     }
 

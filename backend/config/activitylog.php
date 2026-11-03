@@ -39,7 +39,8 @@ return [
      * It should implement the Spatie\Activitylog\Contracts\Activity interface
      * and extend Illuminate\Database\Eloquent\Model.
      */
-    'activity_model' => Activity::class,
+    // Journal par école (school_id + RLS), sans attribut sensible
+    'activity_model' => App\Support\Audit\Activity::class,
 
     /*
      * This is the name of the table that will be created by the migration and

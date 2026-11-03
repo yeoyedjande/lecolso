@@ -96,7 +96,10 @@ Décisions à intégrer à cette étape (prises le 03/11/2026, voir `docs/decisi
 - **Déjà en place à l'étape 3** : `role_assignments`, l'enum `Role`, `users.is_super_admin`, le contexte `app.user_id`
   (à poser aussi sur les routes authentifiées hors école, comme `/me`), les helpers de test `makeSchool`, `assignRole`, `inSchool`.
 
-## Étape 5 — Audit, contrat API et seeders de démo
+## Étape 5 — Audit, contrat API et seeders de démo ✅
+
+> Fait le 03/11/2026 sur `feat/socle-audit-demo` : journal d'audit par école (RLS, sans champ sensible), `DemoSeeder`
+> refusé en production, comptes de démo dans le README ; `make types` et `api:types` étaient en place depuis les étapes 1 et 2.
 
 ```text
 - Active spatie/laravel-activitylog sur les modèles existants, avec school_id et causer ; exclus les champs sensibles.

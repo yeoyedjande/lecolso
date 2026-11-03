@@ -6,6 +6,7 @@ namespace App\Domains\Tenancy\Models;
 
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Tenancy\Enums\SchoolType;
+use App\Support\Audit\Auditable;
 use Database\Factories\SchoolFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,6 +36,8 @@ use Illuminate\Support\Carbon;
  */
 final class School extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<SchoolFactory> */
     use HasFactory, HasUuids, SoftDeletes;
 
