@@ -25,6 +25,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/schools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tous les établissements (super-admin)
+         * @description Réservé aux super-admins (404 pour les autres). Lecture hors RLS par la connexion séparée app_platform.
+         *     Pagination par curseur, 50 écoles par page, triées par nom.
+         */
+        get: operations["platform.schools.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -38,8 +59,33 @@ export interface components {
             /** @enum {string} */
             redis: "ok" | "error";
         };
+        /** SchoolResource */
+        SchoolResource: {
+            id: string;
+            organization_id: string | null;
+            name: string;
+            slug: string;
+            /** @enum {string} */
+            type: "preschool_primary" | "secondary" | "higher";
+            city: string | null;
+            currency: string;
+            created_at: string | null;
+        };
     };
-    responses: never;
+    responses: {
+        /** @description Unauthenticated */
+        AuthenticationException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -72,6 +118,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResource"];
+                };
+            };
+        };
+    };
+    "platform.schools.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Une page d’écoles, triées par nom. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
                 };
             };
         };

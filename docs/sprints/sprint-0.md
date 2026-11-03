@@ -44,7 +44,9 @@ Termine par npm run lint, npm run typecheck et npm run test sans erreur.
 
 Fait quand : `make up` sert le frontend sur http://localhost:5173 et la page affiche « API : OK ».
 
-## Étape 3 — Multi-tenant et RLS
+## Étape 3 — Multi-tenant et RLS ✅
+
+> Fait le 03/11/2026 sur `feat/socle-tenancy` : RLS en mode fermé, `schools` protégée, super-admin par rôle de connexion séparé `app_platform`, jobs sans fuite de contexte.
 
 ```text
 Implémente l'isolation multi-établissements décrite dans CLAUDE.md (règle 1) et docs/adr/0002 :
@@ -77,6 +79,16 @@ Implémente le domaine Identity :
 Tests : connexion, OTP (expiré, trop d'essais), /me, un directeur limité à la maternelle n'a pas les droits sur le primaire.
 Propose ton plan avant de coder.
 ```
+
+Décisions à intégrer à cette étape (prises le 03/11/2026, voir `docs/decisions-metier.md`) :
+
+- **Authentification web par cookie httpOnly Sanctum** (SPA, même domaine principal : `app.<domaine>` et `api.<domaine>`),
+  avec protection CSRF ; plus de token dans `localStorage` (remplacer le stockage provisoire de `frontend/src/lib/api/session.ts`).
+  Les tokens Sanctum restent réservés à une future application native.
+- **Service worker** : aucune réponse de l'API contenant des données personnelles dans Cache Storage (retirer la route
+  « réseau d'abord » de l'API dans `frontend/src/sw.ts`) ; hors connexion uniquement via Dexie ; la déconnexion vide Dexie et tous les caches.
+- **Déjà en place à l'étape 3** : `role_assignments`, l'enum `Role`, `users.is_super_admin`, le contexte `app.user_id`
+  (à poser aussi sur les routes authentifiées hors école, comme `/me`), les helpers de test `makeSchool`, `assignRole`, `inSchool`.
 
 ## Étape 5 — Audit, contrat API et seeders de démo
 
@@ -118,6 +130,8 @@ Lis docs/deploiement-railway.md et docs/adr/0004.
 - Écris la commande artisan db:provision-app-role, idempotente : crée le rôle app_user avec DB_PASSWORD s'il n'existe pas
   (NOSUPERUSER NOBYPASSRLS), sinon met à jour son mot de passe ; GRANT sur les tables et séquences existantes
   et ALTER DEFAULT PRIVILEGES pour les futures. Elle s'exécute avec la connexion pgsql_owner. Teste-la.
+  Elle crée aussi le rôle de connexion séparé app_platform (LOGIN BYPASSRLS NOSUPERUSER, DB_PLATFORM_PASSWORD, aucun droit
+  sur le schéma) et vérifie qu'aucune appartenance croisée n'existe avec app_user (même logique que docker/postgres/init/01-roles.sql).
 - Configure Laravel pour la production derrière le proxy Railway : TrustProxies (tous les proxys), HTTPS forcé,
   CORS limité à FRONTEND_URL et *.<domaine>, logs sur stderr, REDIS_URL, disque s3 sur le bucket (URL signées uniquement).
 - Vérifie que les images docker/production/api.Dockerfile et web.Dockerfile se construisent en local

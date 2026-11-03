@@ -52,15 +52,31 @@ dans le `routes.php` de son domaine, sans préfixe (`Route::get('health', …)` 
 
 ## Multi-tenant : comment ça marche
 
-1. Middleware `ResolveSchool` : lit l'en-tête `X-School-Id` (l'API a son propre domaine `api.<domaine>`, le sous-domaine de l'école ne sert qu'au frontend),
-   vérifie que l'utilisateur a une affectation dans cette école, sinon 404.
-2. Il enregistre l'école dans `app(CurrentSchool::class)` et exécute `SET app.school_id = '<uuid>'` sur la connexion.
-3. En fin de requête (`terminate`) et après chaque Job, le paramètre est remis à zéro (`RESET app.school_id`).
-4. Le trait `BelongsToSchool` ajoute le scope global et remplit `school_id` à la création.
-5. RLS en base bloque tout ce qui aurait échappé au scope.
+1. Middleware `ResolveSchool` (alias `school`, après `auth:sanctum`) : lit l'en-tête `X-School-Id` (l'API a son propre domaine
+   `api.<domaine>`, le sous-domaine de l'école ne sert qu'au frontend). **400** si l'en-tête est absent ou n'est pas un UUID ;
+   **404** si l'école n'existe pas ou si l'utilisateur n'y a aucune affectation (même réponse : rien à deviner).
+2. Le contexte passe par `App\Support\Tenancy\TenantContext` : `CurrentSchool` côté PHP (liaison `scoped`) et, côté PostgreSQL,
+   `set_config('app.school_id', …)` et `set_config('app.user_id', …)` (paramètres liés), lus par les politiques RLS.
+   `TenantContext::run($school, fn)` exécute un bloc dans une école puis rétablit le contexte précédent.
+3. Remise à zéro : dans un `finally` et dans `terminate()` du middleware, et avant/après **chaque** job (écouteurs de file dans
+   `TenancyServiceProvider`). Si la connexion est en erreur, elle est fermée : une session neuve n'a aucun contexte.
+4. Le trait `BelongsToSchool` ajoute le scope global (aucune ligne sans école courante), remplit `school_id` à la création
+   (exception `MissingTenantContext` sans contexte ou pour une autre école) et interdit de changer `school_id`.
+5. RLS en base, en mode fermé, bloque tout ce qui aurait échappé au scope (`App\Support\Database\Rls`).
+6. Jobs : implémenter `TenantAware` et utiliser le trait `RunsInSchool` (propriété publique `$schoolId`) ; le middleware de job
+   `SetTenantContext` rétablit l'école le temps du job.
 
 Routes hors tenant (super-admin, pré-inscription publique, webhooks) : groupe de routes dédié, sans `ResolveSchool`,
 qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l'école depuis la transaction).
+
+### Super-admin (`/api/v1/platform/*`)
+
+- Middleware `super_admin` (`EnsureSuperAdmin`, après `auth:sanctum`) : `users.is_super_admin` (jamais assignable en masse), sinon **404**.
+- Lecture et écriture hors RLS uniquement par `Platform::run(fn)` : bascule la connexion par défaut sur `pgsql_platform`
+  (rôle de connexion séparé `app_platform`, `BYPASSRLS`), dans une transaction, et rétablit la connexion précédente dans un `finally`.
+- Seules les Actions des routes `/api/v1/platform/*` importent `Platform` (test d'architecture `tests/Unit/ArchitectureTest.php`).
+  Les modèles chargés dans `Platform::run()` gardent la connexion `pgsql_platform` : ne pas les réutiliser pour écrire ensuite.
+- Identifiants `DB_PLATFORM_*` fournis au seul service `api` (ni `worker` ni `scheduler`).
 
 ## Migrations
 
@@ -80,10 +96,16 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 ## Tests (Pest)
 
 - `tests/Feature/<Domaine>/` : un fichier par ressource HTTP. `tests/Unit/<Domaine>/` : Actions et stratégies.
-- Base PostgreSQL réelle en test (pas SQLite) pour que la RLS soit testée. Trait `RefreshDatabase`.
-- Deux connexions dans `config/database.php` : `pgsql` (rôle `app_user`, soumis à la RLS) et `pgsql_owner` (rôle `app_owner`, migrations seulement).
-  Dans `tests/TestCase.php`, surcharge `migrateFreshUsing()` pour migrer avec `--database=pgsql_owner` ; les requêtes des tests passent par `pgsql`.
-- Helpers disponibles (à créer au sprint 0) : `actingAsRole('director', $school, cycle: $maternelle)`, `School::factory()->withCycles()`.
+- Base PostgreSQL réelle en test (pas SQLite) pour que la RLS soit testée. Trait `DatabaseTruncation` (dans `TestCase`), pas
+  `RefreshDatabase` : les écoles s'écrivent par la connexion super-admin, invisible depuis une transaction de test sur `pgsql`.
+  Les tables sont vidées avant chaque test par `pgsql_owner` ; les connexions sont fermées après chaque test.
+- Trois connexions dans `config/database.php` : `pgsql` (rôle `app_user`, soumis à la RLS), `pgsql_owner` (rôle `app_owner`,
+  migrations seulement) et `pgsql_platform` (rôle `app_platform`, via `Platform::run()` uniquement).
+  `tests/TestCase.php` surcharge `migrateFreshUsing()` pour migrer avec `--database=pgsql_owner` ; les requêtes des tests passent par `pgsql`.
+- Helpers (`tests/Pest.php`) : `makeSchool(['kindergarten'])` (`null` = tous les cycles), `inSchool($school, fn)`,
+  `assignRole($user, $school, Role::Director, $cycle)`, `makeUser()`, `superAdmin()`, `rows($sql)`, `distinctColumn(…)` ;
+  `School::factory()->withCycles()`. À venir (étape 4) : `actingAsRole('director', $school, cycle: $maternelle)`.
+- Pas de `$this->propriété` dans les tests Pest : variables locales et fonctions de fixture typées (Larastan niveau max sur `tests/`).
 - Obligatoire pour chaque ressource : cas nominal, validation, droit refusé, **isolation entre deux écoles**, droit limité par cycle.
 - Services externes : toujours les implémentations `Fake`, jamais d'appel réseau en test.
 
