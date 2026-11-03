@@ -28,7 +28,9 @@ Termine par php artisan test, pint --test et phpstan sans erreur.
 
 Fait quand : `make up` démarre, `curl localhost:8080/api/v1/health` répond 200, les trois contrôles passent.
 
-## Étape 2 — Initialiser le frontend
+## Étape 2 — Initialiser le frontend ✅
+
+> Fait le 03/11/2026 sur `feat/socle-frontend` : React 19 + Vite 8, page d'accueil branchée sur `GET /api/v1/health`.
 
 ```text
 Lis CLAUDE.md et frontend/CLAUDE.md.
