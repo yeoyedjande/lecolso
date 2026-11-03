@@ -1,0 +1,131 @@
+# Environnement de développement local. Identifiants factices : ne jamais les réutiliser ailleurs.
+name: gestion-ecole
+
+x-php: &php
+  build:
+    context: ./docker/php
+  volumes:
+    - ./backend:/var/www/html
+    - ./docs:/var/www/docs
+  environment:
+    APP_ENV: local
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: gestion_ecole
+    DB_USERNAME: app_user          # rôle applicatif soumis à la RLS
+    DB_PASSWORD: app_user_secret
+    DB_OWNER_USERNAME: app_owner   # rôle propriétaire, réservé aux migrations
+    DB_OWNER_PASSWORD: app_owner_secret
+    REDIS_HOST: redis
+    QUEUE_CONNECTION: redis
+    CACHE_STORE: redis
+    FILESYSTEM_DISK: s3
+    AWS_ACCESS_KEY_ID: minio
+    AWS_SECRET_ACCESS_KEY: minio_secret
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_BUCKET: gestion-ecole
+    AWS_ENDPOINT: http://minio:9000
+    AWS_USE_PATH_STYLE_ENDPOINT: "true"
+    GOTENBERG_URL: http://gotenberg:3000
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: gestion_ecole
+      POSTGRES_USER: app_owner
+      POSTGRES_PASSWORD: app_owner_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_owner -d gestion_ecole"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio_secret
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minio minio_secret; do sleep 2; done;
+      mc mb --ignore-existing local/gestion-ecole;
+      "
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3000:3000"
+
+  app:
+    <<: *php
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./backend:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - app
+
+  # Démarrés seulement une fois le projet Laravel créé (voir Makefile)
+  horizon:
+    <<: *php
+    command: php artisan horizon
+    profiles: ["backend"]
+    restart: unless-stopped
+
+  scheduler:
+    <<: *php
+    command: php artisan schedule:work
+    profiles: ["backend"]
+    restart: unless-stopped
+
+  # Démarré seulement une fois le projet Vite créé (voir Makefile)
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - ./frontend:/app
+      - ./docs:/docs
+      - frontend_node_modules:/app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "5173:5173"
+    profiles: ["frontend"]
+
+volumes:
+  pgdata:
+  miniodata:
+  frontend_node_modules:

@@ -1,0 +1,9 @@
+{
+  "name": "gestion-ecole-railway",
+  "private": true,
+  "type": "module",
+  "description": "Infrastructure Railway en code — voir docs/deploiement-railway.md",
+  "devDependencies": {
+    "railway": "latest"
+  }
+}

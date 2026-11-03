@@ -1,0 +1,120 @@
+# CI : qualité, tests et contrat API. Railway attend que ce workflow soit vert avant de déployer main.
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Les jobs backend/frontend ne tournent qu'une fois le projet correspondant créé (sprint 0, étapes 1 et 2)
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.check.outputs.backend }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          echo "backend=$([ -f backend/composer.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "frontend=$([ -f frontend/package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  backend:
+    needs: detect
+    if: needs.detect.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: gestion_ecole
+          POSTGRES_USER: app_owner
+          POSTGRES_PASSWORD: app_owner_secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U app_owner -d gestion_ecole"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: gestion_ecole
+      DB_USERNAME: app_user
+      DB_PASSWORD: app_user_secret
+      DB_OWNER_USERNAME: app_owner
+      DB_OWNER_PASSWORD: app_owner_secret
+      REDIS_HOST: 127.0.0.1
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_pgsql, pgsql, redis, intl, zip, bcmath, pcntl, gd, exif
+          coverage: none
+          tools: composer:v2
+      - uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ hashFiles('backend/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Rôles PostgreSQL (app_user soumis à la RLS)
+        run: PGPASSWORD=app_owner_secret psql -h 127.0.0.1 -U app_owner -d gestion_ecole -f ../docker/postgres/init/01-roles.sql
+      - name: Formatage
+        run: vendor/bin/pint --test
+      - name: Analyse statique
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - name: Tests
+        run: php artisan test
+      - name: Contrat OpenAPI à jour
+        run: |
+          php artisan scramble:export --path=../docs/api/openapi.json
+          git diff --exit-code -- ../docs/api/openapi.json
+
+  frontend:
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Types générés à jour
+        run: |
+          npm run api:types
+          git diff --exit-code -- src/lib/api/schema.d.ts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test -- --run
+      - run: npm run build
+        env:
+          VITE_API_URL: https://api.example.invalid/api/v1
+
+  # Railway (« Wait for CI ») ne déploie que si ce job est vert
+  ci-ok:
+    needs: [detect, backend, frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for r in "${{ needs.backend.result }}" "${{ needs.frontend.result }}"; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then echo "Échec : $r"; exit 1; fi
+          done

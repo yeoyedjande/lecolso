@@ -1,0 +1,26 @@
+# Généraux
+.DS_Store
+.idea/
+.vscode/
+*.log
+.cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Backend
+backend/vendor/
+backend/storage/*.key
+backend/.phpunit.result.cache
+backend/.phpunit.cache/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+
+# Claude Code (préférences locales)
+.claude/settings.local.json
