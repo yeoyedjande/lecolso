@@ -32,6 +32,28 @@ describe('HealthStatus', () => {
     expect(screen.getByText('Redis').nextElementSibling).toHaveTextContent('en erreur')
   })
 
+  it('traite une erreur serveur inattendue (500) comme une API injoignable', async () => {
+    server.use(
+      http.get(`${API_URL}/health`, () =>
+        HttpResponse.json({ message: 'Server Error' }, { status: 500 }),
+      ),
+    )
+
+    renderWithQuery(<HealthStatus />)
+
+    expect(await screen.findByText('API : injoignable')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument()
+    expect(screen.queryByText('Base de données')).not.toBeInTheDocument()
+  })
+
+  it('rejette un 200 dont le corps ne correspond pas au contrat', async () => {
+    server.use(http.get(`${API_URL}/health`, () => HttpResponse.json({ status: 'ok' })))
+
+    renderWithQuery(<HealthStatus />)
+
+    expect(await screen.findByText('API : injoignable')).toBeInTheDocument()
+  })
+
   it('signale une API injoignable et permet de réessayer', async () => {
     server.use(http.get(`${API_URL}/health`, () => HttpResponse.error()))
 
