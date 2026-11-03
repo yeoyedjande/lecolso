@@ -85,6 +85,17 @@ est un cookie httpOnly posé sur `.<domaine>`, et Sanctum (mode SPA) protège le
 
 Ces valeurs sont dans `.railway/railway.ts` (communes à `api`, `worker`, `scheduler`).
 
+## Variables du frontend (service `web`, lues au build)
+
+| Variable | staging | production | Rôle |
+| --- | --- | --- | --- |
+| `VITE_API_URL` | `https://api.<domaine>/api/v1` | idem | URL de l'API |
+| `VITE_APP_ENV` | `staging` | `production` | `/design` présente en staging, absente du build de production |
+| `VITE_DEMO_MODULES` | `true` | `false` | données de démonstration des modules dont le backend n'existe pas encore |
+| `VITE_TENANT_DOMAIN` | `<domaine>` | `<domaine>` | sur `<slug>.<domaine>`, l'établissement est présélectionné |
+
+Elles sont déclarées en `ARG` dans `docker/production/web.Dockerfile` ; un changement impose un nouveau build.
+
 ## Opérations courantes
 
 | Besoin | Commande ou action |

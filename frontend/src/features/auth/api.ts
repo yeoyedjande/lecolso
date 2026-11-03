@@ -20,6 +20,18 @@ export interface ChangePasswordInput {
   password_confirmation: string
 }
 
+/** Échec de connexion hors 422 : trop de tentatives (429) ou autre (réseau, serveur). */
+export class LoginError extends Error {
+  override readonly name = 'LoginError'
+
+  readonly reason: 'throttled' | 'unavailable'
+
+  constructor(reason: 'throttled' | 'unavailable') {
+    super(reason === 'throttled' ? 'Trop de tentatives' : 'Connexion impossible')
+    this.reason = reason
+  }
+}
+
 export const meQueryOptions = queryOptions({
   queryKey: ['auth', 'me'],
   queryFn: async ({ signal }): Promise<Profile> => {
@@ -43,9 +55,10 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (input: LoginInput): Promise<Profile> => {
-      const { data, error } = await api.POST('/auth/login', { body: input })
+      // 422 (identifiants refusés) : ValidationError levée par le middleware du client
+      const { data, response } = await api.POST('/auth/login', { body: input })
       if (data === undefined) {
-        throw new Error('Connexion impossible', { cause: error })
+        throw new LoginError(response.status === 429 ? 'throttled' : 'unavailable')
       }
       return data.data
     },
