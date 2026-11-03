@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Tenancy\Http\Middleware;
 
-use App\Models\User;
+use App\Domains\Identity\Models\User;
 use Closure;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;

@@ -9,9 +9,6 @@ use Laravel\Sanctum\Sanctum;
 
 return [
 
-    // API à tokens uniquement : pas de route /sanctum/csrf-cookie (authentification SPA par cookie non utilisée)
-    'routes' => false,
-
     /*
     |--------------------------------------------------------------------------
     | Stateful Domains

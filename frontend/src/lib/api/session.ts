@@ -1,21 +1,22 @@
 /**
- * Session côté client : token Sanctum et établissement sélectionné.
- * Lu uniquement par le middleware du client HTTP (lib/api/client.ts).
- *
- * Provisoire : stockage dans localStorage. Le parcours de connexion (sprint 0, étape 6)
- * décidera du stockage définitif et du rafraîchissement de /me.
+ * Session côté client. L'authentification repose sur le cookie de session httpOnly posé par l'API
+ * (Sanctum, mode SPA) : aucun jeton n'est stocké côté JavaScript.
+ * Seul l'établissement sélectionné (identifiant non secret) est conservé, pour l'en-tête X-School-Id.
  */
-const TOKEN_KEY = 'gestion-ecole.token'
 const SCHOOL_KEY = 'gestion-ecole.school-id'
 
+/** Préfixe des clés localStorage de l'application (vidées à la déconnexion). */
+export const STORAGE_PREFIX = 'gestion-ecole.'
+
 type Listener = () => void
-const listeners = new Set<Listener>()
+const schoolListeners = new Set<Listener>()
+const unauthorizedListeners = new Set<Listener>()
 
 function read(key: string): string | null {
   try {
     return window.localStorage.getItem(key)
   } catch {
-    // Stockage indisponible (navigation privée, quota) : pas de session persistée
+    // Stockage indisponible (navigation privée, quota)
     return null
   }
 }
@@ -28,31 +29,34 @@ function write(key: string, value: string | null): void {
       window.localStorage.setItem(key, value)
     }
   } catch {
-    // Ignoré : la session reste valable pour l'onglet courant via les écouteurs
+    // Ignoré : l'établissement reste sélectionné pour l'onglet courant via les écouteurs
   }
-  listeners.forEach((listener) => {
-    listener()
-  })
 }
 
 export const session = {
-  getToken: (): string | null => read(TOKEN_KEY),
-  setToken: (token: string): void => {
-    write(TOKEN_KEY, token)
-  },
   getSchoolId: (): string | null => read(SCHOOL_KEY),
   setSchoolId: (schoolId: string | null): void => {
     write(SCHOOL_KEY, schoolId)
+    schoolListeners.forEach((listener) => {
+      listener()
+    })
   },
-  /** Déconnexion locale : token et établissement effacés. */
-  clear: (): void => {
-    write(TOKEN_KEY, null)
-    write(SCHOOL_KEY, null)
-  },
-  subscribe: (listener: Listener): (() => void) => {
-    listeners.add(listener)
+  subscribeSchool: (listener: Listener): (() => void) => {
+    schoolListeners.add(listener)
     return () => {
-      listeners.delete(listener)
+      schoolListeners.delete(listener)
     }
+  },
+  /** Session expirée ou absente (401) : l'application revient à l'écran de connexion. */
+  onUnauthorized: (listener: Listener): (() => void) => {
+    unauthorizedListeners.add(listener)
+    return () => {
+      unauthorizedListeners.delete(listener)
+    }
+  },
+  notifyUnauthorized: (): void => {
+    unauthorizedListeners.forEach((listener) => {
+      listener()
+    })
   },
 }

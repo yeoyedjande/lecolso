@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
+use App\Domains\Identity\Models\User;
 
 return [
 
@@ -43,6 +43,8 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // « Se souvenir de moi » : 30 jours, proposé aux seuls comptes sans rôle du personnel
+            'remember' => 60 * 24 * 30,
         ],
     ],
 
@@ -64,9 +66,10 @@ return [
     */
 
     'providers' => [
+        // Pose app.user_id (RLS de users) avant de charger un utilisateur : App\Domains\Identity\Auth\RlsUserProvider
         'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'driver' => 'rls',
+            'model' => User::class,
         ],
 
         // 'users' => [

@@ -42,6 +42,16 @@ export default defineRailway((ctx) => {
     QUEUE_CONNECTION: "redis",
     CACHE_STORE: "redis",
 
+    // Authentification SPA par cookie httpOnly (Sanctum) : app.<domaine> et api.<domaine> partagent le domaine principal
+    SESSION_DRIVER: "redis",
+    SESSION_LIFETIME: "480",
+    SESSION_DOMAIN: `.${DOMAIN}`,
+    SESSION_SECURE_COOKIE: "true",
+    SESSION_SAME_SITE: "lax",
+    SANCTUM_STATEFUL_DOMAINS: `app.${DOMAIN},*.${DOMAIN}`,
+    // CORS avec cookies : FRONTEND_URL (ci-dessus) et les pages des écoles <slug>.<domaine>
+    CORS_ALLOWED_ORIGIN_PATTERN: `#^https://[a-z0-9-]+\\.${DOMAIN.replaceAll(".", "\\.")}$#`,
+
     FILESYSTEM_DISK: "s3",
     AWS_ACCESS_KEY_ID: files.env.ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: files.env.SECRET_ACCESS_KEY,

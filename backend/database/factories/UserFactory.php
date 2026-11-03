@@ -4,44 +4,44 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Domains\Identity\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
+ * Mot de passe de test : « password ». Téléphone ivoirien E.164 unique.
+ *
  * @extends Factory<User>
  */
-class UserFactory extends Factory
+final class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
-    protected static ?string $password;
+    protected $model = User::class;
+
+    private static ?string $password = null;
 
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         return [
             'name' => fake()->name(),
+            'phone' => '+22507'.fake()->unique()->numerify('########'),
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'password' => self::$password ??= Hash::make('password'),
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    /** Compte créé par le personnel : mot de passe provisoire à changer à la première connexion. */
+    public function withProvisionalPassword(): self
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        return $this->afterMaking(static function (User $user): void {
+            $user->forceFill(['must_change_password' => true]);
+        });
+    }
+
+    public function withoutEmail(): self
+    {
+        return $this->state(['email' => null]);
     }
 }

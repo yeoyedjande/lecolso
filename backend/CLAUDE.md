@@ -78,6 +78,29 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   Les modèles chargés dans `Platform::run()` gardent la connexion `pgsql_platform` : ne pas les réutiliser pour écrire ensuite.
 - Identifiants `DB_PLATFORM_*` fournis au seul service `api` (ni `worker` ni `scheduler`).
 
+## Identité, authentification et droits
+
+- **Connexion** (`POST /auth/login`) : identifiant (téléphone E.164 ou e-mail, normalisé par `Support\Phone\Phone`) + mot de passe,
+  pour tous. Session par cookie httpOnly (Sanctum, mode SPA, `statefulApi()`), sessions Redis. Pas de 2FA ni d'OTP en V1.
+- **Aucune énumération** : Action `AttemptLogin` = même travail (hachage factice si le compte n'existe pas), même durée minimale
+  (`Timebox`, 400 ms), même message ; limiteur `login` (5/min par identifiant ET 20/min par IP) ; `session()->regenerate()`.
+  Déconnexion : `logout()`, `invalidate()`, `regenerateToken()`.
+- **Mot de passe provisoire** : `users.must_change_password` ; le middleware `EnsurePasswordChanged` (tout le groupe api)
+  ne laisse passer que `/me`, `/auth/password`, `/auth/logout`. Réinitialisation par le personnel :
+  `POST /users/{user}/password-reset` (`UserPolicy::resetPassword`, dans la limite des cycles de l'acteur).
+- **RLS sur `users`** : soi-même (`app.user_id`) et les membres de l'école courante. `RlsUserProvider` (garde `web`,
+  pilote `rls`) pose `app.user_id` avant de charger un utilisateur ; la recherche par identifiant passe par la fonction
+  SQL `SECURITY DEFINER` `auth_user_id(login)`, qui ne renvoie qu'un identifiant. `ClearTenantContext` remet le contexte
+  à zéro en fin de requête.
+- **Droits** : `config/permissions.php` (matrice du cahier) + `Authorizer::allows($user, $permission, $school, $cycle)`,
+  appelé par les Policies (`Gate::policy` dans `IdentityServiceProvider`). Une affectation limitée à un cycle ne couvre pas
+  les ressources de toute l'école. Paramètres de route (`{cycle}`, `{user}`) liés après `ResolveSchool` (priorité des
+  middlewares), donc sous la RLS de l'école courante : modèle d'une autre école = 404.
+- `RoleAssignment::ofUser($user)` : seule exception autorisée au scope « école courante » (affectations de l'utilisateur
+  dans toutes ses écoles, garanties par la RLS).
+- SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
+  journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
+
 ## Migrations
 
 - Une migration par table ou par changement cohérent. Colonnes : `uuid('id')->primary()`, `foreignUuid('school_id')->constrained()->cascadeOnDelete()`,
@@ -103,8 +126,14 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   migrations seulement) et `pgsql_platform` (rôle `app_platform`, via `Platform::run()` uniquement).
   `tests/TestCase.php` surcharge `migrateFreshUsing()` pour migrer avec `--database=pgsql_owner` ; les requêtes des tests passent par `pgsql`.
 - Helpers (`tests/Pest.php`) : `makeSchool(['kindergarten'])` (`null` = tous les cycles), `inSchool($school, fn)`,
-  `assignRole($user, $school, Role::Director, $cycle)`, `makeUser()`, `superAdmin()`, `rows($sql)`, `distinctColumn(…)` ;
-  `School::factory()->withCycles()`. À venir (étape 4) : `actingAsRole('director', $school, cycle: $maternelle)`.
+  `assignRole($user, $school, Role::Director, $cycle)`, `makeUser()`, `superAdmin()`, `cycleOf($school, 'primary')`,
+  `rows($sql)`, `distinctColumn(…)` ; `School::factory()->withCycles()`, `User::factory()->withProvisionalPassword()`.
+- Requêtes HTTP authentifiées : `actingAsRole(Role::Director, $school, cycle: $maternelle)` (vraie connexion par session),
+  `login($user)`, puis `spa('GET', '/api/v1/cycles', [], $school)`. `Tests\Support\SpaClient` se comporte comme le navigateur
+  (en-tête Origin, cookies conservés, garde oublié entre deux requêtes : l'utilisateur est rechargé par le fournisseur soumis
+  à la RLS). La `Timebox` de connexion est remplacée par `InstantTimebox` (durée notée, pas attendue).
+- CSRF : Laravel ne le vérifie pas pendant les tests ; il est vérifié en conditions réelles (navigateur + API) avant chaque PR
+  qui touche à l'authentification.
 - Pas de `$this->propriété` dans les tests Pest : variables locales et fonctions de fixture typées (Larastan niveau max sur `tests/`).
 - Obligatoire pour chaque ressource : cas nominal, validation, droit refusé, **isolation entre deux écoles**, droit limité par cycle.
 - Services externes : toujours les implémentations `Fake`, jamais d'appel réseau en test.

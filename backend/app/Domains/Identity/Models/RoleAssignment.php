@@ -6,9 +6,9 @@ namespace App\Domains\Identity\Models;
 
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Identity\Enums\Role;
-use App\Models\User;
 use App\Support\Tenancy\BelongsToSchool;
 use Database\Factories\RoleAssignmentFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -51,6 +51,20 @@ final class RoleAssignment extends Model
     public function cycle(): BelongsTo
     {
         return $this->belongsTo(Cycle::class);
+    }
+
+    /**
+     * Toutes les affectations d'un utilisateur, dans toutes ses écoles (/me, « se souvenir de moi »).
+     *
+     * Seule exception au scope « école courante » (test d'architecture) : justifiée, car la RLS
+     * (politique own_assignments_select) ne laisse lire hors de l'école courante que les lignes de
+     * l'utilisateur courant (app.user_id), posé par le fournisseur d'utilisateurs à l'authentification.
+     *
+     * @return Builder<RoleAssignment>
+     */
+    public static function ofUser(User $user): Builder
+    {
+        return self::query()->withoutGlobalScope('school')->where('user_id', $user->id);
     }
 
     protected static function booted(): void

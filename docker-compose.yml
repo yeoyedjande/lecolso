@@ -14,6 +14,13 @@ x-php-env: &php-env
   REDIS_HOST: redis
   QUEUE_CONNECTION: redis
   CACHE_STORE: redis
+  # Authentification SPA par cookie httpOnly (Sanctum) : frontend Vite sur localhost:5173
+  SESSION_DRIVER: redis
+  SESSION_LIFETIME: "480"
+  SESSION_SECURE_COOKIE: "false"
+  SESSION_SAME_SITE: lax
+  FRONTEND_URL: http://localhost:5173
+  SANCTUM_STATEFUL_DOMAINS: localhost:5173
   FILESYSTEM_DISK: s3
   AWS_ACCESS_KEY_ID: minio
   AWS_SECRET_ACCESS_KEY: minio_secret

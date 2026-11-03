@@ -48,6 +48,7 @@ it('ne nomme la connexion super-admin que dans Platform', function (): void {
     expect(appFilesContaining('pgsql_platform', ['Support/Tenancy/Platform.php']))->toBe([]);
 });
 
-it('n’utilise jamais withoutGlobalScope(s) dans l’application', function (): void {
-    expect(appFilesContaining('withoutGlobalScope'))->toBe([]);
+it('n’utilise withoutGlobalScope(s) qu’à l’endroit justifié', function (): void {
+    // Seule exception : RoleAssignment::ofUser() (ses propres affectations dans toutes ses écoles, garanties par la RLS)
+    expect(appFilesContaining('withoutGlobalScope', ['Domains/Identity/Models/RoleAssignment.php']))->toBe([]);
 });

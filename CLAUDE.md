@@ -12,7 +12,7 @@ Plan de travail du sprint en cours : `docs/sprints/`.
 | Couche | Choix |
 | --- | --- |
 | API | Laravel (dernière version stable), PHP 8.4, API REST `/api/v1` |
-| Auth | Laravel Sanctum (tokens), OTP SMS pour les parents, 2FA pour le personnel |
+| Auth | Laravel Sanctum en mode SPA (cookie de session httpOnly, sessions Redis, CSRF) ; identifiant (téléphone ou e-mail) + mot de passe pour tous ; pas de 2FA ni d'OTP en V1 |
 | Base | PostgreSQL 17, Row-Level Security |
 | Files / cache | Redis + Laravel Horizon |
 | Frontend | React + TypeScript strict + Vite, TanStack Router, TanStack Query, shadcn/ui + Tailwind |

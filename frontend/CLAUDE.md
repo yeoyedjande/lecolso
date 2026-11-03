@@ -51,12 +51,13 @@ src/
 - Budget : JS initial < 300 Ko gzip ; routes chargées à la demande ; images en WebP.
 - Hors connexion (appel, saisie de notes, journal garderie) : écriture dans Dexie avec un UUID généré côté client,
   file de synchronisation vers `POST /api/v1/sync`, indicateur visible « X éléments en attente ».
-- Service worker : vite-plugin-pwa en `injectManifest`, cache d'abord pour les assets. **Aucune réponse de l'API contenant des
-  données personnelles n'est mise en cache** par le service worker (Cache Storage) : le hors connexion passe uniquement par Dexie.
-  La déconnexion vide Dexie et tous les caches (décision du 03/11/2026, à appliquer aux sprint 0 étapes 4 et 6 ;
-  le `src/sw.ts` actuel met encore les GET de l'API en cache et sera corrigé à ce moment-là).
-- Authentification web : cookie httpOnly Sanctum (SPA, même domaine principal), jamais de token dans `localStorage`
-  (décision du 03/11/2026 ; le stockage provisoire de `lib/api/session.ts` sera remplacé à l'étape 4).
+- Service worker : vite-plugin-pwa en `injectManifest`, cache d'abord pour les fichiers de l'application (même origine).
+  **Aucune réponse de l'API n'est mise en cache** (données personnelles) ni aucun fichier d'une autre origine (photos
+  par URL signée) : le hors connexion passe uniquement par Dexie. `clearLocalData()` (`lib/offline/wipe.ts`) vide Dexie,
+  Cache Storage et les clés `localStorage` de l'application à la déconnexion et sur tout 401.
+- Authentification : cookie de session httpOnly (Sanctum, mode SPA), `credentials: 'include'`, en-tête `X-XSRF-TOKEN`
+  (cookie `XSRF-TOKEN` récupéré par `/sanctum/csrf-cookie` si absent, nouvel essai unique après un 419). Aucun jeton
+  côté JavaScript ; `localStorage` ne garde que l'établissement sélectionné. Hooks : `features/auth/api.ts`.
 
 ## Accessibilité et UX
 

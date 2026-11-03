@@ -4,6 +4,129 @@
  */
 
 export interface paths {
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connexion
+         * @description Identifiant (téléphone ou e-mail) et mot de passe. Session par cookie httpOnly : appeler d'abord
+         *     GET /sanctum/csrf-cookie. Même réponse 422 que le compte existe ou non ; 429 après 5 tentatives par minute
+         *     pour un identifiant, ou 20 par minute depuis une adresse IP.
+         */
+        post: operations["auth.login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déconnexion
+         * @description Invalide la session et renouvelle le jeton CSRF.
+         */
+        post: operations["auth.logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Changer son mot de passe
+         * @description Obligatoire à la première connexion avec un mot de passe provisoire. 8 caractères minimum.
+         */
+        post: operations["auth.password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profil de l'utilisateur connecté
+         * @description Ses écoles, ses rôles (par cycle) et ses permissions par école (null = toute l'école, sinon les cycles).
+         */
+        get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cycles de l'école
+         * @description Avec leurs niveaux et paramètres. Un utilisateur limité à un cycle ne voit que celui-ci.
+         */
+        get: operations["cycles.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cycles/{cycle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un cycle
+         * @description Nom et/ou paramètres (fusionnés avec les paramètres actuels). Permission school.settings.manage
+         *     sur ce cycle (403 sinon) ; 404 si le cycle n'appartient pas à l'école.
+         */
+        patch: operations["cycles.update"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -46,10 +169,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{user}/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Réinitialiser le mot de passe d'un utilisateur de l'école
+         * @description Directeur ou secrétaire de l'école (dans la limite de leurs cycles). Génère un mot de passe provisoire,
+         *     renvoyé une seule fois, à changer à la prochaine connexion. 404 si l'utilisateur n'est pas membre de l'école.
+         */
+        post: operations["users.password-reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ChangePasswordRequest */
+        ChangePasswordRequest: {
+            current_password: string;
+            password: string;
+            password_confirmation: string;
+        };
+        /** CycleResource */
+        CycleResource: {
+            id: string;
+            code: string;
+            name: string;
+            position: number;
+            is_active: boolean;
+            settings: {
+                /** @enum {string} */
+                term_type: "trimester" | "semester" | "free_period";
+                /** @enum {string} */
+                assessment_mode: "observation" | "competency" | "weighted_average";
+                /** @enum {string} */
+                attendance_mode: "roll_call" | "check_in_out";
+                /** @enum {string} */
+                billing_period: "monthly" | "quarterly" | "yearly";
+                /** @enum {string} */
+                report_document: "none" | "skills_booklet" | "report_card";
+                /** @enum {string} */
+                daily_log: "none" | "optional" | "required";
+            };
+            levels: components["schemas"]["LevelResource"][];
+        };
         /** HealthResource */
         HealthResource: {
             /** @enum {string} */
@@ -58,6 +231,49 @@ export interface components {
             database: "ok" | "error";
             /** @enum {string} */
             redis: "ok" | "error";
+        };
+        /** LevelResource */
+        LevelResource: {
+            id: string;
+            code: string;
+            name: string;
+            position: number;
+        };
+        /** LoginRequest */
+        LoginRequest: {
+            /** @description Téléphone (« 07 00 00 00 00 », « +225… ») ou adresse e-mail */
+            login: string;
+            password: string;
+            /** @description « Se souvenir de moi » (30 jours) : ignoré pour les comptes du personnel */
+            remember?: boolean;
+        };
+        /** ProfileResource */
+        ProfileResource: {
+            id: string;
+            name: string;
+            phone: string;
+            email: string | null;
+            must_change_password: boolean;
+            is_super_admin: boolean;
+            /** @description « Se souvenir de moi » proposé (comptes sans rôle du personnel) */
+            can_be_remembered: boolean;
+            schools: components["schemas"]["SchoolMembershipResource"][];
+        };
+        /** RoleAssignmentResource */
+        RoleAssignmentResource: {
+            /** @enum {string} */
+            role: "super_admin" | "promoter" | "director" | "secretary" | "accountant" | "teacher" | "guardian";
+            cycle_id: string | null;
+        };
+        /** SchoolMembershipResource */
+        SchoolMembershipResource: {
+            id: string;
+            name: string;
+            slug: string;
+            roles: components["schemas"]["RoleAssignmentResource"][];
+            permissions: {
+                [key: string]: string[] | null;
+            };
         };
         /** SchoolResource */
         SchoolResource: {
@@ -71,10 +287,62 @@ export interface components {
             currency: string;
             created_at: string | null;
         };
+        /** UpdateCycleRequest */
+        UpdateCycleRequest: {
+            name?: string;
+            settings?: {
+                term_type?: string;
+                assessment_mode?: string;
+                attendance_mode?: string;
+                billing_period?: string;
+                report_document?: string;
+                daily_log?: string;
+            };
+        };
     };
     responses: {
         /** @description Unauthenticated */
         AuthenticationException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+        /** @description Not found */
+        ModelNotFoundException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+        /** @description Validation error */
+        ValidationException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Errors overview. */
+                    message: string;
+                    /** @description A detailed description of each field that failed validation. */
+                    errors: {
+                        [key: string]: string[];
+                    };
+                };
+            };
+        };
+        /** @description Authorization error */
+        AuthorizationException: {
             headers: {
                 [name: string]: unknown;
             };
@@ -93,6 +361,180 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "auth.login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProfileResource"];
+                    };
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+            /** @description Trop de tentatives (par identifiant ou par adresse IP). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        code: string;
+                    };
+                };
+            };
+        };
+    };
+    "auth.logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "auth.password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "cycles.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `CycleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CycleResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "cycles.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The cycle ID */
+                cycle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateCycleRequest"];
+            };
+        };
+        responses: {
+            /** @description `CycleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CycleResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -170,6 +612,35 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    "users.password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        provisional_password: "";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
 }

@@ -64,7 +64,13 @@ Propose ton plan avant de coder.
 
 Fait quand : un test lance une requête SQL brute sans scope et ne voit que les lignes de l'école courante.
 
-## Étape 4 — Utilisateurs, authentification et rôles par cycle
+## Étape 4 — Utilisateurs, authentification et rôles par cycle ✅
+
+> Fait le 03/11/2026 sur `feat/identity-auth`, avec le **périmètre simplifié** décidé ce jour-là (voir `docs/decisions-metier.md`) :
+> une seule connexion (téléphone ou e-mail + mot de passe), **ni OTP SMS ni 2FA** en V1 ; comptes créés avec un mot de passe
+> provisoire (`must_change_password`), `POST /auth/password`, réinitialisation par le directeur ou la secrétaire
+> (`POST /users/{user}/password-reset`) ; session par cookie httpOnly (Sanctum SPA, Redis) ; RLS sur `users` ;
+> routes de démonstration `GET`/`PATCH /cycles`. Le texte ci-dessous est la demande d'origine, conservée pour l'historique.
 
 ```text
 Implémente le domaine Identity :
@@ -104,12 +110,14 @@ Décisions à intégrer à cette étape (prises le 03/11/2026, voir `docs/decisi
 
 ```text
 Implémente dans le frontend :
-- client HTTP typé avec schema.d.ts, gestion du token Sanctum, ajout de X-School-Id, rafraîchissement de /me ;
-- écran de connexion personnel (téléphone ou e-mail + mot de passe, puis code 2FA si demandé) ;
-- écran de connexion parent (téléphone → code OTP) ;
+- client HTTP déjà en mode cookie (étape 4) : rafraîchissement de /me, retour à l'écran de connexion sur un 401 ;
+- un seul écran de connexion pour tous (téléphone ou e-mail + mot de passe ; case « se souvenir de moi »
+  affichée seulement si /me ou la réponse l'autorise), erreurs 422 et 429 affichées sur le formulaire ;
+- écran de changement de mot de passe (mot de passe provisoire à la première connexion : seul écran accessible tant que
+  must_change_password est vrai) ;
 - sélection de l'école si l'utilisateur en a plusieurs, mise en page back-office (menu selon les permissions) et mise en page mobile parent ;
-- manifeste PWA (nom, icônes provisoires, couleurs) et service worker.
-Tests Vitest des formulaires, test Playwright du parcours de connexion parent avec l'API de démo.
+- manifeste PWA (nom, icônes provisoires, couleurs) ; service worker déjà conforme (aucune réponse API en cache).
+Tests Vitest des formulaires, test Playwright du parcours : connexion avec un mot de passe provisoire, changement, accès à l'accueil.
 ```
 
 ## Étape 7 — CI verte

@@ -20,7 +20,8 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'array'),
+    // Sessions en Redis : authentification SPA par cookie httpOnly (Sanctum)
+    'driver' => env('SESSION_DRIVER', 'redis'),
 
     /*
     |--------------------------------------------------------------------------
@@ -34,7 +35,8 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    // 8 h d'inactivité (journée de travail du personnel) ; « se souvenir de moi » : config/auth.php
+    'lifetime' => (int) env('SESSION_LIFETIME', 480),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
@@ -171,7 +173,8 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // true en production (HTTPS) : voir .railway/railway.ts
+    'secure' => (bool) env('SESSION_SECURE_COOKIE', false),
 
     /*
     |--------------------------------------------------------------------------
