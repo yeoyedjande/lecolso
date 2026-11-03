@@ -69,8 +69,13 @@ jobs:
           key: composer-${{ hashFiles('backend/composer.lock') }}
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
-      - name: Rôles PostgreSQL (app_user soumis à la RLS)
-        run: PGPASSWORD=app_owner_secret psql -h 127.0.0.1 -U app_owner -d gestion_ecole -f ../docker/postgres/init/01-roles.sql
+      - name: Base de test et rôles PostgreSQL (app_user soumis à la RLS)
+        env:
+          PGPASSWORD: app_owner_secret
+        run: |
+          # Ordre imposé : 01-roles.sql fait \connect gestion_ecole_test, créée par 00-test-database.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U app_owner -d gestion_ecole -f ../docker/postgres/init/00-test-database.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U app_owner -d gestion_ecole -f ../docker/postgres/init/01-roles.sql
       - name: Formatage
         run: vendor/bin/pint --test
       - name: Analyse statique

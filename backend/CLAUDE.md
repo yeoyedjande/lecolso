@@ -23,12 +23,20 @@ app/
 │           ├── Policies/
 │           ├── Events/  Listeners/  Jobs/
 │           ├── Enums/
-│           └── routes.php      # routes du domaine, chargées par RouteServiceProvider
+│           └── routes.php      # routes du domaine, chargées automatiquement sous /api/v1
 └── Support/          # code transverse : Rls, Money, Phone, BelongsToSchool, CycleSettings
+    └── Routing/DomainRoutes.php   # chargement des routes par domaine
 ```
 
 Un domaine n'accède pas aux modèles d'un autre domaine pour écrire : il appelle une Action de ce domaine ou réagit à un événement.
 La lecture via relations Eloquent entre domaines est autorisée.
+
+### Chargement des routes
+
+Laravel 11+ n'a plus de `RouteServiceProvider`. `bootstrap/app.php` appelle `App\Support\Routing\DomainRoutes::register()`
+(callback `then` de `withRouting`), qui charge chaque `app/Domains/<Domaine>/routes.php` (ordre alphabétique) avec le préfixe
+`/api/v1` et le groupe de middleware `api`. Il n'y a ni `routes/web.php` ni `routes/api.php` : une nouvelle route se déclare
+dans le `routes.php` de son domaine, sans préfixe (`Route::get('health', …)` → `GET /api/v1/health`).
 
 ## Conventions de code
 

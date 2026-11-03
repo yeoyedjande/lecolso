@@ -8,7 +8,9 @@ Relis le plan proposé, valide, laisse Claude Code coder et tester, relis le dif
 
 ---
 
-## Étape 1 — Initialiser le backend
+## Étape 1 — Initialiser le backend ✅
+
+> Fait le 03/11/2026 sur `feat/socle-backend` : Laravel 13, `GET /api/v1/health` (base + Redis, 503 si indisponible).
 
 ```text
 Lis CLAUDE.md et backend/CLAUDE.md.
