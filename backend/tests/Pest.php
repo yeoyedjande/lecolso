@@ -5,10 +5,14 @@ declare(strict_types=1);
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
+use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\School;
-use App\Models\User;
+use App\Support\Tenancy\Platform;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Tests\Support\SpaClient;
 use Tests\TestCase;
 
 // Tous les tests (Feature et Unit) démarrent l'application Laravel ; base vidée avant chaque test (TestCase)
@@ -81,10 +85,50 @@ function makeUser(): User
 function superAdmin(): User
 {
     $user = makeUser();
-    // is_super_admin n'est pas assignable en masse : écriture explicite
-    $user->forceFill(['is_super_admin' => true])->save();
+
+    // is_super_admin n'est ni assignable en masse ni modifiable par app_user : écriture super-admin explicite
+    Platform::run(static fn (): int => User::query()->whereKey($user->id)->update(['is_super_admin' => true]));
+    $user->forceFill(['is_super_admin' => true])->syncOriginal();
 
     return $user;
+}
+
+/**
+ * Requête du frontend (cookie de session, en-tête Origin), avec l'école courante si fournie.
+ *
+ * @param  array<array-key, mixed>  $data  corps JSON
+ * @param  array<string, string>  $server
+ * @return TestResponse<Response>
+ */
+function spa(string $method, string $uri, array $data = [], ?School $school = null, array $server = []): TestResponse
+{
+    return SpaClient::request($method, $uri, $data, $school === null ? [] : ['X-School-Id' => $school->id], $server);
+}
+
+/**
+ * Connexion réelle par POST /api/v1/auth/login (session par cookie).
+ *
+ * @return TestResponse<Response>
+ */
+function login(User $user, string $password = 'password', bool $remember = false): TestResponse
+{
+    return spa('POST', '/api/v1/auth/login', ['login' => $user->phone, 'password' => $password, 'remember' => $remember]);
+}
+
+/** Utilisateur affecté à $school (toute l'école, ou un cycle) et connecté par session. */
+function actingAsRole(Role|string $role, School $school, ?Cycle $cycle = null): User
+{
+    $user = makeUser();
+    assignRole($user, $school, $role instanceof Role ? $role : Role::from($role), $cycle);
+    login($user)->assertOk();
+
+    return $user;
+}
+
+/** Cycle d'une école à partir de son code de catalogue (lu dans le contexte de l'école). */
+function cycleOf(School $school, string $code): Cycle
+{
+    return inSchool($school, static fn (): Cycle => Cycle::query()->where('code', $code)->firstOrFail());
 }
 
 /** Affecte un rôle à un utilisateur dans une école (toute l'école, ou un cycle). */

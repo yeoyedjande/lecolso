@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Identity\Enums\Role;
+use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\School;
-use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;

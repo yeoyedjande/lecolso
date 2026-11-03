@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
-import { CacheFirst, NetworkFirst } from 'workbox-strategies'
+import { CacheFirst } from 'workbox-strategies'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -11,21 +11,15 @@ precacheAndRoute(self.__WB_MANIFEST)
 // Application monopage : toute navigation sert index.html depuis le cache
 registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')))
 
-const apiUrl = new URL(import.meta.env.VITE_API_URL)
+// API : AUCUNE réponse en cache (données personnelles). Le hors connexion passe uniquement par Dexie
+// (lib/offline) ; les requêtes vers l'API vont toujours au réseau.
 
-// API : réseau d'abord (3G instable), réponse en cache si le réseau échoue ou tarde.
-// Uniquement les GET : les écritures hors connexion passent par la file Dexie (lib/offline).
+// Images et polices de l'application elle-même (même origine) : cache d'abord. Jamais les fichiers servis
+// par des URL signées (photos d'élèves, pièces jointes), qui viennent d'une autre origine.
 registerRoute(
   ({ url, request }) =>
-    request.method === 'GET' &&
-    url.origin === apiUrl.origin &&
-    url.pathname.startsWith(apiUrl.pathname),
-  new NetworkFirst({ cacheName: 'api', networkTimeoutSeconds: 5 }),
-)
-
-// Images et polices hors precache : cache d'abord
-registerRoute(
-  ({ request }) => request.destination === 'image' || request.destination === 'font',
+    url.origin === self.location.origin &&
+    (request.destination === 'image' || request.destination === 'font'),
   new CacheFirst({ cacheName: 'assets' }),
 )
 

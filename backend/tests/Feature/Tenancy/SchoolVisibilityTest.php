@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use App\Domains\Identity\Enums\Role;
+use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\Organization;
 use App\Domains\Tenancy\Models\School;
-use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;

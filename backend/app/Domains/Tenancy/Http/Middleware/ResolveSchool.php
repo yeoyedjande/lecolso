@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Tenancy\Http\Middleware;
 
 use App\Domains\Identity\Models\RoleAssignment;
+use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\School;
-use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Auth\AuthenticationException;

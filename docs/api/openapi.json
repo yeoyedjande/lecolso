@@ -11,6 +11,275 @@
         }
     ],
     "paths": {
+        "/auth/login": {
+            "post": {
+                "operationId": "auth.login",
+                "description": "Identifiant (t\u00e9l\u00e9phone ou e-mail) et mot de passe. Session par cookie httpOnly : appeler d'abord\nGET /sanctum/csrf-cookie. M\u00eame r\u00e9ponse 422 que le compte existe ou non ; 429 apr\u00e8s 5 tentatives par minute\npour un identifiant, ou 20 par minute depuis une adresse IP.",
+                "summary": "Connexion",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Trop de tentatives (par identifiant ou par adresse IP).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "code": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "code"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "operationId": "auth.logout",
+                "description": "Invalide la session et renouvelle le jeton CSRF.",
+                "summary": "D\u00e9connexion",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/auth/password": {
+            "post": {
+                "operationId": "auth.password",
+                "description": "Obligatoire \u00e0 la premi\u00e8re connexion avec un mot de passe provisoire. 8 caract\u00e8res minimum.",
+                "summary": "Changer son mot de passe",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "operationId": "me",
+                "description": "Ses \u00e9coles, ses r\u00f4les (par cycle) et ses permissions par \u00e9cole (null = toute l'\u00e9cole, sinon les cycles).",
+                "summary": "Profil de l'utilisateur connect\u00e9",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/cycles": {
+            "get": {
+                "operationId": "cycles.index",
+                "description": "Avec leurs niveaux et param\u00e8tres. Un utilisateur limit\u00e9 \u00e0 un cycle ne voit que celui-ci.",
+                "summary": "Cycles de l'\u00e9cole",
+                "tags": [
+                    "Cycle"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `CycleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CycleResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/cycles/{cycle}": {
+            "patch": {
+                "operationId": "cycles.update",
+                "description": "Nom et/ou param\u00e8tres (fusionn\u00e9s avec les param\u00e8tres actuels). Permission school.settings.manage\nsur ce cycle (403 sinon) ; 404 si le cycle n'appartient pas \u00e0 l'\u00e9cole.",
+                "summary": "Modifier un cycle",
+                "tags": [
+                    "Cycle"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cycle ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCycleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CycleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CycleResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "operationId": "health",
@@ -171,10 +440,183 @@
                     }
                 }
             }
+        },
+        "/users/{user}/password-reset": {
+            "post": {
+                "operationId": "users.password-reset",
+                "description": "Directeur ou secr\u00e9taire de l'\u00e9cole (dans la limite de leurs cycles). G\u00e9n\u00e8re un mot de passe provisoire,\nrenvoy\u00e9 une seule fois, \u00e0 changer \u00e0 la prochaine connexion. 404 si l'utilisateur n'est pas membre de l'\u00e9cole.",
+                "summary": "R\u00e9initialiser le mot de passe d'un utilisateur de l'\u00e9cole",
+                "tags": [
+                    "ResetUserPassword"
+                ],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "description": "The user ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "provisional_password": {
+                                            "type": "string",
+                                            "const": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "provisional_password"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
         }
     },
     "components": {
         "schemas": {
+            "ChangePasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "current_password": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "current_password",
+                    "password",
+                    "password_confirmation"
+                ],
+                "title": "ChangePasswordRequest"
+            },
+            "CycleResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "settings": {
+                        "type": "object",
+                        "properties": {
+                            "term_type": {
+                                "type": "string",
+                                "enum": [
+                                    "trimester",
+                                    "semester",
+                                    "free_period"
+                                ]
+                            },
+                            "assessment_mode": {
+                                "type": "string",
+                                "enum": [
+                                    "observation",
+                                    "competency",
+                                    "weighted_average"
+                                ]
+                            },
+                            "attendance_mode": {
+                                "type": "string",
+                                "enum": [
+                                    "roll_call",
+                                    "check_in_out"
+                                ]
+                            },
+                            "billing_period": {
+                                "type": "string",
+                                "enum": [
+                                    "monthly",
+                                    "quarterly",
+                                    "yearly"
+                                ]
+                            },
+                            "report_document": {
+                                "type": "string",
+                                "enum": [
+                                    "none",
+                                    "skills_booklet",
+                                    "report_card"
+                                ]
+                            },
+                            "daily_log": {
+                                "type": "string",
+                                "enum": [
+                                    "none",
+                                    "optional",
+                                    "required"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "term_type",
+                            "assessment_mode",
+                            "attendance_mode",
+                            "billing_period",
+                            "report_document",
+                            "daily_log"
+                        ]
+                    },
+                    "levels": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LevelResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "position",
+                    "is_active",
+                    "settings",
+                    "levels"
+                ],
+                "title": "CycleResource"
+            },
             "HealthResource": {
                 "type": "object",
                 "properties": {
@@ -206,6 +648,168 @@
                     "redis"
                 ],
                 "title": "HealthResource"
+            },
+            "LevelResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "position"
+                ],
+                "title": "LevelResource"
+            },
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "login": {
+                        "type": "string",
+                        "description": "T\u00e9l\u00e9phone (\u00ab 07 00 00 00 00 \u00bb, \u00ab +225\u2026 \u00bb) ou adresse e-mail",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "remember": {
+                        "type": "boolean",
+                        "description": "\u00ab Se souvenir de moi \u00bb (30 jours) : ignor\u00e9 pour les comptes du personnel"
+                    }
+                },
+                "required": [
+                    "login",
+                    "password"
+                ],
+                "title": "LoginRequest"
+            },
+            "ProfileResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "must_change_password": {
+                        "type": "boolean"
+                    },
+                    "is_super_admin": {
+                        "type": "boolean"
+                    },
+                    "can_be_remembered": {
+                        "type": "boolean",
+                        "description": "\u00ab Se souvenir de moi \u00bb propos\u00e9 (comptes sans r\u00f4le du personnel)"
+                    },
+                    "schools": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SchoolMembershipResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "phone",
+                    "email",
+                    "must_change_password",
+                    "is_super_admin",
+                    "can_be_remembered",
+                    "schools"
+                ],
+                "title": "ProfileResource"
+            },
+            "RoleAssignmentResource": {
+                "type": "object",
+                "properties": {
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "super_admin",
+                            "promoter",
+                            "director",
+                            "secretary",
+                            "accountant",
+                            "teacher",
+                            "guardian"
+                        ]
+                    },
+                    "cycle_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "role",
+                    "cycle_id"
+                ],
+                "title": "RoleAssignmentResource"
+            },
+            "SchoolMembershipResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleAssignmentResource"
+                        }
+                    },
+                    "permissions": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": [
+                                "array",
+                                "null"
+                            ],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "roles",
+                    "permissions"
+                ],
+                "title": "SchoolMembershipResource"
             },
             "SchoolResource": {
                 "type": "object",
@@ -260,11 +864,113 @@
                     "created_at"
                 ],
                 "title": "SchoolResource"
+            },
+            "UpdateCycleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 100
+                    },
+                    "settings": {
+                        "type": "object",
+                        "properties": {
+                            "term_type": {
+                                "type": "string"
+                            },
+                            "assessment_mode": {
+                                "type": "string"
+                            },
+                            "attendance_mode": {
+                                "type": "string"
+                            },
+                            "billing_period": {
+                                "type": "string"
+                            },
+                            "report_document": {
+                                "type": "string"
+                            },
+                            "daily_log": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": "UpdateCycleRequest"
             }
         },
         "responses": {
             "AuthenticationException": {
                 "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthorizationException": {
+                "description": "Authorization error",
                 "content": {
                     "application/json": {
                         "schema": {

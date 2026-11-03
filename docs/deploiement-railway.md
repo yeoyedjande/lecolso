@@ -67,6 +67,24 @@ une injection SQL sur la connexion applicative ne suffit donc pas à contourner 
 Le code n'utilise cette connexion qu'à travers `Platform::run()`, dans les routes `/api/v1/platform/*` (super-admin).
 `db:provision-app-role` (étape 8) devra aussi créer `app_platform` avec `DB_PLATFORM_PASSWORD`, en refusant toute appartenance croisée.
 
+## Session et authentification (navigateur)
+
+Le frontend (`app.<domaine>`, `<slug>.<domaine>`) et l'API (`api.<domaine>`) partagent le domaine principal : la session
+est un cookie httpOnly posé sur `.<domaine>`, et Sanctum (mode SPA) protège les requêtes par le jeton CSRF `XSRF-TOKEN`.
+
+| Variable | Valeur en production | Rôle |
+| --- | --- | --- |
+| `SESSION_DRIVER` | `redis` | sessions partagées par les répliques de `api` |
+| `SESSION_LIFETIME` | `480` | 8 h d'inactivité ; « se souvenir de moi » (30 jours) réservé aux comptes sans rôle du personnel |
+| `SESSION_DOMAIN` | `.<domaine>` | cookie lisible par `api.` et envoyé depuis `app.` et `<slug>.` |
+| `SESSION_SECURE_COOKIE` | `true` | cookie envoyé en HTTPS uniquement |
+| `SESSION_SAME_SITE` | `lax` | même site : les requêtes du frontend emportent le cookie |
+| `SANCTUM_STATEFUL_DOMAINS` | `app.<domaine>,*.<domaine>` | origines traitées en session (sinon : aucune session) |
+| `FRONTEND_URL` | `https://app.<domaine>` | origine autorisée par CORS (avec cookies) |
+| `CORS_ALLOWED_ORIGIN_PATTERN` | `#^https://[a-z0-9-]+\.<domaine>$#` | pages des écoles autorisées par CORS |
+
+Ces valeurs sont dans `.railway/railway.ts` (communes à `api`, `worker`, `scheduler`).
+
 ## Opérations courantes
 
 | Besoin | Commande ou action |

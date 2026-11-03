@@ -6,7 +6,7 @@ namespace Database\Factories;
 
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
-use App\Models\User;
+use App\Domains\Identity\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
