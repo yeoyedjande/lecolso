@@ -10,33 +10,207 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConnexionRouteImport } from './routes/connexion'
+import { Route as DesignRouteImport } from './routes/design'
+import { Route as EnseignantRouteRouteImport } from './routes/enseignant/route'
+import { Route as EtablissementsRouteImport } from './routes/etablissements'
+import { Route as EtatRouteImport } from './routes/etat'
+import { Route as GestionRouteRouteImport } from './routes/gestion/route'
+import { Route as MotDePasseRouteImport } from './routes/mot-de-passe'
+import { Route as ParentRouteRouteImport } from './routes/parent/route'
+import { Route as EnseignantIndexRouteImport } from './routes/enseignant/index'
+import { Route as EnseignantSplatRouteImport } from './routes/enseignant/$'
+import { Route as GestionIndexRouteImport } from './routes/gestion/index'
+import { Route as GestionSplatRouteImport } from './routes/gestion/$'
+import { Route as ParentIndexRouteImport } from './routes/parent/index'
+import { Route as ParentSplatRouteImport } from './routes/parent/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConnexionRoute = ConnexionRouteImport.update({
+  id: '/connexion',
+  path: '/connexion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignRoute = DesignRouteImport.update({
+  id: '/design',
+  path: '/design',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnseignantRouteRoute = EnseignantRouteRouteImport.update({
+  id: '/enseignant',
+  path: '/enseignant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EtablissementsRoute = EtablissementsRouteImport.update({
+  id: '/etablissements',
+  path: '/etablissements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EtatRoute = EtatRouteImport.update({
+  id: '/etat',
+  path: '/etat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GestionRouteRoute = GestionRouteRouteImport.update({
+  id: '/gestion',
+  path: '/gestion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MotDePasseRoute = MotDePasseRouteImport.update({
+  id: '/mot-de-passe',
+  path: '/mot-de-passe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParentRouteRoute = ParentRouteRouteImport.update({
+  id: '/parent',
+  path: '/parent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnseignantIndexRoute = EnseignantIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EnseignantRouteRoute,
+} as any)
+const EnseignantSplatRoute = EnseignantSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => EnseignantRouteRoute,
+} as any)
+const GestionIndexRoute = GestionIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionSplatRoute = GestionSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const ParentIndexRoute = ParentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
+const ParentSplatRoute = ParentSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/enseignant': typeof EnseignantRouteRouteWithChildren
+  '/gestion': typeof GestionRouteRouteWithChildren
+  '/parent': typeof ParentRouteRouteWithChildren
+  '/connexion': typeof ConnexionRoute
+  '/design': typeof DesignRoute
+  '/etablissements': typeof EtablissementsRoute
+  '/etat': typeof EtatRoute
+  '/mot-de-passe': typeof MotDePasseRoute
+  '/enseignant/$': typeof EnseignantSplatRoute
+  '/gestion/$': typeof GestionSplatRoute
+  '/parent/$': typeof ParentSplatRoute
+  '/enseignant/': typeof EnseignantIndexRoute
+  '/gestion/': typeof GestionIndexRoute
+  '/parent/': typeof ParentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/connexion': typeof ConnexionRoute
+  '/design': typeof DesignRoute
+  '/etablissements': typeof EtablissementsRoute
+  '/etat': typeof EtatRoute
+  '/mot-de-passe': typeof MotDePasseRoute
+  '/enseignant/$': typeof EnseignantSplatRoute
+  '/gestion/$': typeof GestionSplatRoute
+  '/parent/$': typeof ParentSplatRoute
+  '/enseignant': typeof EnseignantIndexRoute
+  '/gestion': typeof GestionIndexRoute
+  '/parent': typeof ParentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/enseignant': typeof EnseignantRouteRouteWithChildren
+  '/gestion': typeof GestionRouteRouteWithChildren
+  '/parent': typeof ParentRouteRouteWithChildren
+  '/connexion': typeof ConnexionRoute
+  '/design': typeof DesignRoute
+  '/etablissements': typeof EtablissementsRoute
+  '/etat': typeof EtatRoute
+  '/mot-de-passe': typeof MotDePasseRoute
+  '/enseignant/$': typeof EnseignantSplatRoute
+  '/gestion/$': typeof GestionSplatRoute
+  '/parent/$': typeof ParentSplatRoute
+  '/enseignant/': typeof EnseignantIndexRoute
+  '/gestion/': typeof GestionIndexRoute
+  '/parent/': typeof ParentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/enseignant'
+    | '/gestion'
+    | '/parent'
+    | '/connexion'
+    | '/design'
+    | '/etablissements'
+    | '/etat'
+    | '/mot-de-passe'
+    | '/enseignant/$'
+    | '/gestion/$'
+    | '/parent/$'
+    | '/enseignant/'
+    | '/gestion/'
+    | '/parent/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/connexion'
+    | '/design'
+    | '/etablissements'
+    | '/etat'
+    | '/mot-de-passe'
+    | '/enseignant/$'
+    | '/gestion/$'
+    | '/parent/$'
+    | '/enseignant'
+    | '/gestion'
+    | '/parent'
+  id:
+    | '__root__'
+    | '/'
+    | '/enseignant'
+    | '/gestion'
+    | '/parent'
+    | '/connexion'
+    | '/design'
+    | '/etablissements'
+    | '/etat'
+    | '/mot-de-passe'
+    | '/enseignant/$'
+    | '/gestion/$'
+    | '/parent/$'
+    | '/enseignant/'
+    | '/gestion/'
+    | '/parent/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EnseignantRouteRoute: typeof EnseignantRouteRouteWithChildren
+  GestionRouteRoute: typeof GestionRouteRouteWithChildren
+  ParentRouteRoute: typeof ParentRouteRouteWithChildren
+  ConnexionRoute: typeof ConnexionRoute
+  DesignRoute: typeof DesignRoute
+  EtablissementsRoute: typeof EtablissementsRoute
+  EtatRoute: typeof EtatRoute
+  MotDePasseRoute: typeof MotDePasseRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +222,159 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/connexion': {
+      id: '/connexion'
+      path: '/connexion'
+      fullPath: '/connexion'
+      preLoaderRoute: typeof ConnexionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enseignant': {
+      id: '/enseignant'
+      path: '/enseignant'
+      fullPath: '/enseignant'
+      preLoaderRoute: typeof EnseignantRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/etablissements': {
+      id: '/etablissements'
+      path: '/etablissements'
+      fullPath: '/etablissements'
+      preLoaderRoute: typeof EtablissementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/etat': {
+      id: '/etat'
+      path: '/etat'
+      fullPath: '/etat'
+      preLoaderRoute: typeof EtatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gestion': {
+      id: '/gestion'
+      path: '/gestion'
+      fullPath: '/gestion'
+      preLoaderRoute: typeof GestionRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mot-de-passe': {
+      id: '/mot-de-passe'
+      path: '/mot-de-passe'
+      fullPath: '/mot-de-passe'
+      preLoaderRoute: typeof MotDePasseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parent': {
+      id: '/parent'
+      path: '/parent'
+      fullPath: '/parent'
+      preLoaderRoute: typeof ParentRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enseignant/': {
+      id: '/enseignant/'
+      path: '/'
+      fullPath: '/enseignant/'
+      preLoaderRoute: typeof EnseignantIndexRouteImport
+      parentRoute: typeof EnseignantRouteRoute
+    }
+    '/enseignant/$': {
+      id: '/enseignant/$'
+      path: '/$'
+      fullPath: '/enseignant/$'
+      preLoaderRoute: typeof EnseignantSplatRouteImport
+      parentRoute: typeof EnseignantRouteRoute
+    }
+    '/gestion/': {
+      id: '/gestion/'
+      path: '/'
+      fullPath: '/gestion/'
+      preLoaderRoute: typeof GestionIndexRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/$': {
+      id: '/gestion/$'
+      path: '/$'
+      fullPath: '/gestion/$'
+      preLoaderRoute: typeof GestionSplatRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/parent/': {
+      id: '/parent/'
+      path: '/'
+      fullPath: '/parent/'
+      preLoaderRoute: typeof ParentIndexRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
+    '/parent/$': {
+      id: '/parent/$'
+      path: '/$'
+      fullPath: '/parent/$'
+      preLoaderRoute: typeof ParentSplatRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
   }
 }
 
+interface EnseignantRouteRouteChildren {
+  EnseignantSplatRoute: typeof EnseignantSplatRoute
+  EnseignantIndexRoute: typeof EnseignantIndexRoute
+}
+
+const EnseignantRouteRouteChildren: EnseignantRouteRouteChildren = {
+  EnseignantSplatRoute: EnseignantSplatRoute,
+  EnseignantIndexRoute: EnseignantIndexRoute,
+}
+
+const EnseignantRouteRouteWithChildren = EnseignantRouteRoute._addFileChildren(
+  EnseignantRouteRouteChildren,
+)
+
+interface GestionRouteRouteChildren {
+  GestionSplatRoute: typeof GestionSplatRoute
+  GestionIndexRoute: typeof GestionIndexRoute
+}
+
+const GestionRouteRouteChildren: GestionRouteRouteChildren = {
+  GestionSplatRoute: GestionSplatRoute,
+  GestionIndexRoute: GestionIndexRoute,
+}
+
+const GestionRouteRouteWithChildren = GestionRouteRoute._addFileChildren(
+  GestionRouteRouteChildren,
+)
+
+interface ParentRouteRouteChildren {
+  ParentSplatRoute: typeof ParentSplatRoute
+  ParentIndexRoute: typeof ParentIndexRoute
+}
+
+const ParentRouteRouteChildren: ParentRouteRouteChildren = {
+  ParentSplatRoute: ParentSplatRoute,
+  ParentIndexRoute: ParentIndexRoute,
+}
+
+const ParentRouteRouteWithChildren = ParentRouteRoute._addFileChildren(
+  ParentRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EnseignantRouteRoute: EnseignantRouteRouteWithChildren,
+  GestionRouteRoute: GestionRouteRouteWithChildren,
+  ParentRouteRoute: ParentRouteRouteWithChildren,
+  ConnexionRoute: ConnexionRoute,
+  DesignRoute: DesignRoute,
+  EtablissementsRoute: EtablissementsRoute,
+  EtatRoute: EtatRoute,
+  MotDePasseRoute: MotDePasseRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

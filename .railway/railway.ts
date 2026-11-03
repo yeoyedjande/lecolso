@@ -111,6 +111,10 @@ export default defineRailway((ctx) => {
     env: {
       RAILWAY_DOCKERFILE_PATH: "docker/production/web.Dockerfile",
       VITE_API_URL: `https://api.${DOMAIN}/api/v1`,
+      // staging : page /design et données de démonstration des modules sans backend
+      VITE_APP_ENV: prod ? "production" : "staging",
+      VITE_DEMO_MODULES: prod ? "false" : "true",
+      VITE_TENANT_DOMAIN: DOMAIN,
     },
   });
 

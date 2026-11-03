@@ -46,6 +46,25 @@ src/
 - Les écrans s'adaptent aux droits : masquer ce que l'utilisateur ne peut pas faire (permissions renvoyées par `/me`), le backend restant la vraie barrière.
 - Les écrans s'adaptent au cycle : le mode d'évaluation, de présence et de facturation vient des `settings` du cycle, jamais d'un test sur son nom.
 
+## Design system et espaces
+
+- Tokens dans `src/index.css` (`:root`, `.dark`), exposés à Tailwind par `@theme inline`. Couleurs de base pour fonds,
+  bordures et graphiques ; **texte coloré uniquement avec les variantes `-ink`** (`text-accent-ink`, `text-cycle-primary-ink`,
+  `text-success-ink`…). `src/styles/contrast.test.ts` vérifie le contraste AA de chaque paire texte / fond.
+- Couleur d'un cycle : `lib/cycles.ts` (`cycleTone`, `CYCLE_CLASSES`, `CYCLE_HEX`) et `<CycleBadge>`, jamais une couleur en dur.
+- Polices auto-hébergées (`@fontsource-variable`, `src/styles/fonts.css`) : `font-display` (Bricolage Grotesque) pour titres
+  et chiffres clés, Inter pour le texte.
+- Mouvement : `motion` via `components/motion` (`Reveal`, `PageTransition`, `AnimatedNumber`) ; `MotionProvider` coupe tout
+  si `prefers-reduced-motion`.
+- États : `Skeleton`, `EmptyState`, `ErrorState`, `OfflineBanner`, `DemoBanner` (écrans alimentés par `features/<domaine>/demo/`
+  quand `VITE_DEMO_MODULES=true`).
+- Page `/design` : vitrine des tokens et composants, en local et en staging (`VITE_APP_ENV`) ; en production, `vite.config.ts`
+  remplace `DesignPage` par un module vide.
+- Espaces : `/gestion` (back-office, mode sombre possible), `/enseignant` et `/parent` (mobile, 360 px, toujours en clair).
+  Règles d'accès pures et testées dans `features/auth/access.ts` (`decideAccess`), appliquées par `guard()` dans le `beforeLoad`
+  de chaque route : session, mot de passe provisoire, établissement, espace. Menus dans `features/shell/nav.ts`, filtrés par
+  les permissions de `/me`. Un écran pas encore livré tombe sur la route attrape-tout `$.tsx` de l'espace (« Bientôt disponible »).
+
 ## Mobile et hors connexion
 
 - Parcours parent : 3 écrans maximum pour toute action (voir notes, payer, justifier une absence). Cibles tactiles ≥ 44 px.
@@ -70,6 +89,10 @@ src/
 
 - Vitest + Testing Library pour composants et hooks (`*.test.tsx` à côté du fichier). MSW pour simuler l'API.
 - Playwright (`e2e/`) pour les parcours critiques : connexion, inscription d'un élève, encaissement, saisie de notes, appel hors connexion.
+  API simulée par `e2e/mock-api.ts` (contrat OpenAPI, comptes du seeder de démo), en 360 et 1280 px.
+- Accessibilité : `e2e/a11y.spec.ts` passe axe (WCAG 2.1 A/AA) sur chaque écran de `e2e/screens.ts`, en clair et en sombre
+  pour le back-office. Tout nouvel écran y est ajouté.
+- Captures : `npm run e2e:captures` → `captures/360/` et `captures/1280/` (non versionnées), à joindre à chaque pull request.
 
 ## Commandes
 
@@ -78,6 +101,8 @@ npm run dev          # serveur Vite
 npm run test         # Vitest
 npm run lint         # ESLint + Prettier
 npm run typecheck    # tsc --noEmit
-npm run e2e          # Playwright
+npm run e2e          # Playwright (parcours + axe)
+npm run e2e:captures # captures d'écran 360 et 1280 px
+npm run size         # budget JS initial < 300 Ko gzip (après npm run build)
 npm run api:types    # openapi-typescript ../docs/api/openapi.json -o src/lib/api/schema.d.ts
 ```

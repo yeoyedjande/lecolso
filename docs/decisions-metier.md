@@ -5,6 +5,9 @@ Une ligne par décision, la plus récente en haut.
 
 | Date | Domaine | Question | Décision |
 | --- | --- | --- | --- |
+| 04/11/2026 | Interface | Quel espace pour quel rôle ? | Promoteur, direction, secrétariat, comptabilité : back-office `/gestion`. Enseignant seul : `/enseignant` (mobile). Parent seul : `/parent` (mobile). Plusieurs rôles : premier espace dans cet ordre, puis sélecteur d'espace dans l'en-tête. Le menu masque ce que les permissions de `/me` ne permettent pas ; l'API reste la vraie barrière |
+| 04/11/2026 | Interface | Le mode sombre ? | Back-office seulement ; espaces parent et enseignant toujours en clair |
+| 04/11/2026 | Connexion | La case « se souvenir de moi » ? | Toujours affichée, avec l'aide « uniquement sur un téléphone personnel » : le type de compte n'est connu qu'après la connexion, et l'API ignore la case pour le personnel (session de 8 h) |
 | 03/11/2026 | Audit | Que contient le journal d'audit ? | Un journal par école (`school_id` + RLS) : qui a modifié quoi, avant/après. Jamais de mot de passe, de jeton ni d'information médicale. Une action sans école (changer son propre mot de passe, action super-admin hors école) n'y figure pas ; journal de plateforme plus tard si besoin. Conservation prévue 365 jours, purge à planifier |
 | 03/11/2026 | Démo | Où peut-on créer les données de démo ? | En local et en staging seulement ; refus explicite en production. Mot de passe commun `Demo2026!`, comptes listés dans le README |
 | 03/11/2026 | Sécurité | Comment s'authentifie-t-on en V1 ? | Une seule connexion pour tous : identifiant (téléphone ou e-mail) + mot de passe. **Pas de 2FA ni d'OTP SMS en V1** (remplace la décision précédente sur l'OTP parents et la 2FA du personnel). L'interface `SmsSender` reste pour les notifications |

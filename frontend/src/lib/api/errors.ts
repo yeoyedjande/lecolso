@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod/mini'
 
 /** 401 : token absent, expiré ou révoqué. La session locale est effacée par le middleware. */
 export class UnauthorizedError extends Error {

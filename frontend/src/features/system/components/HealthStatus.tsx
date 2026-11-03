@@ -38,7 +38,7 @@ export function HealthStatus() {
   if (isError) {
     return (
       <div role="alert" className="flex flex-col gap-3">
-        <p className="text-destructive flex items-center gap-2 font-semibold">
+        <p className="text-destructive-ink flex items-center gap-2 font-semibold">
           <WifiOff aria-hidden className="size-5" />
           {t('health.api', { status: t('health.status.unreachable') })}
         </p>
@@ -64,7 +64,7 @@ export function HealthStatus() {
           role="status"
           className={cn(
             'flex items-center gap-2 text-lg',
-            ok ? 'text-success' : 'text-destructive',
+            ok ? 'text-success-ink' : 'text-destructive-ink',
           )}
         >
           {ok ? <CircleCheck aria-hidden /> : <CircleX aria-hidden />}

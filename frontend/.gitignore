@@ -28,3 +28,4 @@ dev-dist
 coverage
 playwright-report
 test-results
+captures

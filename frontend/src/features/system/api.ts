@@ -1,5 +1,5 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
-import { z } from 'zod'
+import { z } from 'zod/mini'
 
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
@@ -9,7 +9,7 @@ export type HealthReport = components['schemas']['HealthResource']
 const componentStatus = z.enum(['ok', 'error'])
 
 // Le type vient de schema.d.ts ; zod vérifie seulement que la réponse reçue y correspond
-const healthReportSchema: z.ZodType<HealthReport> = z.object({
+const healthReportSchema: z.ZodMiniType<HealthReport> = z.object({
   status: componentStatus,
   database: componentStatus,
   redis: componentStatus,

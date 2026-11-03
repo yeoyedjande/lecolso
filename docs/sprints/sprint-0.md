@@ -109,7 +109,19 @@ Décisions à intégrer à cette étape (prises le 03/11/2026, voir `docs/decisi
   un utilisateur par rôle, dont une directrice limitée à la maternelle. Mots de passe et téléphones de démo dans le README.
 ```
 
-## Étape 6 — Écrans de base du frontend
+## Étape 6 — Écrans de base du frontend (périmètre élargi : tous les écrans V1)
+
+> Périmètre élargi le 04/11/2026 : tous les écrans de la V1, en quatre pull requests successives vers `develop`.
+>
+> - [x] **6a** — design system, connexion, mot de passe, choix d'établissement, mises en page : fait sur `feat/ui-design-system`.
+>   Tokens et polices auto-hébergées (Bricolage Grotesque, Inter), composants, page `/design` (local et staging),
+>   gardes de routes et répartition par espace (`/gestion`, `/enseignant`, `/parent`), menu filtré par permissions,
+>   mode sombre du back-office, « Bientôt disponible » pour les écrans à venir, manifeste PWA.
+>   Tests : Vitest (formulaires, gardes, contrastes AA), Playwright + axe sur chaque écran en 360 et 1280 px, budget JS vérifié en CI.
+>   La case « se souvenir de moi » est toujours affichée (le profil n'est connu qu'après la connexion) ; l'API l'ignore pour le personnel.
+> - [ ] **6b** — back-office du personnel (`feat/ui-backoffice`)
+> - [ ] **6c** — espaces parent et enseignant (`feat/ui-mobile`)
+> - [ ] **6d** — super-admin, page publique, pré-inscription, finitions (`feat/ui-platform-public`)
 
 ```text
 Implémente dans le frontend :
