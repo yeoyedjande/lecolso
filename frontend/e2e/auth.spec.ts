@@ -21,6 +21,21 @@ test('sans session, un écran protégé mène à la connexion puis y revient', a
   await expect(page.getByRole('heading', { name: 'Bientôt disponible', level: 1 })).toBeVisible()
 })
 
+test('plusieurs établissements : le lien profond survit au choix de l’établissement', async ({
+  page,
+}) => {
+  await mockApi(page)
+  await page.goto('/gestion/eleves')
+  await expect(page).toHaveURL(/\/connexion\?redirect=/)
+
+  await login(page, ACCOUNTS.promoter.phone)
+  await expect(page).toHaveURL(/\/etablissements\?redirect=/)
+  await page.getByRole('button', { name: /Les Lauriers/ }).click()
+
+  await expect(page).toHaveURL(/\/gestion\/eleves$/)
+  await expect(page.getByRole('heading', { name: 'Bientôt disponible', level: 1 })).toBeVisible()
+})
+
 test('identifiants refusés : message sur le champ, sans dire lequel est faux', async ({ page }) => {
   await mockApi(page)
   await page.goto('/connexion')

@@ -56,6 +56,11 @@ export async function guard(
 
   if (decision.selectSchoolId !== undefined) session.setSchoolId(decision.selectSchoolId)
   if (decision.kind === 'redirect') {
+    if (decision.to === '/etablissements' && requirement !== 'home') {
+      // L'écran demandé (lien profond) est rouvert une fois l'établissement choisi
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirection TanStack Router
+      throw redirect({ to: '/etablissements', search: { redirect: safeRedirect(href) } })
+    }
     // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirection TanStack Router
     throw redirect({ to: decision.to })
   }

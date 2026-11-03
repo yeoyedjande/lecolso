@@ -74,7 +74,6 @@
   --muted: var(--warm-100);
   --muted-foreground: var(--warm-600);
   --success: var(--success-500);
-  --success-ink: var(--success-ink);
   --success-soft: var(--success-100);
   --destructive: var(--danger-500);
   --destructive-ink: var(--danger-ink);
@@ -88,8 +87,8 @@
   --sidebar-active: rgb(255 255 255 / 0.1);
 
   --radius: 0.875rem;
-  --shadow-soft: 0 1px 2px rgb(27 37 89 / 0.04), 0 8px 24px -12px rgb(27 37 89 / 0.12);
-  --shadow-lift: 0 2px 4px rgb(27 37 89 / 0.05), 0 18px 40px -18px rgb(27 37 89 / 0.25);
+  --elevation-soft: 0 1px 2px rgb(27 37 89 / 0.04), 0 8px 24px -12px rgb(27 37 89 / 0.12);
+  --elevation-lift: 0 2px 4px rgb(27 37 89 / 0.05), 0 18px 40px -18px rgb(27 37 89 / 0.25);
 }
 
 .dark {
@@ -127,8 +126,8 @@
   --cycle-kindergarten-soft: rgb(245 183 0 / 0.18);
   --cycle-primary-soft: rgb(59 130 246 / 0.2);
   --cycle-other-soft: rgb(168 159 145 / 0.18);
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
-  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 18px 40px -18px rgb(0 0 0 / 0.6);
+  --elevation-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --elevation-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 18px 40px -18px rgb(0 0 0 / 0.6);
 }
 
 @theme inline {
@@ -141,8 +140,8 @@
   --radius-xl: calc(var(--radius) + 2px);
   --radius-2xl: calc(var(--radius) + 6px);
 
-  --shadow-soft: var(--shadow-soft);
-  --shadow-lift: var(--shadow-lift);
+  --shadow-soft: var(--elevation-soft);
+  --shadow-lift: var(--elevation-lift);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

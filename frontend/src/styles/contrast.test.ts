@@ -29,6 +29,28 @@ function tokens(selector: string): Record<string, string> {
   return found
 }
 
+/** Propriétés déclarées et références var(--…) de tout le fichier (tokens, @theme). */
+const declared = new Set([...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((match) => match[1]))
+const declarations = [...css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)]
+
+describe('références entre tokens', () => {
+  it('aucun token ne se référence lui-même (valeur invalide, couleur perdue)', () => {
+    const cyclic = declarations
+      .filter(([, name, value]) => value?.includes(`var(${name ?? ''})`))
+      .map(([, name]) => name)
+    expect(cyclic).toEqual([])
+  })
+
+  it('toute référence var(--…) vise un token déclaré', () => {
+    const missing = declarations
+      .flatMap(([, , value]) =>
+        [...(value ?? '').matchAll(/var\((--[a-z0-9-]+)/g)].map((match) => match[1]),
+      )
+      .filter((name) => name !== undefined && !declared.has(name))
+    expect(missing).toEqual([])
+  })
+})
+
 const light = tokens(':root')
 const dark = { ...light, ...tokens('.dark') }
 

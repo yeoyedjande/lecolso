@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { LogOut } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button'
 import { useLogout, useMe } from '@/features/auth/api'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { SchoolPicker } from '@/features/auth/components/SchoolPicker'
-import { guard } from '@/features/auth/guard'
+import { guard, safeRedirect } from '@/features/auth/guard'
 import { session } from '@/lib/api/session'
+import { z } from 'zod/mini'
 
 export const Route = createFileRoute('/etablissements')({
+  validateSearch: z.object({ redirect: z.catch(z.optional(z.string()), undefined) }),
   beforeLoad: async ({ context, location }) => {
     const { profile } = await guard(context.queryClient, 'schools', location.href)
     const only = profile.schools.length === 1 ? profile.schools[0] : undefined
@@ -29,6 +31,8 @@ export const Route = createFileRoute('/etablissements')({
 function SchoolsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const router = useRouter()
+  const search = Route.useSearch()
   const queryClient = useQueryClient()
   const { data: profile } = useMe()
   const logout = useLogout()
@@ -61,7 +65,8 @@ function SchoolsPage() {
                 queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
                 session.setSchoolId(school.id)
               }
-              void navigate({ to: '/' })
+              // Retour à l'écran demandé (chemin interne uniquement), sinon accueil de l'espace
+              router.history.push(safeRedirect(search.redirect) ?? '/')
             }}
           />
         )}
