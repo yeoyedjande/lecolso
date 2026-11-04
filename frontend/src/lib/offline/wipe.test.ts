@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { session } from '@/lib/api/session'
+
 import { db } from './db'
 import { clearLocalData } from './wipe'
 
@@ -20,7 +22,7 @@ describe('clearLocalData', () => {
         return Promise.resolve(true)
       },
     })
-    window.localStorage.setItem('gestion-ecole.school-id', 'ecole-1')
+    session.setSchoolId('ecole-1')
     window.localStorage.setItem('autre-application', 'garder')
 
     await clearLocalData()
@@ -30,6 +32,8 @@ describe('clearLocalData', () => {
     // Le precache de l'application (sans donnée personnelle) est conservé pour rouvrir hors connexion
     expect(deletedCaches).toEqual(['assets', 'api-ancien'])
     expect(window.localStorage.getItem('gestion-ecole.school-id')).toBeNull()
+    // L'établissement gardé en mémoire par l'onglet est oublié aussi
+    expect(session.getSchoolId()).toBeNull()
     expect(window.localStorage.getItem('autre-application')).toBe('garder')
   })
 

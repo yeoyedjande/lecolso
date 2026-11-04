@@ -2,7 +2,6 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-import { meQueryOptions } from '@/features/auth/api'
 import { session } from '@/lib/api/session'
 
 import { createQueryClient } from './query-client'
@@ -22,7 +21,9 @@ export function App() {
   useEffect(
     () =>
       session.onUnauthorized(() => {
-        queryClient.removeQueries({ queryKey: meQueryOptions.queryKey })
+        // Toutes les données du compte quittent le cache (profil, cycles filtrés par les droits, démo…),
+        // comme à la déconnexion : un autre compte connecté ensuite dans cet onglet ne les verra pas
+        queryClient.clear()
         const { pathname, href } = router.state.location
         if (!PUBLIC_PATHS.has(pathname) && !pathname.startsWith('/ecole/')) {
           void router.navigate({ to: '/connexion', search: { redirect: href } })
