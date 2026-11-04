@@ -96,5 +96,5 @@ test('enseignante : saisie d’une note sur téléphone', async ({ page }) => {
   const first = page.getByRole('textbox').first()
   await first.fill('16,5')
   await first.blur()
-  await expect(page.getByText('Enregistré')).toBeVisible()
+  await expect(page.getByText('Enregistré', { exact: true })).toBeVisible()
 })

@@ -1,9 +1,8 @@
-import { Outlet, useLocation } from '@tanstack/react-router'
+import { Outlet } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { LogoMark } from '@/components/brand/Logo'
 import { RibbonPattern } from '@/components/brand/Patterns'
-import { PageTransition } from '@/components/motion/Reveal'
 import type { Space } from '@/features/auth/access'
 import { cn } from '@/lib/utils'
 
@@ -24,7 +23,6 @@ export function MobileLayout({
   tabs: NavItem[]
 }) {
   const { t } = useTranslation()
-  const location = useLocation()
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -50,9 +48,8 @@ export function MobileLayout({
         tabIndex={-1}
         className="mx-auto w-full max-w-2xl flex-1 px-4 pt-5 pb-28 outline-none"
       >
-        <PageTransition key={location.pathname}>
-          <Outlet />
-        </PageTransition>
+        {/* Pas de fondu entre deux écrans : le contenu s'affiche dès qu'il est prêt */}
+        <Outlet />
       </main>
 
       <nav

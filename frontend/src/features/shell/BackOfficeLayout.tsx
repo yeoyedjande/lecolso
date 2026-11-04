@@ -1,10 +1,9 @@
-import { Outlet, useLocation } from '@tanstack/react-router'
+import { Outlet } from '@tanstack/react-router'
 import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Logo, LogoMark } from '@/components/brand/Logo'
-import { PageTransition } from '@/components/motion/Reveal'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
@@ -107,7 +106,6 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 /** Mise en page du back-office : menu latéral (repliable sur grand écran, tiroir sur tablette et téléphone). */
 export function BackOfficeLayout() {
   const { t } = useTranslation()
-  const location = useLocation()
   const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Mode sombre réservé au back-office
@@ -197,9 +195,10 @@ export function BackOfficeLayout() {
           tabIndex={-1}
           className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-10 lg:py-8 print:p-0"
         >
-          <PageTransition key={location.pathname} className="mx-auto w-full max-w-7xl">
+          {/* Pas de fondu entre deux écrans : le contenu s'affiche dès qu'il est prêt */}
+          <div className="mx-auto w-full max-w-7xl">
             <Outlet />
-          </PageTransition>
+          </div>
         </main>
       </div>
     </div>
