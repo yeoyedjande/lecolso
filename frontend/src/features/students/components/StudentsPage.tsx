@@ -58,7 +58,8 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
   const update = (patch: Partial<StudentsSearch>) => {
     setLimit(PAGE)
     void navigate({
-      to: '/gestion/eleves',
+      from: '/$school',
+      to: '/$school/eleves',
       search: (previous) => ({ ...previous, ...patch }),
       replace: true,
     })
@@ -81,13 +82,13 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
         actions={
           <Can permission="students.manage">
             <Button asChild variant="outline">
-              <Link to="/gestion/import">
+              <Link from="/$school" to="/$school/import">
                 <FileSpreadsheet aria-hidden />
                 {t('students.import')}
               </Link>
             </Button>
             <Button asChild variant="accent">
-              <Link to="/gestion/inscriptions">
+              <Link from="/$school" to="/$school/inscriptions">
                 <UserPlus aria-hidden />
                 {t('students.enroll')}
               </Link>
@@ -176,7 +177,8 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
                       <TableRow key={row.student.id} className="relative">
                         <TableCell>
                           <Link
-                            to="/gestion/eleves/$studentId"
+                            from="/$school"
+                            to="/$school/eleves/$studentId"
                             params={{ studentId: row.student.id }}
                             className="flex items-center gap-3 font-semibold after:absolute after:inset-0 hover:underline"
                           >
@@ -212,7 +214,8 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
                 {rows.slice(0, limit).map((row) => (
                   <li key={row.student.id}>
                     <Link
-                      to="/gestion/eleves/$studentId"
+                      from="/$school"
+                      to="/$school/eleves/$studentId"
                       params={{ studentId: row.student.id }}
                       className="flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-soft"
                     >

@@ -221,7 +221,8 @@ function Child({ child }: { child: ChildDetail }) {
                   ) : (
                     <Button asChild size="sm" variant="accent">
                       <Link
-                        to="/parent/justifier"
+                        from="/$school"
+                        to="/$school/parent/justifier"
                         search={{ eleve: child.student.id, date: absence.date }}
                       >
                         {t('parent.child.justify')}
@@ -268,7 +269,7 @@ export function ChildPage({ studentId }: { studentId: string }) {
   return (
     <div className="grid gap-4">
       <Button asChild variant="ghost" size="sm" className="justify-self-start">
-        <Link to="/parent">
+        <Link from="/$school" to="/$school/parent">
           <ArrowLeft aria-hidden />
           {t('parent.child.back')}
         </Link>

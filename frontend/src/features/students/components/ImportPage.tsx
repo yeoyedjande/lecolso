@@ -93,7 +93,9 @@ export function ImportPage() {
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild>
-                <Link to="/gestion/eleves">{t('students.title')}</Link>
+                <Link from="/$school" to="/$school/eleves">
+                  {t('students.title')}
+                </Link>
               </Button>
               <Button
                 variant="outline"

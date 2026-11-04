@@ -10,29 +10,27 @@ async function login(page: Page, identifier: string, password = DEMO_PASSWORD) {
 
 test('sans session, un écran protégé mène à la connexion puis y revient', async ({ page }) => {
   await mockApi(page)
-  await page.goto('/gestion/eleves')
+  await page.goto('/les-lauriers/eleves')
 
   await expect(page).toHaveURL(/\/connexion\?redirect=/)
   await expect(page.getByRole('heading', { name: 'Bon retour parmi nous', level: 1 })).toBeVisible()
 
   await login(page, '07 00 00 00 03')
 
-  await expect(page).toHaveURL(/\/gestion\/eleves$/)
+  await expect(page).toHaveURL(/\/les-lauriers\/eleves$/)
   await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
 })
 
-test('plusieurs établissements : le lien profond survit au choix de l’établissement', async ({
+test('plusieurs établissements : le lien profond désigne l’école, aucun choix à faire', async ({
   page,
 }) => {
   await mockApi(page)
-  await page.goto('/gestion/eleves')
+  await page.goto('/petits-genies/eleves')
   await expect(page).toHaveURL(/\/connexion\?redirect=/)
 
   await login(page, ACCOUNTS.promoter.phone)
-  await expect(page).toHaveURL(/\/etablissements\?redirect=/)
-  await page.getByRole('button', { name: /Les Lauriers/ }).click()
 
-  await expect(page).toHaveURL(/\/gestion\/eleves$/)
+  await expect(page).toHaveURL(/\/petits-genies\/eleves$/)
   await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
 })
 
@@ -79,7 +77,7 @@ test('mot de passe provisoire : changement obligatoire avant tout écran', async
   await expect(page.getByText(/mot de passe provisoire/).first()).toBeVisible()
 
   // Tout autre écran ramène au changement de mot de passe
-  await page.goto('/gestion')
+  await page.goto('/les-lauriers/tableau-de-bord')
   await expect(page).toHaveURL(/\/mot-de-passe$/)
 
   await page.getByLabel('Mot de passe actuel').fill(DEMO_PASSWORD)
@@ -94,7 +92,7 @@ test('mot de passe provisoire : changement obligatoire avant tout écran', async
   await expect(page.getByText('Robustesse : excellente')).toBeVisible()
   await page.getByRole('button', { name: 'Enregistrer le mot de passe' }).click()
 
-  await expect(page).toHaveURL(/\/gestion$/)
+  await expect(page).toHaveURL(/\/les-lauriers\/tableau-de-bord$/)
   await expect(page.getByText('Mot de passe enregistré', { exact: true })).toBeVisible()
 })
 
@@ -119,7 +117,7 @@ test('plusieurs établissements : choix puis espace de gestion', async ({ page }
   await expect(page).toHaveURL(/\/etablissements$/)
   await page.getByRole('button', { name: /Petits Génies/ }).click()
 
-  await expect(page).toHaveURL(/\/gestion$/)
+  await expect(page).toHaveURL(/\/petits-genies\/tableau-de-bord$/)
   await expect(page.getByRole('heading', { name: 'Tableau de bord', level: 1 })).toBeVisible()
   await expect(page.getByText('Petits Génies').first()).toBeVisible()
 })
@@ -129,13 +127,13 @@ test('enseignant : espace enseignant, le back-office lui est fermé', async ({ p
   await page.goto('/connexion')
   await login(page, ACCOUNTS.teacher.email)
 
-  await expect(page).toHaveURL(/\/enseignant$/)
+  await expect(page).toHaveURL(/\/les-lauriers\/enseignant$/)
   await expect(
     page.getByRole('navigation', { name: 'Menu' }).getByRole('link', { name: 'Appel' }),
   ).toBeVisible()
 
-  await page.goto('/gestion')
-  await expect(page).toHaveURL(/\/enseignant$/)
+  await page.goto('/les-lauriers/tableau-de-bord')
+  await expect(page).toHaveURL(/\/les-lauriers\/enseignant$/)
 })
 
 test('parent de deux écoles : choix de l’école puis espace parent', async ({ page }) => {
@@ -145,7 +143,7 @@ test('parent de deux écoles : choix de l’école puis espace parent', async ({
 
   await page.getByRole('button', { name: /Les Lauriers/ }).click()
 
-  await expect(page).toHaveURL(/\/parent$/)
+  await expect(page).toHaveURL(/\/les-lauriers\/parent$/)
   await expect(page.getByRole('heading', { name: 'Bonjour, Kouadio', level: 1 })).toBeVisible()
 })
 
@@ -154,7 +152,7 @@ test('menu du back-office limité aux droits : la comptabilité ne voit ni notes
 }) => {
   await mockApi(page, { session: ACCOUNTS.accountant })
   await page.setViewportSize({ width: 1280, height: 800 })
-  await page.goto('/gestion')
+  await page.goto('/les-lauriers/tableau-de-bord')
 
   const menu = page.getByRole('navigation', { name: 'Menu' })
   await expect(menu.getByRole('link', { name: 'Encaissements' })).toBeVisible()
@@ -164,7 +162,7 @@ test('menu du back-office limité aux droits : la comptabilité ne voit ni notes
 
 test('déconnexion : retour à la connexion, écrans protégés refermés', async ({ page }) => {
   const api = await mockApi(page, { session: ACCOUNTS.director })
-  await page.goto('/gestion')
+  await page.goto('/les-lauriers/tableau-de-bord')
 
   await page.getByRole('button', { name: /Mon profil/ }).click()
   await page.getByRole('menuitem', { name: 'Se déconnecter' }).click()
@@ -172,15 +170,26 @@ test('déconnexion : retour à la connexion, écrans protégés refermés', asyn
   await expect(page).toHaveURL(/\/connexion/)
   expect(api.calls.get('POST /auth/logout')).toBe(1)
 
-  await page.goto('/gestion')
+  await page.goto('/les-lauriers/tableau-de-bord')
   await expect(page).toHaveURL(/\/connexion/)
 })
 
-test('page inconnue : 404 en français', async ({ page }) => {
+test('page inconnue dans une école : 404 en français, dans la mise en page', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/nulle-part')
+
+  await expect(page.getByRole('heading', { name: 'Page introuvable', level: 1 })).toBeVisible()
+})
+
+test('adresse d’un seul segment inconnue : page publique « école introuvable »', async ({
+  page,
+}) => {
   await mockApi(page)
   await page.goto('/nulle-part')
 
-  await expect(page.getByRole('heading', { name: 'Page introuvable', level: 1 })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Cette école n’existe pas ou n’a pas encore de page.' }),
+  ).toBeVisible()
 })
 
 test('état du service, public', async ({ page }) => {

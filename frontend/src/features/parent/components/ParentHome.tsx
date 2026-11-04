@@ -29,9 +29,9 @@ export function ParentHome() {
   const firstName = profile?.name.split(' ')[0] ?? ''
 
   const quick = [
-    { to: '/parent/paiements', icon: Wallet, label: t('parent.home.pay') },
-    { to: '/parent/justifier', icon: CalendarX2, label: t('parent.home.justify') },
-    { to: '/parent/messages', icon: MessageCircle, label: t('parent.home.messages') },
+    { to: '/$school/parent/paiements', icon: Wallet, label: t('parent.home.pay') },
+    { to: '/$school/parent/justifier', icon: CalendarX2, label: t('parent.home.justify') },
+    { to: '/$school/parent/messages', icon: MessageCircle, label: t('parent.home.messages') },
   ] as const
 
   return (
@@ -58,7 +58,8 @@ export function ParentHome() {
                   <li key={child.student.id}>
                     <Reveal index={index}>
                       <Link
-                        to="/parent/enfants/$studentId"
+                        from="/$school"
+                        to="/$school/parent/enfants/$studentId"
                         params={{ studentId: child.student.id }}
                         className={cn(
                           'grid gap-4 rounded-3xl border-l-[6px] bg-card p-4 shadow-soft transition active:scale-[0.99]',
@@ -156,6 +157,7 @@ export function ParentHome() {
           {quick.map(({ to, icon: Icon, label }) => (
             <li key={to}>
               <Link
+                from="/$school"
                 to={to}
                 className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border bg-card p-2 text-center text-xs font-semibold shadow-soft"
               >

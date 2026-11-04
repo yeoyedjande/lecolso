@@ -143,13 +143,17 @@ export function EnrollmentWizard() {
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild variant="accent">
-                <Link to="/gestion/encaissements" search={{ eleve: created.id }}>
+                <Link from="/$school" to="/$school/encaissements" search={{ eleve: created.id }}>
                   <Wallet aria-hidden />
                   {t('enrollment.collectRegistration')}
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link to="/gestion/eleves/$studentId" params={{ studentId: created.id }}>
+                <Link
+                  from="/$school"
+                  to="/$school/eleves/$studentId"
+                  params={{ studentId: created.id }}
+                >
                   {t('enrollment.openFile')}
                 </Link>
               </Button>

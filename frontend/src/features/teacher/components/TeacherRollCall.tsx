@@ -62,7 +62,12 @@ export function TeacherRollCall({ classroomId }: { classroomId: string | undefin
               value={classroom.id}
               label={t('teacher.rollCall.classroom')}
               onChange={(id) => {
-                void navigate({ to: '/enseignant/appel', search: { classe: id }, replace: true })
+                void navigate({
+                  from: '/$school',
+                  to: '/$school/enseignant/appel',
+                  search: { classe: id },
+                  replace: true,
+                })
               }}
             />
           )}

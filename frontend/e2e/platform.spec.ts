@@ -57,14 +57,14 @@ test.describe('super-admin', () => {
   test('un directeur ne peut pas ouvrir la plateforme', async ({ page }) => {
     await mockApi(page, { session: ACCOUNTS.director })
     await page.goto('/plateforme')
-    await expect(page).toHaveURL(/\/gestion$/)
+    await expect(page).toHaveURL(/\/les-lauriers\/tableau-de-bord$/)
   })
 })
 
 test.describe('page publique de l’école (sans connexion)', () => {
   test('présentation puis pré-inscription', async ({ page }) => {
     const api = await mockApi(page)
-    await page.goto('/ecole/les-lauriers')
+    await page.goto('/les-lauriers')
     await expect(
       page.getByRole('heading', { name: 'Bienvenue à Les Lauriers', level: 1 }),
     ).toBeVisible()
@@ -92,7 +92,7 @@ test.describe('page publique de l’école (sans connexion)', () => {
 
   test('école inconnue : message clair', async ({ page }) => {
     await mockApi(page)
-    await page.goto('/ecole/inconnue')
+    await page.goto('/inconnue')
     await expect(
       page.getByRole('heading', { name: 'Cette école n’existe pas ou n’a pas encore de page.' }),
     ).toBeVisible()

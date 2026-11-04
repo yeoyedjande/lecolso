@@ -9,9 +9,12 @@ import { createAppRouter } from './router'
 
 /**
  * Écrans accessibles sans session : un 401 n'y provoque pas de redirection.
- * `/` n'affiche rien : sa route décide elle-même (page publique sur <slug>.<domaine>, sinon connexion).
+ * `/` n'affiche rien : sa route décide elle-même (connexion ou espace de l'utilisateur).
  */
 const PUBLIC_PATHS = new Set(['/', '/connexion', '/etat', '/design'])
+
+/** Pages publiques d'un établissement (`/{slug}`, `/{slug}/preinscription`), sans session ni affectation. */
+const PUBLIC_ROUTE_IDS: ReadonlySet<string> = new Set(['/$school/', '/$school/preinscription'])
 
 export function App() {
   const [queryClient] = useState(createQueryClient)
@@ -25,7 +28,10 @@ export function App() {
         // comme à la déconnexion : un autre compte connecté ensuite dans cet onglet ne les verra pas
         queryClient.clear()
         const { pathname, href } = router.state.location
-        if (!PUBLIC_PATHS.has(pathname) && !pathname.startsWith('/ecole/')) {
+        const isPublic =
+          PUBLIC_PATHS.has(pathname) ||
+          router.state.matches.some((match) => PUBLIC_ROUTE_IDS.has(match.routeId))
+        if (!isPublic) {
           void router.navigate({ to: '/connexion', search: { redirect: href } })
         }
       }),

@@ -93,7 +93,7 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
       <div className="flex items-center justify-between gap-3">
         <Logo />
         <Button asChild variant="ghost" size="sm">
-          <Link to="/ecole/$slug" params={{ slug }}>
+          <Link to="/$school" params={{ school: slug }}>
             <ArrowLeft aria-hidden />
             {t('publicSchool.pre.back')}
           </Link>
@@ -118,7 +118,7 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
               })}
               action={
                 <Button asChild>
-                  <Link to="/ecole/$slug" params={{ slug }}>
+                  <Link to="/$school" params={{ school: slug }}>
                     {t('publicSchool.pre.back')}
                   </Link>
                 </Button>

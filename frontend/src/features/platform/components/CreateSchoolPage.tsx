@@ -14,7 +14,6 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ValidationError } from '@/lib/api/errors'
-import { env } from '@/lib/env'
 import { formatPhone } from '@/lib/format'
 import { normalizeCiPhone } from '@/lib/phone'
 import { toast } from '@/lib/toast'
@@ -57,7 +56,8 @@ export function CreateSchoolPage() {
   const [created, setCreated] = useState<Created | null>(null)
   const [failed, setFailed] = useState(false)
   const [slugTouched, setSlugTouched] = useState(false)
-  const domain = env.tenantDomain ?? 'lecolso.ci'
+  // Adresse de l'école : un chemin sur l'application (ADR 0005), jamais un sous-domaine
+  const origin = window.location.host
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -170,11 +170,11 @@ export function CreateSchoolPage() {
                 </dt>
                 <dd>
                   <Link
-                    to="/ecole/$slug"
-                    params={{ slug: created.data.slug }}
+                    to="/$school"
+                    params={{ school: created.data.slug }}
                     className="font-semibold underline underline-offset-4"
                   >
-                    {`${created.data.slug}.${domain}`}
+                    {`${origin}/${created.data.slug}`}
                   </Link>
                 </dd>
               </div>
@@ -252,7 +252,7 @@ export function CreateSchoolPage() {
             </Field>
             <Field
               label={t('platform.create.slug')}
-              hint={t('platform.create.slugHint', { url: `${slug === '' ? '…' : slug}.${domain}` })}
+              hint={t('platform.create.slugHint', { url: `${origin}/${slug === '' ? '…' : slug}` })}
               error={message(formState.errors.slug?.message)}
             >
               {(c) => (
