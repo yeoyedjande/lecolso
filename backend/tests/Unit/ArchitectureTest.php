@@ -46,7 +46,11 @@ it('n’utilise Platform que dans les Actions super-admin', function (): void {
 });
 
 it('ne nomme la connexion super-admin que dans Platform', function (): void {
-    expect(appFilesContaining('pgsql_platform', ['Support/Tenancy/Platform.php']))->toBe([]);
+    expect(appFilesContaining('pgsql_platform', [
+        'Support/Tenancy/Platform.php',
+        // Pré-déploiement : lit seulement le nom et le mot de passe du rôle app_platform pour le créer (aucune requête)
+        'Console/Commands/ProvisionAppRole.php',
+    ]))->toBe([]);
 });
 
 it('n’utilise withoutGlobalScope(s) qu’à l’endroit justifié', function (): void {

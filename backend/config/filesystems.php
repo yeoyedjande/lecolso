@@ -59,6 +59,8 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            // Bucket privé : aucun fichier public, accès uniquement par URL signée (temporaryUrl) ou via l'API
+            'visibility' => 'private',
             'throw' => false,
             'report' => false,
         ],

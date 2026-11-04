@@ -1,20 +1,35 @@
 // Infrastructure Railway en code (remplace railway.json, déprécié par Railway).
-// Avant le premier usage : remplacer VOTRE-COMPTE et VOTRE-DOMAINE, puis
+// Avant le premier usage : remplacer VOTRE-DOMAINE et VOTRE-DOMAINE-STAGING, puis
 //   cd .railway && npm install && railway config plan   (aperçu, ne change rien)
 //   railway config apply                                (applique après confirmation)
 // Les noms de variables fournies par le bucket et la syntaxe des régions sont à confirmer avec `railway config plan`.
-import { defineRailway, project, service, github, image, postgres, redis, bucket, group, preserve } from "railway/iac";
+// Exige la CLI Railway 5.42.1 ou plus récente (le moteur IaC est fourni par la CLI).
+import { defineRailway, project, service, github, image, database, redis, bucket, group, preserve, ref } from "railway/iac";
 
-const REPO = "VOTRE-COMPTE/gestion-ecole";
-const DOMAIN = "VOTRE-DOMAINE.ci";
-const REGION = { "europe-west4": 1 }; // Amsterdam, la région la plus proche d'Abidjan
+const REPO = "yeoyedjande/lecolso";
+// Domaine propre obligatoire : le cookie de session est partagé entre api.<domaine> et app.<domaine>,
+// impossible sur *.up.railway.app (suffixe public : aucun cookie commun entre deux sous-domaines).
+const PRODUCTION_DOMAIN = "VOTRE-DOMAINE.ci";
+// Staging sur un domaine DISTINCT, jamais staging.<domaine> : le cookie de session de production est posé sur
+// .<domaine> et serait alors envoyé aux serveurs de staging. Mêmes enregistrements DNS : api., app. et *.
+const STAGING_DOMAIN = "VOTRE-DOMAINE-STAGING.ci";
+const REGION_ID = "europe-west4"; // Amsterdam, la région la plus proche d'Abidjan
+const REGION = { [REGION_ID]: 1 };
 
 export default defineRailway((ctx) => {
   const prod = ctx.environment === "production";
   const branch = prod ? "main" : "develop";
+  const DOMAIN = prod ? PRODUCTION_DOMAIN : STAGING_DOMAIN;
 
-  const db = postgres("postgres");
-  const cache = redis("redis");
+  // PostgreSQL 17 (version de la stack, de la CI et du local) ; postgres() du SDK prendrait la 18.
+  // Bases créées directement en EU West (une base ne se déplace pas sans risque une fois remplie)
+  const db = database("postgres", "postgres", {
+    image: "ghcr.io/railwayapp-templates/postgres-ssl:17",
+    output: "DATABASE_URL",
+    defaultMountPath: "/var/lib/postgresql/data",
+    region: REGION_ID,
+  });
+  const cache = redis("redis", { region: REGION_ID });
   const files = bucket("fichiers", { region: "ams" }); // région non modifiable après création
 
   // Variables communes aux trois services backend (même image, commandes différentes)
@@ -26,6 +41,10 @@ export default defineRailway((ctx) => {
     APP_URL: `https://api.${DOMAIN}`,
     FRONTEND_URL: `https://app.${DOMAIN}`,
     APP_TIMEZONE: "UTC",
+    APP_DEBUG: "false",
+    // Journaux sur stderr (collectés par Railway), sans le niveau debug
+    LOG_CHANNEL: "stderr",
+    LOG_LEVEL: "info",
 
     // Application : rôle app_user, soumis à la RLS (mot de passe défini à la main dans Railway)
     DB_CONNECTION: "pgsql",
@@ -46,6 +65,7 @@ export default defineRailway((ctx) => {
     SESSION_DRIVER: "redis",
     SESSION_LIFETIME: "480",
     SESSION_DOMAIN: `.${DOMAIN}`,
+    SESSION_COOKIE: prod ? "lecolso_session" : "lecolso_staging_session",
     SESSION_SECURE_COOKIE: "true",
     SESSION_SAME_SITE: "lax",
     SANCTUM_STATEFUL_DOMAINS: `app.${DOMAIN},*.${DOMAIN}`,
@@ -53,11 +73,12 @@ export default defineRailway((ctx) => {
     CORS_ALLOWED_ORIGIN_PATTERN: `#^https://[a-z0-9-]+\\.${DOMAIN.replaceAll(".", "\\.")}$#`,
 
     FILESYSTEM_DISK: "s3",
-    AWS_ACCESS_KEY_ID: files.env.ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY: files.env.SECRET_ACCESS_KEY,
-    AWS_DEFAULT_REGION: files.env.REGION,
-    AWS_ENDPOINT: files.env.ENDPOINT,
-    AWS_BUCKET: files.env.BUCKET,
+    // Identifiants fournis par le bucket Railway (références, jamais en clair dans le dépôt)
+    AWS_ACCESS_KEY_ID: ref(files, "ACCESS_KEY_ID"),
+    AWS_SECRET_ACCESS_KEY: ref(files, "SECRET_ACCESS_KEY"),
+    AWS_DEFAULT_REGION: ref(files, "REGION"),
+    AWS_ENDPOINT: ref(files, "ENDPOINT"),
+    AWS_BUCKET: ref(files, "BUCKET"),
     AWS_USE_PATH_STYLE_ENDPOINT: "false",
 
     GOTENBERG_URL: "http://${{gotenberg.RAILWAY_PRIVATE_DOMAIN}}:3000",
@@ -70,7 +91,13 @@ export default defineRailway((ctx) => {
 
   const api = service("api", {
     source: github(REPO, { branch }),
-    preDeploy: "php artisan db:provision-app-role && php artisan migrate --database=pgsql_owner --force",
+    // Rôles PostgreSQL (app_user, app_platform), migrations par le propriétaire, puis en staging seulement
+    // les comptes de démo (DemoSeeder, idempotent, refusé en production)
+    preDeploy: [
+      "php artisan db:provision-app-role",
+      "php artisan migrate --database=pgsql_owner --force",
+      ...(prod ? [] : ["php artisan db:seed --class=DemoSeeder --force"]),
+    ].join(" && "),
     healthcheck: "/api/v1/health",
     healthcheckTimeout: 60,
     replicas: REGION,
