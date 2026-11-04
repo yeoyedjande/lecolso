@@ -12,8 +12,9 @@
 - Images de production construites depuis la racine du dépôt (`docker/production/`) :
   FrankenPHP pour l'API (un seul processus, pas de nginx séparé), Caddy pour le frontend statique.
 - Stockage de fichiers : bucket Railway (compatible S3, privé) ; accès aux fichiers uniquement par URL signée ou via l'API.
-- Résolution de l'école : toujours par l'en-tête `X-School-Id` envoyé par le frontend ; le sous-domaine `<slug>.<domaine>`
-  sert au frontend (page publique, présélection de l'école), pas à l'API, qui a son propre domaine `api.<domaine>`.
+- Résolution de l'école : toujours par l'en-tête `X-School-Id` envoyé par le frontend.
+  ~~Le sous-domaine `<slug>.<domaine>` sert au frontend~~ : remplacé par le routage par chemin
+  `app.<domaine>/{slug}/*` et l'API sur la même origine (ADR 0005).
 
 ## Conséquences
 

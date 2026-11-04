@@ -2,14 +2,15 @@ import { z } from 'zod/mini'
 
 /**
  * Variables d'environnement du build, validées au démarrage (fixées au build sur Railway).
- * - VITE_API_URL : URL de l'API (préfixe /api/v1 compris) ;
+ * - VITE_API_URL : URL de l'API (préfixe /api/v1 compris) : chemin « /api/v1 » en staging et en production
+ *   (même origine, proxy Caddy, ADR 0005), URL absolue en développement local ;
  * - VITE_APP_ENV : local | staging | production (défaut production : rien de réservé au développement) ;
  * - VITE_DEMO_MODULES : true pour afficher les données de démonstration des modules sans backend ;
  * - VITE_TENANT_DOMAIN : domaine des sous-domaines d'école (`<slug>.<domaine>`), facultatif.
  */
 const envSchema = z.object({
   VITE_API_URL: z.pipe(
-    z.url({ protocol: /^https?$/ }),
+    z.union([z.url({ protocol: /^https?$/ }), z.string().check(z.regex(/^\/[a-z0-9/_-]+$/i))]),
     z.transform((url) => url.replace(/\/+$/, '')),
   ),
   VITE_APP_ENV: z._default(z.enum(['local', 'staging', 'production']), 'production'),

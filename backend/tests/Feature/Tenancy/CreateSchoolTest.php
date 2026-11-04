@@ -81,6 +81,17 @@ it('refuse l’e-mail d’un nouveau directeur déjà porté par un autre compte
     expect(owner()->table('schools')->where('slug', 'les-flamboyants')->count())->toBe(0);
 });
 
+it('refuse les segments d’URL réservés (routes globales, équivalents anglais, chemins techniques)', function (string $slug): void {
+    Sanctum::actingAs(superAdmin());
+
+    postJson('/api/v1/platform/schools', newSchoolPayload(['slug' => $slug]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['slug']);
+
+    expect(owner()->table('schools')->count())->toBe(0);
+})->with(['connexion', 'etablissements', 'plateforme', 'compte', 'tableau-de-bord', 'parent', 'enseignant',
+    'preinscription', 'login', 'admin', 'account', 'dashboard', 'api', 'sanctum', 'assets', 'icons', 'staging']);
+
 it('refuse un slug déjà pris, même par une école que le super-admin ne « voit » pas en RLS', function (): void {
     makeSchool([], ['slug' => 'les-flamboyants']);
     Sanctum::actingAs(superAdmin());

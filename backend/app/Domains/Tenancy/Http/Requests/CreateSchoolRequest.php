@@ -13,9 +13,6 @@ use Illuminate\Validation\Rule;
 
 final class CreateSchoolRequest extends FormRequest
 {
-    /** Sous-domaines réservés à la plateforme. */
-    public const array RESERVED_SLUGS = ['app', 'api', 'www', 'admin', 'staging', 'plateforme', 'mail', 'static'];
-
     public function authorize(): bool
     {
         // Route protégée par EnsureSuperAdmin (404 pour les autres)
@@ -29,11 +26,14 @@ final class CreateSchoolRequest extends FormRequest
     {
         /** @var list<string> $catalog */
         $catalog = array_keys(config()->array('cycles'));
+        /** @var list<string> $reserved */
+        $reserved = config()->array('tenancy.reserved_slugs');
 
         return [
             'name' => ['required', 'string', 'min:3', 'max:120'],
-            // Sous-domaine <slug>.<domaine> : minuscules, chiffres et tirets
-            'slug' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$/', Rule::notIn(self::RESERVED_SLUGS)],
+            // Chemin app.<domaine>/{slug} : minuscules, chiffres et tirets, hors segments réservés (config/tenancy.php).
+            // Figé à la création en V1 : aucune route ne le modifie (les liens déjà envoyés restent valides).
+            'slug' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$/', Rule::notIn($reserved)],
             'city' => ['nullable', 'string', 'max:80'],
             'type' => ['sometimes', Rule::enum(SchoolType::class)],
             'cycles' => ['required', 'array', 'min:1'],

@@ -229,7 +229,10 @@ export interface components {
         /** CreateSchoolRequest */
         CreateSchoolRequest: {
             name: string;
-            /** @description Sous-domaine <slug>.<domaine> : minuscules, chiffres et tirets */
+            /**
+             * @description Chemin app.<domaine>/{slug} : minuscules, chiffres et tirets, hors segments réservés (config/tenancy.php).
+             *     Figé à la création en V1 : aucune route ne le modifie (les liens déjà envoyés restent valides).
+             */
             slug: string;
             city?: string | null;
             type?: components["schemas"]["SchoolType"];
