@@ -55,8 +55,13 @@ export function RoleEditor({
   const source = mode.kind === 'create' ? mode.template : mode.role
   const readOnly = mode.kind === 'view'
   const isSystem = mode.kind !== 'create' && mode.role.is_system
-  const initial = source?.permissions ?? []
   const groups = groupPermissions(catalog)
+  const staffPermissions = new Set(groups.flatMap((group) => group.permissions))
+  // Seules les permissions affichées peuvent être sélectionnées : en dupliquant le rôle Parent, celles réservées
+  // aux parents (payer, justifier une absence) ne sont pas reprises (l'API les refuse dans un rôle du personnel)
+  const initial = (source?.permissions ?? []).filter((permission) =>
+    staffPermissions.has(permission),
+  )
   const total = groups.reduce((sum, group) => sum + group.permissions.length, 0)
 
   const {

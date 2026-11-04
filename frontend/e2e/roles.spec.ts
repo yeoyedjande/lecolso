@@ -87,6 +87,23 @@ test('direction : ajuste le secrétariat, consulte sans modifier un rôle verrou
   await expect(page.getByText('Rôle « Secrétariat » enregistré').first()).toBeVisible()
 })
 
+test('direction : dupliquer le rôle Parent donne un rôle du personnel enregistrable', async ({
+  page,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/roles')
+
+  await page.getByRole('button', { name: 'Dupliquer : Parent' }).click()
+  const editor = page.getByRole('dialog', { name: 'Nouveau rôle' })
+  await expect(editor.getByLabel('Nom du rôle')).toHaveValue('Parent (copie)')
+  // Les permissions propres aux parents (payer, justifier) ne sont pas reprises : le rôle reste enregistrable
+  await editor.getByRole('button', { name: 'Enregistrer le rôle' }).click()
+  await expect(editor).toBeHidden()
+  const copy = page.getByRole('main').getByRole('listitem').filter({ hasText: 'Parent (copie)' })
+  await expect(copy).toContainText('Rôle personnalisé')
+  await expect(copy).toContainText('5 permissions')
+})
+
 test('le menu et l’écran des rôles sont réservés à qui gère les rôles', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.accountant })
   // Menu latéral du back-office (replié derrière un bouton à 360 px)
