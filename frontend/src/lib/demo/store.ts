@@ -42,14 +42,14 @@ export class ModuleUnavailableError extends Error {
   }
 }
 
-/** Latence simulée, pour que les états de chargement restent visibles et réalistes. */
-const LATENCY_MS = import.meta.env.MODE === 'test' ? 0 : 180
-
-/** Exécute une lecture ou une écriture de démonstration (ou échoue si la démo est désactivée). */
+/**
+ * Exécute une lecture ou une écriture de démonstration (ou échoue si la démo est désactivée).
+ * Aucune latence simulée : elle ralentissait chaque écran de la démo sans rien apprendre de plus
+ * (les états de chargement restent visibles sur les appels réels et dans /design).
+ */
 export async function demo<T>(run: () => T): Promise<T> {
   if (!env.demoModules) throw new ModuleUnavailableError()
-  if (LATENCY_MS > 0) await new Promise((resolve) => setTimeout(resolve, LATENCY_MS))
-  return run()
+  return Promise.resolve(run())
 }
 
 let counter = 0

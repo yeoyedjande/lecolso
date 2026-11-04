@@ -5,7 +5,7 @@ import { MobileLayout } from '@/features/shell/MobileLayout'
 import { PARENT_TABS } from '@/features/shell/nav'
 
 export const Route = createFileRoute('/$school/parent')({
-  beforeLoad: async ({ context, location, params }) =>
-    guard(context.queryClient, 'parent', location.href, params.school),
+  beforeLoad: async ({ context, location, params, preload }) =>
+    guard(context.queryClient, 'parent', location.href, params.school, preload),
   component: () => <MobileLayout space="parent" tabs={PARENT_TABS} />,
 })

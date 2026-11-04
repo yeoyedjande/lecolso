@@ -9,7 +9,7 @@ const launchOptions = executablePath !== undefined ? { launchOptions: { executab
 export default defineConfig({
   testDir: './e2e',
   // Captures d'écran : configuration à part (playwright.captures.config.ts)
-  testIgnore: ['**/captures.spec.ts'],
+  testIgnore: ['**/captures.spec.ts', '**/perf.spec.ts'],
   fullyParallel: true,
   forbidOnly: process.env.CI !== undefined,
   retries: process.env.CI !== undefined ? 1 : 0,

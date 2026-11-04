@@ -16,8 +16,8 @@ const PROFILE_OF = {
  * de l'école de l'onglet (ou de la dernière école utilisée), sinon passe par l'accueil (choix d'école, plateforme).
  */
 export const Route = createFileRoute('/compte')({
-  beforeLoad: async ({ context, location }) => {
-    const { profile } = await guard(context.queryClient, 'schools', location.href)
+  beforeLoad: async ({ context, location, preload }) => {
+    const { profile } = await guard(context.queryClient, 'schools', location.href, null, preload)
     const membership = findMembership(profile, session.getLastSchoolId())
     const first = membership === null ? undefined : spacesOf(membership)[0]
     if (membership === null || first === undefined) {

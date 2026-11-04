@@ -7,7 +7,7 @@ import { guard } from '@/features/auth/guard'
  * le changement de mot de passe, le choix d'établissement ou la plateforme. Aucun sous-domaine (ADR 0005).
  */
 export const Route = createFileRoute('/')({
-  beforeLoad: async ({ context, location }) => {
-    await guard(context.queryClient, 'home', location.href)
+  beforeLoad: async ({ context, location, preload }) => {
+    await guard(context.queryClient, 'home', location.href, null, preload)
   },
 })

@@ -15,8 +15,8 @@ import { z } from 'zod/mini'
 
 export const Route = createFileRoute('/etablissements')({
   validateSearch: z.object({ redirect: z.catch(z.optional(z.string()), undefined) }),
-  beforeLoad: async ({ context, location }) => {
-    const { profile } = await guard(context.queryClient, 'schools', location.href)
+  beforeLoad: async ({ context, location, preload }) => {
+    const { profile } = await guard(context.queryClient, 'schools', location.href, null, preload)
     const only = profile.schools.length === 1 ? profile.schools[0] : undefined
     if (only !== undefined) {
       // Un seul établissement : rien à choisir

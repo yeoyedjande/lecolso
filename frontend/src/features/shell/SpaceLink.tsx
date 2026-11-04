@@ -31,6 +31,9 @@ export function SpaceLink({
     onClick,
     'aria-label': ariaLabel,
     children,
+    // Menus : code de l'écran préchargé dès que le lien est visible (pas seulement au survol, absent sur
+    // téléphone) ; le clic n'attend donc plus le téléchargement du module de la page
+    preload: 'viewport' as const,
   }
 
   // Liens relatifs à l'établissement de l'URL (/{slug}/…) : le slug courant est repris tel quel

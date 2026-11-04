@@ -63,7 +63,11 @@ src/
 - Polices auto-hébergées (`@fontsource-variable`, `src/styles/fonts.css`) : `font-display` (Bricolage Grotesque) pour titres
   et chiffres clés, Inter pour le texte.
 - Mouvement : `motion` via `components/motion` (`Reveal`, `PageTransition`, `AnimatedNumber`) ; `MotionProvider` coupe tout
-  si `prefers-reduced-motion`.
+  si `prefers-reduced-motion`. **Aucune animation ne retarde le contenu** : pas de fondu entre deux écrans d'un espace
+  (`PageTransition` reste réservé à l'écran de connexion), `Reveal` bref (0,16 s, cascade de 20 ms plafonnée).
+- Rapidité de navigation : la garde réutilise le profil `/me` en cache (revérifié en arrière-plan après 60 s, attendu
+  seulement s'il est absent ou invalidé) ; les liens des menus (`SpaceLink`) préchargent leur écran dès qu'ils sont visibles ;
+  aucune latence simulée dans la démo. Mesure : `npm run e2e:perf` (budget 600 ms par écran, processeur ÷ 4, API à 200 ms).
 - États : `Skeleton`, `EmptyState`, `ErrorState`, `OfflineBanner`, `DemoBanner` (écrans alimentés par `features/<domaine>/demo/`
   quand `VITE_DEMO_MODULES=true`).
 - Page `/design` : vitrine des tokens et composants, en local et en staging (`VITE_APP_ENV`) ; en production, `vite.config.ts`
@@ -137,6 +141,7 @@ npm run lint         # ESLint + Prettier
 npm run typecheck    # tsc --noEmit
 npm run e2e          # Playwright (parcours + axe)
 npm run e2e:captures # captures d'écran 360 et 1280 px
+npm run e2e:perf     # temps clic de menu → contenu affiché, conditions ralenties (hors CI)
 npm run size         # budget JS initial < 300 Ko gzip (après npm run build)
 npm run api:types    # openapi-typescript ../docs/api/openapi.json -o src/lib/api/schema.d.ts
 ```
