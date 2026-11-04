@@ -364,6 +364,72 @@ export async function mockApi(
           ],
         }
   }
+  // Comptes de l'école (GET/POST /users…) : initialisés depuis ACCOUNTS, modifiés par les écritures
+  interface MockUserRole {
+    id: string
+    role: string
+    role_name: string | null
+    cycle_id: string | null
+  }
+  interface MockUser {
+    id: string
+    name: string
+    phone: string
+    email: string | null
+    active: boolean
+    must_change_password: boolean
+    last_login_at: string | null
+    roles: MockUserRole[]
+  }
+  const userId = (phone: string) => `0195f000-0000-7000-8000-${phone.slice(-12)}`
+  let assignmentCounter = 0
+  const nextAssignment = () => {
+    assignmentCounter += 1
+    return `0195f000-0000-7000-8000-0000000a${String(assignmentCounter).padStart(4, '0')}`
+  }
+  const schoolUsers = new Map<string, MockUser[]>()
+  const usersOf = (schoolId: string): MockUser[] => {
+    const existing = schoolUsers.get(schoolId)
+    if (existing !== undefined) return existing
+    const schoolKey = schoolKeyOf(schoolId)
+    const accounts: Account[] = Object.values(ACCOUNTS)
+    const users = accounts
+      .filter((account) => account.roles.some((assignment) => assignment.school === schoolKey))
+      .map((account): MockUser => ({
+        id: userId(account.phone),
+        name: account.name,
+        phone: account.phone,
+        email: account.email,
+        active: true,
+        must_change_password: account.mustChangePassword ?? false,
+        last_login_at: '2026-11-03T08:15:00+00:00',
+        roles: account.roles
+          .filter((assignment) => assignment.school === schoolKey)
+          .map((assignment) => ({
+            id: nextAssignment(),
+            role: assignment.role,
+            role_name: null,
+            cycle_id: assignment.cycle ?? null,
+          })),
+      }))
+    schoolUsers.set(schoolId, users)
+    return users
+  }
+  /** Comme UserPolicy::manage, simplifié : jamais soi-même ; promoteur seulement par un promoteur. */
+  const canManage = (schoolId: string, user: MockUser) => {
+    if (current === null || user.phone === current.phone) return false
+    const schoolKey = schoolKeyOf(schoolId)
+    const mine = current.roles.filter((assignment) => assignment.school === schoolKey)
+    const promoter = mine.some((assignment) => assignment.role === 'promoter')
+    if (user.roles.some((assignment) => assignment.role === 'promoter') && !promoter) return false
+    return mine.some(
+      (assignment) => PERMISSIONS['users.manage']?.includes(assignment.role) === true,
+    )
+  }
+  const present = (schoolId: string, user: MockUser) => ({
+    ...user,
+    can_manage: canManage(schoolId, user),
+  })
   const ordered = (permissions: string[]) =>
     Object.keys(PERMISSIONS).filter((permission) => permissions.includes(permission))
 
@@ -507,6 +573,69 @@ export async function mockApi(
           },
         })
       }
+      case 'GET /users': {
+        const schoolId = schoolHeader ?? ''
+        const query = new URL(request.url()).searchParams
+        const search = (query.get('search') ?? '').toLowerCase()
+        const role = query.get('role')
+        const status = query.get('status') ?? 'all'
+        const data = usersOf(schoolId)
+          .filter((user) => search === '' || user.name.toLowerCase().includes(search))
+          .filter(
+            (user) => role === null || user.roles.some((assignment) => assignment.role === role),
+          )
+          .filter((user) => status === 'all' || user.active === (status === 'active'))
+          .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+          .map((user) => present(schoolId, user))
+        return route.fulfill({
+          json: {
+            data,
+            links: { first: null, last: null, prev: null, next: null },
+            meta: { path: '', per_page: 25, next_cursor: null, prev_cursor: null },
+          },
+        })
+      }
+      case 'POST /users': {
+        const schoolId = schoolHeader ?? ''
+        const body = z
+          .object({
+            name: z.string(),
+            phone: z.string(),
+            email: z.nullable(z.string()),
+            roles: z.array(z.object({ role: z.string(), cycle_id: z.nullable(z.string()) })),
+          })
+          .parse(request.postDataJSON())
+        const phone = normalize(body.phone)
+        if (usersOf(schoolId).some((user) => user.phone === phone)) {
+          return route.fulfill({
+            status: 422,
+            json: {
+              message: 'Ce numéro appartient déjà à un compte de l’établissement.',
+              errors: { phone: ['Ce numéro appartient déjà à un compte de l’établissement.'] },
+            },
+          })
+        }
+        const user: MockUser = {
+          id: userId(phone),
+          name: body.name.trim(),
+          phone,
+          email: body.email,
+          active: true,
+          must_change_password: true,
+          last_login_at: null,
+          roles: body.roles.map((assignment) => ({
+            id: nextAssignment(),
+            role: assignment.role,
+            role_name: null,
+            cycle_id: assignment.cycle_id,
+          })),
+        }
+        usersOf(schoolId).push(user)
+        return route.fulfill({
+          status: 201,
+          json: { data: present(schoolId, user), provisional_password: 'k7Pm2xQa9R' },
+        })
+      }
       case 'GET /permissions':
         return route.fulfill({
           json: {
@@ -550,6 +679,69 @@ export async function mockApi(
         return route.fulfill({ status: 201, json: { data: role } })
       }
       default:
+        if (path.startsWith('/users/')) {
+          const schoolId = schoolHeader ?? ''
+          const [, , id = '', action = '', assignmentId = ''] = path.split('/')
+          const users = usersOf(schoolId)
+          const user = users.find((candidate) => candidate.id === id)
+          if (user === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          const method = request.method()
+          if (method === 'POST' && action === 'password-reset') {
+            return route.fulfill({ json: { provisional_password: 'Zq4mT8wPa2' } })
+          }
+          if (method === 'GET' && action === '')
+            return route.fulfill({ json: { data: present(schoolId, user) } })
+          if (!canManage(schoolId, user)) {
+            return route.fulfill({ status: 403, json: { message: 'This action is unauthorized.' } })
+          }
+          if (method === 'PATCH' && action === '') {
+            const body = z
+              .object({
+                name: z.optional(z.string()),
+                phone: z.optional(z.string()),
+                email: z.optional(z.nullable(z.string())),
+              })
+              .parse(request.postDataJSON())
+            if (body.name !== undefined) user.name = body.name
+            if (body.phone !== undefined) user.phone = normalize(body.phone)
+            if (body.email !== undefined) user.email = body.email
+            return route.fulfill({ json: { data: present(schoolId, user) } })
+          }
+          if (method === 'POST' && (action === 'deactivate' || action === 'reactivate')) {
+            user.active = action === 'reactivate'
+            return route.fulfill({ json: { data: present(schoolId, user) } })
+          }
+          if (method === 'POST' && action === 'roles') {
+            const body = z
+              .object({ role: z.string(), cycle_id: z.nullable(z.string()) })
+              .parse(request.postDataJSON())
+            user.roles.push({
+              id: nextAssignment(),
+              role: body.role,
+              role_name: null,
+              cycle_id: body.cycle_id,
+            })
+            return route.fulfill({ json: { data: present(schoolId, user) } })
+          }
+          if (method === 'DELETE' && action === 'roles') {
+            if (user.roles.length <= 1) {
+              return route.fulfill({
+                status: 409,
+                json: { message: 'C’est le dernier rôle de ce compte.', code: 'last_role' },
+              })
+            }
+            user.roles = user.roles.filter((assignment) => assignment.id !== assignmentId)
+            return route.fulfill({ json: { data: present(schoolId, user) } })
+          }
+          if (method === 'DELETE' && action === '') {
+            schoolUsers.set(
+              schoolId,
+              users.filter((candidate) => candidate.id !== id),
+            )
+            return route.fulfill({ json: { erased: true } })
+          }
+        }
         if (
           path.startsWith('/roles/') &&
           (request.method() === 'PATCH' || request.method() === 'DELETE')

@@ -34,15 +34,24 @@ final readonly class UserPolicy
         private RoleCatalog $catalog,
     ) {}
 
-    /** Liste des comptes de l'école : users.view, même limité à un cycle (la liste est alors filtrée). */
+    /** Permissions qui donnent accès à la liste des comptes (pour les gérer, ou pour réinitialiser un mot de passe). */
+    public const array VIEW_PERMISSIONS = ['users.view', 'users.reset_password'];
+
+    /** Liste des comptes de l'école : users.view ou users.reset_password, même limité à un cycle (liste filtrée). */
     public function viewAny(User $actor): bool
     {
         $schoolId = $this->context->schoolId();
 
-        return $schoolId !== null && array_key_exists('users.view', $this->authorizer->permissionsFor($actor, $schoolId));
+        if ($schoolId === null) {
+            return false;
+        }
+
+        $permissions = $this->authorizer->permissionsFor($actor, $schoolId);
+
+        return array_intersect(self::VIEW_PERMISSIONS, array_keys($permissions)) !== [];
     }
 
-    /** Fiche d'un compte : users.view sur au moins un cycle de ses affectations (ou toute l'école). */
+    /** Fiche d'un compte : l'une de ces permissions sur au moins un cycle de ses affectations (ou toute l'école). */
     public function view(User $actor, User $target): bool
     {
         $schoolId = $this->context->schoolId();
@@ -55,8 +64,15 @@ final readonly class UserPolicy
             return $this->viewAny($actor);
         }
 
-        return $this->targetAssignments($target)->contains(fn (RoleAssignment $assignment): bool => $this->authorizer
-            ->allows($actor, 'users.view', $schoolId, $assignment->cycle_id));
+        return $this->targetAssignments($target)->contains(function (RoleAssignment $assignment) use ($actor, $schoolId): bool {
+            foreach (self::VIEW_PERMISSIONS as $permission) {
+                if ($this->authorizer->allows($actor, $permission, $schoolId, $assignment->cycle_id)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
     }
 
     /** Créer un compte : users.manage (au moins sur un cycle) ; chaque rôle attribué est vérifié par grantRole. */

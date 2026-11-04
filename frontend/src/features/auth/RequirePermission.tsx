@@ -11,7 +11,7 @@ export function RequirePermission({
   permission,
   children,
 }: {
-  permission: string
+  permission: string | readonly string[]
   children: ReactNode
 }) {
   const { t } = useTranslation()

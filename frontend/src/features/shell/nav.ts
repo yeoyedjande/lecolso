@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  UserCog,
   UserPlus,
   UserRound,
   Users,
@@ -49,6 +50,7 @@ export type NavKey =
   | 'calendar'
   | 'settings'
   | 'roles'
+  | 'users'
   | 'home'
   | 'myClasses'
   | 'rollCall'
@@ -60,7 +62,7 @@ export interface NavItem {
   key: NavKey
   path: string
   icon: LucideIcon
-  permission?: string
+  permission?: string | readonly string[]
 }
 
 export type NavSectionKey = 'pilotage' | 'schooling' | 'finance' | 'pedagogy' | 'daily' | 'admin'
@@ -112,6 +114,12 @@ export const BACK_OFFICE_NAV: NavSection[] = [
     key: 'admin',
     items: [
       { key: 'settings', path: 'parametres', icon: Settings, permission: 'school.settings.view' },
+      {
+        key: 'users',
+        path: 'utilisateurs',
+        icon: UserCog,
+        permission: ['users.view', 'users.reset_password'],
+      },
       { key: 'roles', path: 'roles', icon: ShieldCheck, permission: 'roles.manage' },
     ],
   },

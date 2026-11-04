@@ -67,6 +67,7 @@ export const SCREENS: Screen[] = [
       ['gestion-calendrier', '/les-lauriers/calendrier', 'À venir ce mois-ci'],
       ['gestion-parametres', '/les-lauriers/parametres', 'Nom de l’établissement'],
       ['gestion-roles', '/les-lauriers/roles', 'Fondateur ou propriétaire'],
+      ['gestion-utilisateurs', '/les-lauriers/utilisateurs', 'Moussa Comptable'],
       ['gestion-profil', '/les-lauriers/profil', 'Établissements et rôles'],
     ] as const
   ).map(([name, path, ready]): Screen => ({

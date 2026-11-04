@@ -82,12 +82,25 @@ it('limite la liste d’une direction de cycle aux comptes de son cycle', functi
     expect($names)->toBe(['Directrice maternelle', 'Maternelle']);
 });
 
-it('réserve la liste à qui voit les utilisateurs', function (Role $role): void {
+it('réserve la liste à qui voit les utilisateurs ou réinitialise leurs mots de passe', function (Role $role): void {
     $school = makeSchool();
     actingAsRole($role, $school);
 
     spa('GET', '/api/v1/users', [], $school)->assertForbidden();
-})->with([Role::Secretary, Role::Accountant, Role::Teacher, Role::Guardian]);
+})->with([Role::Accountant, Role::Teacher, Role::Guardian]);
+
+it('donne la liste en lecture au secrétariat, qui réinitialise les mots de passe', function (): void {
+    $school = makeSchool();
+    $teacher = member($school, Role::Teacher, 'Koffi');
+    actingAsRole(Role::Secretary, $school);
+
+    $list = (array) spa('GET', '/api/v1/users', [], $school)->assertOk()->json('data');
+    expect(array_column($list, 'can_manage'))->each->toBeFalse();
+    spa('GET', "/api/v1/users/{$teacher->id}", [], $school)->assertOk()->assertJsonPath('data.can_manage', false);
+    spa('PATCH', "/api/v1/users/{$teacher->id}", ['name' => 'Autre'], $school)->assertForbidden();
+    spa('POST', '/api/v1/users', ['name' => 'Ab', 'phone' => '0711223344', 'roles' => [['role' => 'teacher']]], $school)
+        ->assertForbidden();
+});
 
 it('isole les comptes entre écoles (404, rien à deviner)', function (): void {
     $schoolA = makeSchool();

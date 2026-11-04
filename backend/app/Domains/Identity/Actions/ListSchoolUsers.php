@@ -9,6 +9,7 @@ use App\Domains\Identity\Data\SchoolUser;
 use App\Domains\Identity\Models\MemberDeactivation;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\User;
+use App\Domains\Identity\Policies\UserPolicy;
 use App\Domains\Tenancy\Models\School;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -38,14 +39,12 @@ final readonly class ListSchoolUsers
         ?string $cycleId,
         string $status,
     ): CursorPaginator {
-        // users.view : null = toute l'école, sinon les cycles de l'acteur (absente : rien, la Policy l'a déjà refusé)
-        $permissions = $this->authorizer->permissionsFor($actor, $school);
+        // Périmètre (UserPolicy::VIEW_PERMISSIONS) : null = toute l'école, sinon les cycles de l'acteur
+        $scope = self::scope($this->authorizer->permissionsFor($actor, $school));
         $members = RoleAssignment::query()->select('user_id');
 
-        if (! array_key_exists('users.view', $permissions)) {
-            $members->whereRaw('false');
-        } elseif ($permissions['users.view'] !== null) {
-            $members->whereIn('cycle_id', $permissions['users.view']);
+        if ($scope !== null) {
+            $members->whereIn('cycle_id', $scope);
         }
 
         $query = User::query()->whereIn('id', $members);
@@ -78,5 +77,30 @@ final readonly class ListSchoolUsers
         $present = $this->present->many($actor, $school, array_values($page->items()));
 
         return $page->setCollection(collect($present));
+    }
+
+    /**
+     * Union des périmètres des permissions qui donnent la liste : null si l'une couvre toute l'école.
+     *
+     * @param  array<string, list<string>|null>  $permissions
+     * @return list<string>|null
+     */
+    private static function scope(array $permissions): ?array
+    {
+        $cycles = [];
+
+        foreach (UserPolicy::VIEW_PERMISSIONS as $permission) {
+            if (! array_key_exists($permission, $permissions)) {
+                continue;
+            }
+
+            if ($permissions[$permission] === null) {
+                return null;
+            }
+
+            $cycles = [...$cycles, ...$permissions[$permission]];
+        }
+
+        return array_values(array_unique($cycles));
     }
 }

@@ -1,4 +1,4 @@
-import type { DemoSchool, DemoStaff } from '@/lib/demo/types'
+import type { DemoSchool } from '@/lib/demo/types'
 
 export interface SchoolIdentity {
   name: string
@@ -22,15 +22,4 @@ export function identity(school: DemoSchool): SchoolIdentity {
 
 export function updateIdentity(school: DemoSchool, input: Omit<SchoolIdentity, 'year'>): void {
   Object.assign(school, input)
-}
-
-export function staff(school: DemoSchool): DemoStaff[] {
-  return [...school.staff].sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-}
-
-/** Mot de passe provisoire lisible (démonstration : l'API réelle le génère côté serveur). */
-export function provisionalPassword(random: () => number = Math.random): string {
-  const words = ['Baobab', 'Lagune', 'Akwaba', 'Soleil', 'Savane', 'Cacao', 'Manguier', 'Ebene']
-  const word = words[Math.floor(random() * words.length)] ?? 'Akwaba'
-  return `${word}-${String(Math.floor(1000 + random() * 9000))}`
 }

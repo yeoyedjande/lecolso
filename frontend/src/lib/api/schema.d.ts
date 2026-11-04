@@ -269,6 +269,139 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comptes de l'école
+         * @description Par nom, 25 par page (curseur). Permission users.view ; limitée à un cycle, seuls les comptes de ce cycle.
+         */
+        get: operations["users.index"];
+        put?: never;
+        /**
+         * Ajouter un compte
+         * @description Avec au moins un rôle. Téléphone inconnu : nouveau compte et mot de passe provisoire (`provisional_password`,
+         *     renvoyé une seule fois). Téléphone d'un compte d'une autre école : rattaché, il garde son mot de passe
+         *     (`provisional_password` null). Chaque rôle exige le droit de l'attribuer (cycle, hiérarchie, pas d'élévation).
+         */
+        post: operations["users.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Un compte de l'école
+         * @description 404 s'il n'est pas membre de l'école.
+         */
+        get: operations["users.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer un compte de l'école
+         * @description Retire tous ses rôles. Le compte n'est effacé (`erased`) que s'il n'appartient à aucune autre école.
+         */
+        delete: operations["users.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un compte
+         * @description Nom, téléphone, e-mail (uniques entre tous les comptes). Jamais son propre compte ; un promoteur seulement par
+         *     un promoteur.
+         */
+        patch: operations["users.update"];
+        trace?: never;
+    };
+    "/users/{user}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Désactiver un compte
+         * @description Son accès à l'école est coupé dès la requête suivante ; ses rôles sont conservés.
+         */
+        post: operations["users.deactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Réactiver un compte */
+        post: operations["users.reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attribuer un rôle
+         * @description Rôle système ou personnalisé, sur un cycle ou toute l'école. Promoteur et Direction : par un promoteur
+         *     seulement ; jamais un rôle dont on ne détient pas toutes les permissions sur ce cycle.
+         */
+        post: operations["users.roles.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}/roles/{assignment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un rôle
+         * @description 409 `last_role` pour le dernier rôle du compte (le supprimer ou le désactiver).
+         */
+        delete: operations["users.roles.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/schools/{slug}": {
         parameters: {
             query?: never;
@@ -293,6 +426,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssignUserRoleRequest */
+        AssignUserRoleRequest: {
+            role: string;
+            /** Format: uuid */
+            cycle_id?: string | null;
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             current_password: string;
@@ -438,12 +577,36 @@ export interface components {
          * @enum {string}
          */
         SchoolType: "preschool_primary" | "secondary" | "higher";
+        /** SchoolUserResource */
+        SchoolUserResource: {
+            id: string;
+            name: string;
+            phone: string;
+            email: string | null;
+            active: boolean;
+            must_change_password: boolean;
+            last_login_at: string | null;
+            roles: components["schemas"]["UserAssignmentResource"][];
+            can_manage: boolean;
+        };
         /** StoreSchoolRoleRequest */
         StoreSchoolRoleRequest: {
             name: string;
             description?: string | null;
             /** @description Clés de GET /permissions ; validées par ValidateRolePermissions (catalogue, parents, élévation) */
             permissions: string[];
+        };
+        /** StoreSchoolUserRequest */
+        StoreSchoolUserRequest: {
+            name: string;
+            phone: string;
+            /** Format: email */
+            email?: string | null;
+            roles: {
+                role: string;
+                /** Format: uuid */
+                cycle_id?: string | null;
+            }[];
         };
         /** UpdateCycleRequest */
         UpdateCycleRequest: {
@@ -462,6 +625,20 @@ export interface components {
             name?: string;
             description?: string | null;
             permissions?: string[];
+        };
+        /** UpdateSchoolUserRequest */
+        UpdateSchoolUserRequest: {
+            name?: string;
+            phone?: string;
+            /** Format: email */
+            email?: string | null;
+        };
+        /** UserAssignmentResource */
+        UserAssignmentResource: {
+            id: string;
+            role: string;
+            role_name: string | null;
+            cycle_id: string | null;
         };
     };
     responses: {
@@ -982,6 +1159,296 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.index": {
+        parameters: {
+            query?: {
+                search?: string | null;
+                role?: string | null;
+                cycle_id?: string | null;
+                status?: "all" | "active" | "deactivated" | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreSchoolUserRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolUserResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                        /** @constant */
+                        provisional_password: "";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        erased: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSchoolUserRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.roles.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignUserRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.roles.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+                /** @description The assignment ID */
+                assignment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
         };
     };
