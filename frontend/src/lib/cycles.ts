@@ -53,3 +53,13 @@ export const CYCLE_CLASSES: Record<
     ink: 'text-cycle-other-ink',
   },
 }
+
+/**
+ * Couleurs des cycles pour les graphiques (barres, segments), validées avec l'outil de palette :
+ * le jaune soleil de la charte (#F5B700) est trop clair pour une marque, d'où #E0A500 ; en sombre,
+ * le corail est légèrement assombri. Toujours accompagnées d'étiquettes directes et d'un tableau.
+ */
+export const CYCLE_CHART: Record<'light' | 'dark', Record<CycleTone, string>> = {
+  light: { daycare: '#F97362', kindergarten: '#E0A500', primary: '#3B82F6', other: '#8B8378' },
+  dark: { daycare: '#F06A58', kindergarten: '#E0A500', primary: '#3B82F6', other: '#A89F91' },
+}

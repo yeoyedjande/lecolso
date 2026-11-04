@@ -22,8 +22,18 @@ import { Route as EnseignantIndexRouteImport } from './routes/enseignant/index'
 import { Route as EnseignantSplatRouteImport } from './routes/enseignant/$'
 import { Route as GestionIndexRouteImport } from './routes/gestion/index'
 import { Route as GestionSplatRouteImport } from './routes/gestion/$'
+import { Route as GestionCaisseRouteImport } from './routes/gestion/caisse'
+import { Route as GestionEcheanciersRouteImport } from './routes/gestion/echeanciers'
+import { Route as GestionEncaissementsRouteImport } from './routes/gestion/encaissements'
+import { Route as GestionFraisRouteImport } from './routes/gestion/frais'
+import { Route as GestionImpayesRouteImport } from './routes/gestion/impayes'
+import { Route as GestionImportRouteImport } from './routes/gestion/import'
+import { Route as GestionInscriptionsRouteImport } from './routes/gestion/inscriptions'
 import { Route as ParentIndexRouteImport } from './routes/parent/index'
 import { Route as ParentSplatRouteImport } from './routes/parent/$'
+import { Route as GestionElevesIndexRouteImport } from './routes/gestion/eleves/index'
+import { Route as GestionElevesStudentIdRouteImport } from './routes/gestion/eleves/$studentId'
+import { Route as GestionRecusPaymentIdRouteImport } from './routes/gestion/recus/$paymentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -90,6 +100,41 @@ const GestionSplatRoute = GestionSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => GestionRouteRoute,
 } as any)
+const GestionCaisseRoute = GestionCaisseRouteImport.update({
+  id: '/caisse',
+  path: '/caisse',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionEcheanciersRoute = GestionEcheanciersRouteImport.update({
+  id: '/echeanciers',
+  path: '/echeanciers',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionEncaissementsRoute = GestionEncaissementsRouteImport.update({
+  id: '/encaissements',
+  path: '/encaissements',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionFraisRoute = GestionFraisRouteImport.update({
+  id: '/frais',
+  path: '/frais',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionImpayesRoute = GestionImpayesRouteImport.update({
+  id: '/impayes',
+  path: '/impayes',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionImportRoute = GestionImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionInscriptionsRoute = GestionInscriptionsRouteImport.update({
+  id: '/inscriptions',
+  path: '/inscriptions',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
 const ParentIndexRoute = ParentIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -99,6 +144,21 @@ const ParentSplatRoute = ParentSplatRouteImport.update({
   id: '/$',
   path: '/$',
   getParentRoute: () => ParentRouteRoute,
+} as any)
+const GestionElevesIndexRoute = GestionElevesIndexRouteImport.update({
+  id: '/eleves/',
+  path: '/eleves/',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionElevesStudentIdRoute = GestionElevesStudentIdRouteImport.update({
+  id: '/eleves/$studentId',
+  path: '/eleves/$studentId',
+  getParentRoute: () => GestionRouteRoute,
+} as any)
+const GestionRecusPaymentIdRoute = GestionRecusPaymentIdRouteImport.update({
+  id: '/recus/$paymentId',
+  path: '/recus/$paymentId',
+  getParentRoute: () => GestionRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -113,10 +173,20 @@ export interface FileRoutesByFullPath {
   '/mot-de-passe': typeof MotDePasseRoute
   '/enseignant/$': typeof EnseignantSplatRoute
   '/gestion/$': typeof GestionSplatRoute
+  '/gestion/caisse': typeof GestionCaisseRoute
+  '/gestion/echeanciers': typeof GestionEcheanciersRoute
+  '/gestion/encaissements': typeof GestionEncaissementsRoute
+  '/gestion/frais': typeof GestionFraisRoute
+  '/gestion/impayes': typeof GestionImpayesRoute
+  '/gestion/import': typeof GestionImportRoute
+  '/gestion/inscriptions': typeof GestionInscriptionsRoute
   '/parent/$': typeof ParentSplatRoute
   '/enseignant/': typeof EnseignantIndexRoute
   '/gestion/': typeof GestionIndexRoute
   '/parent/': typeof ParentIndexRoute
+  '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
+  '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
+  '/gestion/eleves/': typeof GestionElevesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -127,10 +197,20 @@ export interface FileRoutesByTo {
   '/mot-de-passe': typeof MotDePasseRoute
   '/enseignant/$': typeof EnseignantSplatRoute
   '/gestion/$': typeof GestionSplatRoute
+  '/gestion/caisse': typeof GestionCaisseRoute
+  '/gestion/echeanciers': typeof GestionEcheanciersRoute
+  '/gestion/encaissements': typeof GestionEncaissementsRoute
+  '/gestion/frais': typeof GestionFraisRoute
+  '/gestion/impayes': typeof GestionImpayesRoute
+  '/gestion/import': typeof GestionImportRoute
+  '/gestion/inscriptions': typeof GestionInscriptionsRoute
   '/parent/$': typeof ParentSplatRoute
   '/enseignant': typeof EnseignantIndexRoute
   '/gestion': typeof GestionIndexRoute
   '/parent': typeof ParentIndexRoute
+  '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
+  '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
+  '/gestion/eleves': typeof GestionElevesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -145,10 +225,20 @@ export interface FileRoutesById {
   '/mot-de-passe': typeof MotDePasseRoute
   '/enseignant/$': typeof EnseignantSplatRoute
   '/gestion/$': typeof GestionSplatRoute
+  '/gestion/caisse': typeof GestionCaisseRoute
+  '/gestion/echeanciers': typeof GestionEcheanciersRoute
+  '/gestion/encaissements': typeof GestionEncaissementsRoute
+  '/gestion/frais': typeof GestionFraisRoute
+  '/gestion/impayes': typeof GestionImpayesRoute
+  '/gestion/import': typeof GestionImportRoute
+  '/gestion/inscriptions': typeof GestionInscriptionsRoute
   '/parent/$': typeof ParentSplatRoute
   '/enseignant/': typeof EnseignantIndexRoute
   '/gestion/': typeof GestionIndexRoute
   '/parent/': typeof ParentIndexRoute
+  '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
+  '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
+  '/gestion/eleves/': typeof GestionElevesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -164,10 +254,20 @@ export interface FileRouteTypes {
     | '/mot-de-passe'
     | '/enseignant/$'
     | '/gestion/$'
+    | '/gestion/caisse'
+    | '/gestion/echeanciers'
+    | '/gestion/encaissements'
+    | '/gestion/frais'
+    | '/gestion/impayes'
+    | '/gestion/import'
+    | '/gestion/inscriptions'
     | '/parent/$'
     | '/enseignant/'
     | '/gestion/'
     | '/parent/'
+    | '/gestion/eleves/$studentId'
+    | '/gestion/recus/$paymentId'
+    | '/gestion/eleves/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -178,10 +278,20 @@ export interface FileRouteTypes {
     | '/mot-de-passe'
     | '/enseignant/$'
     | '/gestion/$'
+    | '/gestion/caisse'
+    | '/gestion/echeanciers'
+    | '/gestion/encaissements'
+    | '/gestion/frais'
+    | '/gestion/impayes'
+    | '/gestion/import'
+    | '/gestion/inscriptions'
     | '/parent/$'
     | '/enseignant'
     | '/gestion'
     | '/parent'
+    | '/gestion/eleves/$studentId'
+    | '/gestion/recus/$paymentId'
+    | '/gestion/eleves'
   id:
     | '__root__'
     | '/'
@@ -195,10 +305,20 @@ export interface FileRouteTypes {
     | '/mot-de-passe'
     | '/enseignant/$'
     | '/gestion/$'
+    | '/gestion/caisse'
+    | '/gestion/echeanciers'
+    | '/gestion/encaissements'
+    | '/gestion/frais'
+    | '/gestion/impayes'
+    | '/gestion/import'
+    | '/gestion/inscriptions'
     | '/parent/$'
     | '/enseignant/'
     | '/gestion/'
     | '/parent/'
+    | '/gestion/eleves/$studentId'
+    | '/gestion/recus/$paymentId'
+    | '/gestion/eleves/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -306,6 +426,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GestionSplatRouteImport
       parentRoute: typeof GestionRouteRoute
     }
+    '/gestion/caisse': {
+      id: '/gestion/caisse'
+      path: '/caisse'
+      fullPath: '/gestion/caisse'
+      preLoaderRoute: typeof GestionCaisseRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/echeanciers': {
+      id: '/gestion/echeanciers'
+      path: '/echeanciers'
+      fullPath: '/gestion/echeanciers'
+      preLoaderRoute: typeof GestionEcheanciersRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/encaissements': {
+      id: '/gestion/encaissements'
+      path: '/encaissements'
+      fullPath: '/gestion/encaissements'
+      preLoaderRoute: typeof GestionEncaissementsRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/frais': {
+      id: '/gestion/frais'
+      path: '/frais'
+      fullPath: '/gestion/frais'
+      preLoaderRoute: typeof GestionFraisRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/impayes': {
+      id: '/gestion/impayes'
+      path: '/impayes'
+      fullPath: '/gestion/impayes'
+      preLoaderRoute: typeof GestionImpayesRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/import': {
+      id: '/gestion/import'
+      path: '/import'
+      fullPath: '/gestion/import'
+      preLoaderRoute: typeof GestionImportRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/inscriptions': {
+      id: '/gestion/inscriptions'
+      path: '/inscriptions'
+      fullPath: '/gestion/inscriptions'
+      preLoaderRoute: typeof GestionInscriptionsRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
     '/parent/': {
       id: '/parent/'
       path: '/'
@@ -319,6 +488,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/parent/$'
       preLoaderRoute: typeof ParentSplatRouteImport
       parentRoute: typeof ParentRouteRoute
+    }
+    '/gestion/eleves/': {
+      id: '/gestion/eleves/'
+      path: '/eleves'
+      fullPath: '/gestion/eleves/'
+      preLoaderRoute: typeof GestionElevesIndexRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/eleves/$studentId': {
+      id: '/gestion/eleves/$studentId'
+      path: '/eleves/$studentId'
+      fullPath: '/gestion/eleves/$studentId'
+      preLoaderRoute: typeof GestionElevesStudentIdRouteImport
+      parentRoute: typeof GestionRouteRoute
+    }
+    '/gestion/recus/$paymentId': {
+      id: '/gestion/recus/$paymentId'
+      path: '/recus/$paymentId'
+      fullPath: '/gestion/recus/$paymentId'
+      preLoaderRoute: typeof GestionRecusPaymentIdRouteImport
+      parentRoute: typeof GestionRouteRoute
     }
   }
 }
@@ -339,12 +529,32 @@ const EnseignantRouteRouteWithChildren = EnseignantRouteRoute._addFileChildren(
 
 interface GestionRouteRouteChildren {
   GestionSplatRoute: typeof GestionSplatRoute
+  GestionCaisseRoute: typeof GestionCaisseRoute
+  GestionEcheanciersRoute: typeof GestionEcheanciersRoute
+  GestionEncaissementsRoute: typeof GestionEncaissementsRoute
+  GestionFraisRoute: typeof GestionFraisRoute
+  GestionImpayesRoute: typeof GestionImpayesRoute
+  GestionImportRoute: typeof GestionImportRoute
+  GestionInscriptionsRoute: typeof GestionInscriptionsRoute
   GestionIndexRoute: typeof GestionIndexRoute
+  GestionElevesStudentIdRoute: typeof GestionElevesStudentIdRoute
+  GestionRecusPaymentIdRoute: typeof GestionRecusPaymentIdRoute
+  GestionElevesIndexRoute: typeof GestionElevesIndexRoute
 }
 
 const GestionRouteRouteChildren: GestionRouteRouteChildren = {
   GestionSplatRoute: GestionSplatRoute,
+  GestionCaisseRoute: GestionCaisseRoute,
+  GestionEcheanciersRoute: GestionEcheanciersRoute,
+  GestionEncaissementsRoute: GestionEncaissementsRoute,
+  GestionFraisRoute: GestionFraisRoute,
+  GestionImpayesRoute: GestionImpayesRoute,
+  GestionImportRoute: GestionImportRoute,
+  GestionInscriptionsRoute: GestionInscriptionsRoute,
   GestionIndexRoute: GestionIndexRoute,
+  GestionElevesStudentIdRoute: GestionElevesStudentIdRoute,
+  GestionRecusPaymentIdRoute: GestionRecusPaymentIdRoute,
+  GestionElevesIndexRoute: GestionElevesIndexRoute,
 }
 
 const GestionRouteRouteWithChildren = GestionRouteRoute._addFileChildren(
