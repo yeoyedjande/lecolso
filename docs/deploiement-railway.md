@@ -141,7 +141,8 @@ utile seulement en développement local (Vite sur `localhost:5173`, API sur `loc
   joignables que par le proxy Railway ou le réseau privé.
 - `URL::forceScheme('https')` en staging et en production (`AppServiceProvider`).
 - Journaux sur stderr (`LOG_CHANNEL=stderr`, `LOG_LEVEL=info`), collectés par Railway.
-- Redis par `REDIS_URL` (sessions, cache, files).
+- Redis par `REDIS_URL` (sessions, cache, files). Préfixes figés (`REDIS_PREFIX`, `CACHE_PREFIX`, `HORIZON_PREFIX`) : ils ne
+  dépendent plus d'`APP_NAME`, dont un changement (nom affiché) aurait déconnecté tout le monde et orphelin les files.
 - Disque `s3` sur le bucket : `league/flysystem-aws-s3-v3`, visibilité `private`, accès par URL signée (`temporaryUrl`) uniquement.
 - Images : `.dockerignore` exclut `.env`, `vendor`, `node_modules`, tests et documentation du contexte de build.
 - `web` : `index.html` (servi pour toutes les routes, dont `/{slug}/…`), `sw.js` et le manifeste en
