@@ -181,6 +181,223 @@
                 }
             }
         },
+        "/platform/schools": {
+            "post": {
+                "operationId": "platform.schools.store",
+                "description": "Ouvre les cycles choisis (catalogue) et rattache le directeur. Si le directeur n'a pas encore de compte,\nil est cr\u00e9\u00e9 avec un mot de passe provisoire, renvoy\u00e9 une seule fois et \u00e0 changer \u00e0 la premi\u00e8re connexion.\nR\u00e9serv\u00e9 aux super-admins (404 pour les autres).",
+                "summary": "Cr\u00e9er une \u00e9cole (super-admin)",
+                "tags": [
+                    "CreateSchool"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateSchoolRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "\u00c9cole cr\u00e9\u00e9e.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolResource"
+                                        },
+                                        "director": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "phone": {
+                                                    "type": "string"
+                                                },
+                                                "provisional_password": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "phone",
+                                                "provisional_password"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "director"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "404": {
+                        "description": "L\u2019utilisateur n\u2019est pas super-admin : la route n\u2019est pas r\u00e9v\u00e9l\u00e9e.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "operationId": "platform.schools.index",
+                "description": "R\u00e9serv\u00e9 aux super-admins (404 pour les autres). Lecture hors RLS par la connexion s\u00e9par\u00e9e app_platform.\nPagination par curseur, 50 \u00e9coles par page, tri\u00e9es par nom.",
+                "summary": "Tous les \u00e9tablissements (super-admin)",
+                "tags": [
+                    "ListSchools"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Une page d\u2019\u00e9coles, tri\u00e9es par nom.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SchoolResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the next set of items."
+                                                },
+                                                "prev_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the previous set of items."
+                                                }
+                                            },
+                                            "required": [
+                                                "path",
+                                                "per_page",
+                                                "next_cursor",
+                                                "prev_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "404": {
+                        "description": "L\u2019utilisateur n\u2019est pas super-admin : la route n\u2019est pas r\u00e9v\u00e9l\u00e9e.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/cycles": {
             "get": {
                 "operationId": "cycles.index",
@@ -313,134 +530,6 @@
                 "security": []
             }
         },
-        "/platform/schools": {
-            "get": {
-                "operationId": "platform.schools.index",
-                "description": "R\u00e9serv\u00e9 aux super-admins (404 pour les autres). Lecture hors RLS par la connexion s\u00e9par\u00e9e app_platform.\nPagination par curseur, 50 \u00e9coles par page, tri\u00e9es par nom.",
-                "summary": "Tous les \u00e9tablissements (super-admin)",
-                "tags": [
-                    "ListSchools"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Une page d\u2019\u00e9coles, tri\u00e9es par nom.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/SchoolResource"
-                                            }
-                                        },
-                                        "links": {
-                                            "type": "object",
-                                            "properties": {
-                                                "first": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "last": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "prev": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "next": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "first",
-                                                "last",
-                                                "prev",
-                                                "next"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "path": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ],
-                                                    "description": "Base path for paginator generated URLs."
-                                                },
-                                                "per_page": {
-                                                    "type": "integer",
-                                                    "description": "Number of items shown per page.",
-                                                    "minimum": 0
-                                                },
-                                                "next_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ],
-                                                    "description": "The \"cursor\" that points to the next set of items."
-                                                },
-                                                "prev_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ],
-                                                    "description": "The \"cursor\" that points to the previous set of items."
-                                                }
-                                            },
-                                            "required": [
-                                                "path",
-                                                "per_page",
-                                                "next_cursor",
-                                                "prev_cursor"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "data",
-                                        "links",
-                                        "meta"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "404": {
-                        "description": "L\u2019utilisateur n\u2019est pas super-admin : la route n\u2019est pas r\u00e9v\u00e9l\u00e9e.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/users/{user}/password-reset": {
             "post": {
                 "operationId": "users.password-reset",
@@ -495,6 +584,64 @@
                     }
                 }
             }
+        },
+        "/public/schools/{slug}": {
+            "get": {
+                "operationId": "public.schools.show",
+                "description": "Sans authentification : nom, ville, type et cycles ouverts (avec leurs niveaux). Aucune donn\u00e9e personnelle.",
+                "summary": "Page publique d'une \u00e9cole",
+                "tags": [
+                    "ShowPublicSchool"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PublicSchoolResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PublicSchoolResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Aucune \u00e9cole avec ce slug.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -520,6 +667,79 @@
                     "password_confirmation"
                 ],
                 "title": "ChangePasswordRequest"
+            },
+            "CreateSchoolRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "Sous-domaine <slug>.<domaine> : minuscules, chiffres et tirets",
+                        "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$",
+                        "minLength": 3,
+                        "maxLength": 50
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 80
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/SchoolType"
+                    },
+                    "cycles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "daycare",
+                                "kindergarten",
+                                "primary"
+                            ]
+                        },
+                        "minItems": 1,
+                        "uniqueItems": true
+                    },
+                    "director": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "minLength": 3,
+                                "maxLength": 120
+                            },
+                            "phone": {
+                                "type": "string",
+                                "maxLength": 30
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "email",
+                                "maxLength": 255
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "phone"
+                        ]
+                    }
+                },
+                "required": [
+                    "name",
+                    "slug",
+                    "cycles",
+                    "director"
+                ],
+                "title": "CreateSchoolRequest"
             },
             "CycleResource": {
                 "type": "object",
@@ -743,6 +963,59 @@
                 ],
                 "title": "ProfileResource"
             },
+            "PublicSchoolResource": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "cycles": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "levels": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "code",
+                                "name",
+                                "levels"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "name",
+                    "slug",
+                    "city",
+                    "type",
+                    "cycles"
+                ],
+                "title": "PublicSchoolResource"
+            },
             "RoleAssignmentResource": {
                 "type": "object",
                 "properties": {
@@ -864,6 +1137,16 @@
                     "created_at"
                 ],
                 "title": "SchoolResource"
+            },
+            "SchoolType": {
+                "type": "string",
+                "description": "Type d'\u00e9tablissement (ADR 0003) : seul preschool_primary est disponible en V1.\n",
+                "enum": [
+                    "preschool_primary",
+                    "secondary",
+                    "higher"
+                ],
+                "title": "SchoolType"
             },
             "UpdateCycleRequest": {
                 "type": "object",
