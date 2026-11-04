@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import { isRedirect } from '@tanstack/react-router'
+import { isNotFound, isRedirect } from '@tanstack/react-router'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -30,19 +30,45 @@ describe('guard', () => {
       ),
     )
 
-    expect(await redirectOf(guard(new QueryClient(), 'gestion', '/gestion/eleves'))).toMatchObject({
+    expect(
+      await redirectOf(guard(new QueryClient(), 'gestion', '/les-lauriers/eleves', 'les-lauriers')),
+    ).toMatchObject({
       to: '/connexion',
-      search: { redirect: '/gestion/eleves' },
+      search: { redirect: '/les-lauriers/eleves' },
     })
   })
 
-  it('choix automatique : l’établissement est mémorisé pour l’en-tête X-School-Id', async () => {
+  it('école de l’URL parmi les siennes : son UUID (jamais le slug) devient l’en-tête X-School-Id', async () => {
     server.use(http.get(`${API_URL}/me`, () => HttpResponse.json({ data: profile() })))
 
-    const result = await guard(new QueryClient(), 'gestion', '/gestion')
+    const result = await guard(new QueryClient(), 'gestion', '/les-lauriers/eleves', 'les-lauriers')
 
     expect(result.membership).toEqual(membership())
     expect(session.getSchoolId()).toBe('school-a')
+  })
+
+  it('école sans affectation : page introuvable, l’école de l’onglet ne change pas', async () => {
+    server.use(http.get(`${API_URL}/me`, () => HttpResponse.json({ data: profile() })))
+    session.setSchoolId('school-a')
+
+    const error = await guard(
+      new QueryClient(),
+      'gestion',
+      '/petits-genies/eleves',
+      'petits-genies',
+    ).catch((caught: unknown) => caught)
+
+    expect(isNotFound(error)).toBe(true)
+    expect(session.getSchoolId()).toBe('school-a')
+  })
+
+  it('accueil : redirection vers le tableau de bord de l’école, avec son slug', async () => {
+    server.use(http.get(`${API_URL}/me`, () => HttpResponse.json({ data: profile() })))
+
+    expect(await redirectOf(guard(new QueryClient(), 'home', '/'))).toMatchObject({
+      to: '/$school/tableau-de-bord',
+      params: { school: 'les-lauriers' },
+    })
   })
 
   it('erreur réseau ou serveur : remontée à l’écran d’erreur, pas de redirection', async () => {
@@ -52,15 +78,15 @@ describe('guard', () => {
       ),
     )
 
-    await expect(guard(new QueryClient(), 'gestion', '/gestion')).rejects.toThrow(
-      'Profil indisponible',
-    )
+    await expect(
+      guard(new QueryClient(), 'gestion', '/les-lauriers', 'les-lauriers'),
+    ).rejects.toThrow('Profil indisponible')
   })
 })
 
 describe('safeRedirect', () => {
   it.each([
-    ['/gestion/eleves?classe=ce1', '/gestion/eleves?classe=ce1'],
+    ['/les-lauriers/eleves?classe=ce1', '/les-lauriers/eleves?classe=ce1'],
     ['//evil.example', undefined],
     ['/\\evil.example', undefined],
     ['https://evil.example', undefined],

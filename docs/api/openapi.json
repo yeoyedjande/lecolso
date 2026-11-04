@@ -678,7 +678,7 @@
                     },
                     "slug": {
                         "type": "string",
-                        "description": "Sous-domaine <slug>.<domaine> : minuscules, chiffres et tirets",
+                        "description": "Chemin app.<domaine>/{slug} : minuscules, chiffres et tirets, hors segments r\u00e9serv\u00e9s (config/tenancy.php).\nFig\u00e9 \u00e0 la cr\u00e9ation en V1 : aucune route ne le modifie (les liens d\u00e9j\u00e0 envoy\u00e9s restent valides).",
                         "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$",
                         "minLength": 3,
                         "maxLength": 50

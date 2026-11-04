@@ -9,7 +9,7 @@ async function openTab() {
   return session
 }
 
-describe('session : établissement par onglet', () => {
+describe('session : établissement actif par onglet', () => {
   beforeEach(() => {
     window.localStorage.clear()
   })
@@ -17,11 +17,12 @@ describe('session : établissement par onglet', () => {
     window.localStorage.clear()
   })
 
-  it('un nouvel onglet reprend le dernier établissement choisi', async () => {
+  it('nouvel onglet : aucune école active (aucun X-School-Id deviné), la dernière sert à l’accueil', async () => {
     window.localStorage.setItem(KEY, 'ecole-a')
     const session = await openTab()
 
-    expect(session.getSchoolId()).toBe('ecole-a')
+    expect(session.getSchoolId()).toBeNull()
+    expect(session.getLastSchoolId()).toBe('ecole-a')
   })
 
   it('le choix fait dans un autre onglet ne change ni l’école ni l’en-tête de cet onglet', async () => {
@@ -32,14 +33,13 @@ describe('session : établissement par onglet', () => {
     window.localStorage.setItem(KEY, 'ecole-b')
 
     expect(session.getSchoolId()).toBe('ecole-a')
-    // … mais un onglet ouvert ensuite reprend le dernier choix
-    expect((await openTab()).getSchoolId()).toBe('ecole-b')
+    expect(session.getLastSchoolId()).toBe('ecole-a')
+    // … mais un onglet ouvert ensuite le propose pour son accueil
+    expect((await openTab()).getLastSchoolId()).toBe('ecole-b')
   })
 
-  it('un onglet sans établissement ne reprend pas celui choisi ensuite dans un autre onglet', async () => {
+  it('un onglet sans école active n’en adopte jamais une choisie ailleurs', async () => {
     const session = await openTab()
-    expect(session.getSchoolId()).toBeNull()
-
     window.localStorage.setItem(KEY, 'ecole-b')
     expect(session.getSchoolId()).toBeNull()
 

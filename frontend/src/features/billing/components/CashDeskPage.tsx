@@ -145,7 +145,8 @@ export function CashDeskPage() {
                           <TableCell className="text-right">
                             <Button asChild variant="ghost" size="sm">
                               <Link
-                                to="/gestion/recus/$paymentId"
+                                from="/$school"
+                                to="/$school/recus/$paymentId"
                                 params={{ paymentId: payment.id }}
                               >
                                 <Printer aria-hidden />

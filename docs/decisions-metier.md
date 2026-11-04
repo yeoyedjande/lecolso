@@ -5,6 +5,7 @@ Une ligne par décision, la plus récente en haut.
 
 | Date | Domaine | Question | Décision |
 | --- | --- | --- | --- |
+| 04/11/2026 | Plateforme | Adresse d'une école ? | Un chemin sur l'application unique : `app.ekalewa.com/{slug}` (page publique), `/{slug}/tableau-de-bord`, `/{slug}/parent`, `/{slug}/enseignant`, `/{slug}/preinscription` ; aucun sous-domaine (ADR 0005). Le slug est choisi à la création, figé en V1, et ne peut pas reprendre un segment réservé (`connexion`, `plateforme`, `login`, `admin`, `api`…) |
 | 04/11/2026 | Plateforme | Création d'une école ? | Par le super-admin uniquement : école, cycles du catalogue et directeur en une transaction. Le directeur reçoit un mot de passe provisoire (affiché une seule fois) s'il n'a pas de compte ; sinon il garde le sien. Sous-domaines réservés : app, api, www, admin, staging, plateforme, mail, static |
 | 04/11/2026 | Marque | Nom du produit ? | **EKALEWA**, domaine `ekalewa.com`. Changé dans l'interface, les titres, le manifeste PWA, `APP_NAME`, la documentation et les e-mails des comptes de démo (`@demo.ekalewa.com`). Identifiants techniques inchangés (dépôt, cookies `lecolso_*`, clés `localStorage`, projet Railway) pour éviter toute régression |
 | 04/11/2026 | Public | Que montre la page publique d'une école ? | Nom, ville, type, cycles et niveaux (fonction SQL dédiée, aucune donnée personnelle ni identifiant). Tarifs et pré-inscription en démonstration tant que les modules frais et inscriptions n'ont pas d'API |

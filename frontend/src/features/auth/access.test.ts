@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { membership, profile } from '@/test/profiles'
 
-import { can, decideAccess, slugFromHost, spacesOf } from './access'
+import { can, decideAccess, findMembershipBySlug, spacesOf } from './access'
 
 const schoolB = membership({
   id: 'school-b',
@@ -29,80 +29,125 @@ describe('spacesOf', () => {
   })
 })
 
-describe('decideAccess', () => {
-  const base = { schoolId: null, slug: null } as const
+describe('decideAccess : écrans d’un établissement (/{slug}/…)', () => {
+  const inSchool = (slug: string) => ({ slug, lastSchoolId: null }) as const
 
   it('mot de passe provisoire : tout mène au changement de mot de passe, sauf cet écran', () => {
     const user = profile({ must_change_password: true })
-    expect(decideAccess({ ...base, profile: user, requirement: 'gestion' })).toEqual({
+    expect(
+      decideAccess({ ...inSchool('les-lauriers'), profile: user, requirement: 'gestion' }),
+    ).toEqual({
       kind: 'redirect',
-      to: '/mot-de-passe',
+      target: { to: '/mot-de-passe' },
     })
-    expect(decideAccess({ ...base, profile: user, requirement: 'schools' })).toEqual({
+    expect(
+      decideAccess({ ...inSchool('les-lauriers'), profile: user, requirement: 'schools' }),
+    ).toEqual({
       kind: 'redirect',
-      to: '/mot-de-passe',
+      target: { to: '/mot-de-passe' },
     })
-    expect(decideAccess({ ...base, profile: user, requirement: 'password' }).kind).toBe('allow')
+    expect(
+      decideAccess({ ...inSchool('les-lauriers'), profile: user, requirement: 'password' }).kind,
+    ).toBe('allow')
   })
 
-  it('un seul établissement : choisi automatiquement', () => {
-    expect(decideAccess({ ...base, profile: profile(), requirement: 'gestion' })).toEqual({
+  it('école de l’URL parmi les siennes : accès, cette école devient celle de l’onglet', () => {
+    const user = profile({ schools: [membership(), schoolB] })
+    expect(
+      decideAccess({ ...inSchool('petits-genies'), profile: user, requirement: 'gestion' }),
+    ).toEqual({
       kind: 'allow',
-      membership: membership(),
-      selectSchoolId: 'school-a',
+      membership: schoolB,
     })
   })
 
-  it('plusieurs établissements sans choix : écran de choix', () => {
-    const user = profile({ schools: [membership(), schoolB] })
-    expect(decideAccess({ ...base, profile: user, requirement: 'gestion' })).toEqual({
-      kind: 'redirect',
-      to: '/etablissements',
-    })
-  })
-
-  it('sous-domaine de l’école : établissement présélectionné', () => {
-    const user = profile({ schools: [membership(), schoolB] })
+  it('école où l’utilisateur n’a aucune affectation : introuvable (le slug n’autorise rien)', () => {
     expect(
-      decideAccess({ profile: user, schoolId: null, slug: 'petits-genies', requirement: 'home' }),
-    ).toEqual({
-      kind: 'redirect',
-      to: '/gestion',
-      selectSchoolId: 'school-b',
-    })
+      decideAccess({ ...inSchool('petits-genies'), profile: profile(), requirement: 'gestion' }),
+    ).toEqual({ kind: 'notFound' })
   })
 
-  it('établissement mémorisé qui n’est plus dans le profil : ignoré', () => {
-    const user = profile({ schools: [membership(), schoolB] })
+  it('slug inconnu : même réponse qu’une école sans affectation (rien à deviner)', () => {
     expect(
-      decideAccess({ profile: user, schoolId: 'school-z', slug: null, requirement: 'gestion' }),
-    ).toEqual({
-      kind: 'redirect',
-      to: '/etablissements',
-    })
+      decideAccess({ ...inSchool('ecole-inconnue'), profile: profile(), requirement: 'parent' }),
+    ).toEqual({ kind: 'notFound' })
   })
 
-  it('espace non autorisé : redirection vers le premier espace permis', () => {
+  it('la dernière école de l’onglet ne remplace jamais celle de l’URL', () => {
+    const user = profile({ schools: [membership()] })
+    expect(
+      decideAccess({
+        profile: user,
+        slug: 'petits-genies',
+        lastSchoolId: 'school-a',
+        requirement: 'gestion',
+      }),
+    ).toEqual({ kind: 'notFound' })
+  })
+
+  it('super-admin : aucun accès implicite aux écoles sans affectation', () => {
+    const admin = profile({ is_super_admin: true, schools: [] })
+    expect(
+      decideAccess({ ...inSchool('les-lauriers'), profile: admin, requirement: 'gestion' }),
+    ).toEqual({ kind: 'notFound' })
+  })
+
+  it('espace non autorisé : premier espace permis dans la même école', () => {
     const teacher = profile({
       schools: [membership({ roles: [{ role: 'teacher', cycle_id: 'cycle-1' }] })],
     })
     expect(
-      decideAccess({ profile: teacher, schoolId: 'school-a', slug: null, requirement: 'gestion' }),
+      decideAccess({ ...inSchool('les-lauriers'), profile: teacher, requirement: 'gestion' }),
     ).toEqual({
       kind: 'redirect',
-      to: '/enseignant',
+      target: { to: '/$school/enseignant', school: 'les-lauriers' },
     })
     expect(
-      decideAccess({
-        profile: teacher,
-        schoolId: 'school-a',
-        slug: null,
-        requirement: 'enseignant',
-      }).kind,
+      decideAccess({ ...inSchool('les-lauriers'), profile: teacher, requirement: 'enseignant' })
+        .kind,
     ).toBe('allow')
   })
 
-  it('accueil : premier espace dans l’ordre gestion, enseignant, parent', () => {
+  it('aucun rôle dans l’établissement : écran de choix', () => {
+    const none = profile({ schools: [membership({ roles: [] })] })
+    expect(
+      decideAccess({ ...inSchool('les-lauriers'), profile: none, requirement: 'gestion' }),
+    ).toEqual({ kind: 'redirect', target: { to: '/etablissements' } })
+  })
+})
+
+describe('decideAccess : accueil (/)', () => {
+  const home = (lastSchoolId: string | null) =>
+    ({ slug: null, lastSchoolId, requirement: 'home' }) as const
+
+  it('un seul établissement : son tableau de bord', () => {
+    expect(decideAccess({ ...home(null), profile: profile() })).toEqual({
+      kind: 'redirect',
+      target: { to: '/$school/tableau-de-bord', school: 'les-lauriers' },
+    })
+  })
+
+  it('plusieurs établissements : la dernière école utilisée, sinon l’écran de choix', () => {
+    const user = profile({ schools: [membership(), schoolB] })
+    expect(decideAccess({ ...home('school-b'), profile: user })).toEqual({
+      kind: 'redirect',
+      target: { to: '/$school/tableau-de-bord', school: 'petits-genies' },
+    })
+    expect(decideAccess({ ...home(null), profile: user })).toEqual({
+      kind: 'redirect',
+      target: { to: '/etablissements' },
+    })
+  })
+
+  it('dernière école qui n’est plus dans le profil : ignorée', () => {
+    const user = profile({ schools: [membership(), schoolB] })
+    expect(decideAccess({ ...home('school-z'), profile: user })).toEqual({
+      kind: 'redirect',
+      target: { to: '/etablissements' },
+    })
+  })
+
+  it('premier espace dans l’ordre gestion, enseignant, parent', () => {
     const both = profile({
       schools: [
         membership({
@@ -113,36 +158,26 @@ describe('decideAccess', () => {
         }),
       ],
     })
-    expect(
-      decideAccess({ profile: both, schoolId: 'school-a', slug: null, requirement: 'home' }),
-    ).toEqual({
+    expect(decideAccess({ ...home('school-a'), profile: both })).toEqual({
       kind: 'redirect',
-      to: '/enseignant',
+      target: { to: '/$school/enseignant', school: 'les-lauriers' },
     })
   })
 
   it('aucun rôle dans l’établissement : écran de choix', () => {
     const none = profile({ schools: [membership({ roles: [] })] })
-    expect(
-      decideAccess({ profile: none, schoolId: 'school-a', slug: null, requirement: 'home' }),
-    ).toEqual({
+    expect(decideAccess({ ...home('school-a'), profile: none })).toEqual({
       kind: 'redirect',
-      to: '/etablissements',
+      target: { to: '/etablissements' },
     })
   })
 })
 
-describe('slugFromHost', () => {
-  it.each([
-    ['les-lauriers.lecolso.ci', 'lecolso.ci', 'les-lauriers'],
-    ['app.lecolso.ci', 'lecolso.ci', null],
-    ['www.lecolso.ci', 'lecolso.ci', null],
-    ['lecolso.ci', 'lecolso.ci', null],
-    ['a.b.lecolso.ci', 'lecolso.ci', null],
-    ['les-lauriers.autre.ci', 'lecolso.ci', null],
-    ['localhost', null, null],
-  ])('%s (domaine %s) → %s', (host, domain, slug) => {
-    expect(slugFromHost(host, domain)).toBe(slug)
+describe('findMembershipBySlug', () => {
+  it('ne retrouve que les écoles du profil', () => {
+    const user = profile({ schools: [membership(), schoolB] })
+    expect(findMembershipBySlug(user, 'petits-genies')).toEqual(schoolB)
+    expect(findMembershipBySlug(user, 'autre-ecole')).toBeNull()
   })
 })
 
@@ -162,10 +197,11 @@ describe('espace plateforme (super-admin)', () => {
   it('super-admin sans école : accueil = plateforme ; plateforme autorisée', () => {
     const admin = profile({ is_super_admin: true, schools: [] })
     expect(
-      decideAccess({ profile: admin, schoolId: null, slug: null, requirement: 'home' }),
-    ).toEqual({ kind: 'redirect', to: '/plateforme' })
+      decideAccess({ profile: admin, lastSchoolId: null, slug: null, requirement: 'home' }),
+    ).toEqual({ kind: 'redirect', target: { to: '/plateforme' } })
     expect(
-      decideAccess({ profile: admin, schoolId: null, slug: null, requirement: 'platform' }).kind,
+      decideAccess({ profile: admin, lastSchoolId: null, slug: null, requirement: 'platform' })
+        .kind,
     ).toBe('allow')
   })
 
@@ -173,23 +209,23 @@ describe('espace plateforme (super-admin)', () => {
     expect(
       decideAccess({
         profile: profile(),
-        schoolId: 'school-a',
+        lastSchoolId: 'school-a',
         slug: null,
         requirement: 'platform',
       }),
     ).toEqual({
       kind: 'redirect',
-      to: '/gestion',
+      target: { to: '/$school/tableau-de-bord', school: 'les-lauriers' },
     })
   })
 
   it('mot de passe provisoire : même un super-admin doit d’abord le changer', () => {
     const admin = profile({ is_super_admin: true, schools: [], must_change_password: true })
     expect(
-      decideAccess({ profile: admin, schoolId: null, slug: null, requirement: 'platform' }),
+      decideAccess({ profile: admin, lastSchoolId: null, slug: null, requirement: 'platform' }),
     ).toEqual({
       kind: 'redirect',
-      to: '/mot-de-passe',
+      target: { to: '/mot-de-passe' },
     })
   })
 })

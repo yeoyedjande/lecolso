@@ -240,7 +240,7 @@ function Detail({ detail }: { detail: StudentDetail }) {
           <div className="flex justify-end">
             <Can permission="billing.manage">
               <Button asChild variant="accent">
-                <Link to="/gestion/encaissements" search={{ eleve: student.id }}>
+                <Link from="/$school" to="/$school/encaissements" search={{ eleve: student.id }}>
                   <Wallet aria-hidden />
                   {t('students.detail.collect')}
                 </Link>
@@ -316,7 +316,11 @@ function Detail({ detail }: { detail: StudentDetail }) {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button asChild variant="ghost" size="sm">
-                          <Link to="/gestion/recus/$paymentId" params={{ paymentId: payment.id }}>
+                          <Link
+                            from="/$school"
+                            to="/$school/recus/$paymentId"
+                            params={{ paymentId: payment.id }}
+                          >
                             <Printer aria-hidden />
                             {payment.receiptNumber}
                           </Link>
@@ -524,7 +528,7 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button asChild variant="ghost" size="sm">
-          <Link to="/gestion/eleves">
+          <Link from="/$school" to="/$school/eleves">
             <ArrowLeft aria-hidden />
             {t('students.detail.back')}
           </Link>

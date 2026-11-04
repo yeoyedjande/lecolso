@@ -350,7 +350,12 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
 
   const pick = (id: string | undefined) => {
     setDone(null)
-    void navigate({ to: '/gestion/encaissements', search: { eleve: id }, replace: true })
+    void navigate({
+      from: '/$school',
+      to: '/$school/encaissements',
+      search: { eleve: id },
+      replace: true,
+    })
   }
 
   return (
@@ -374,7 +379,11 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild variant="accent">
-                <Link to="/gestion/recus/$paymentId" params={{ paymentId: done.id }}>
+                <Link
+                  from="/$school"
+                  to="/$school/recus/$paymentId"
+                  params={{ paymentId: done.id }}
+                >
                   <Printer aria-hidden />
                   {t('billing.collect.print')}
                 </Link>

@@ -74,7 +74,7 @@ function Fees({ slug, school }: { slug: string; school: PublicSchool }) {
   )
 }
 
-/** Page publique d'une école (<slug>.<domaine> ou /ecole/<slug>) : sans connexion. */
+/** Page publique d'une école (/{slug}) : sans connexion ni affectation, informations publiables seulement. */
 export function PublicSchoolPage({ slug }: { slug: string }) {
   const { t } = useTranslation()
   const query = usePublicSchool(slug)
@@ -123,7 +123,7 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                 </h1>
                 <p className="max-w-xl text-lg text-white/85">{t('publicSchool.heroText')}</p>
                 <Button asChild variant="accent" size="lg" className="w-fit">
-                  <Link to="/ecole/$slug/preinscription" params={{ slug }}>
+                  <Link to="/$school/preinscription" params={{ school: slug }}>
                     <UserPlus aria-hidden />
                     {t('publicSchool.preRegister')}
                   </Link>
@@ -188,7 +188,7 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
               <section className="grid justify-items-center gap-4 rounded-3xl bg-navy px-6 py-10 text-center text-white">
                 <p className="font-display text-2xl font-bold">{t('publicSchool.heroText')}</p>
                 <Button asChild variant="accent" size="lg">
-                  <Link to="/ecole/$slug/preinscription" params={{ slug }}>
+                  <Link to="/$school/preinscription" params={{ school: slug }}>
                     <UserPlus aria-hidden />
                     {t('publicSchool.preRegister')}
                   </Link>

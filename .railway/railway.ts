@@ -1,25 +1,28 @@
 // Infrastructure Railway en code (remplace railway.json, déprécié par Railway).
-// Avant le premier usage : remplacer VOTRE-DOMAINE et VOTRE-DOMAINE-STAGING, puis
-//   cd .railway && npm install && railway config plan   (aperçu, ne change rien)
+// Avant le premier usage :
+//   cd .railway && npm ci && railway config plan   (aperçu, ne change rien)
 //   railway config apply                                (applique après confirmation)
 // Les noms de variables fournies par le bucket et la syntaxe des régions sont à confirmer avec `railway config plan`.
 // Exige la CLI Railway 5.42.1 ou plus récente (le moteur IaC est fourni par la CLI).
 import { defineRailway, project, service, github, image, database, redis, bucket, group, preserve, ref } from "railway/iac";
 
 const REPO = "yeoyedjande/lecolso";
-// Domaine propre obligatoire : le cookie de session est partagé entre api.<domaine> et app.<domaine>,
-// impossible sur *.up.railway.app (suffixe public : aucun cookie commun entre deux sous-domaines).
-const PRODUCTION_DOMAIN = "VOTRE-DOMAINE.ci";
-// Staging sur un domaine DISTINCT, jamais staging.<domaine> : le cookie de session de production est posé sur
-// .<domaine> et serait alors envoyé aux serveurs de staging. Mêmes enregistrements DNS : api., app. et *.
-const STAGING_DOMAIN = "VOTRE-DOMAINE-STAGING.ci";
+// Routage par chemin (ADR 0005) : une seule application, https://<hôte>/{slug}/*, aucun sous-domaine par école.
+// Le navigateur n'appelle l'API que sur l'origine de l'application (/api/v1, /sanctum : proxy Caddy du service web),
+// donc les cookies de session et XSRF-TOKEN sont limités à cet hôte : jamais partagés entre production et staging.
+const APP_HOST = { production: "app.ekalewa.com", staging: "staging.ekalewa.com" } as const;
+// API publique (webhooks de paiement, intégrations) : production seulement ; l'application ne passe pas par elle.
+const PUBLIC_API_HOST = "api.ekalewa.com";
+// Port d'écoute de l'API (FrankenPHP), joint par le proxy du service web sur le réseau privé de Railway
+const API_PORT = "8080";
 const REGION_ID = "europe-west4"; // Amsterdam, la région la plus proche d'Abidjan
 const REGION = { [REGION_ID]: 1 };
 
 export default defineRailway((ctx) => {
   const prod = ctx.environment === "production";
   const branch = prod ? "main" : "develop";
-  const DOMAIN = prod ? PRODUCTION_DOMAIN : STAGING_DOMAIN;
+  const host = prod ? APP_HOST.production : APP_HOST.staging;
+  const origin = `https://${host}`;
 
   // PostgreSQL 17 (version de la stack, de la CI et du local) ; postgres() du SDK prendrait la 18.
   // Bases créées directement en EU West (une base ne se déplace pas sans risque une fois remplie)
@@ -38,8 +41,9 @@ export default defineRailway((ctx) => {
     APP_NAME: "EKALEWA",
     APP_ENV: prod ? "production" : "staging",
     APP_KEY: preserve(),
-    APP_URL: `https://api.${DOMAIN}`,
-    FRONTEND_URL: `https://app.${DOMAIN}`,
+    // Origine publique de l'application (liens envoyés : App\Support\Tenancy\SchoolUrl)
+    APP_URL: origin,
+    FRONTEND_URL: origin,
     APP_TIMEZONE: "UTC",
     APP_DEBUG: "false",
     // Journaux sur stderr (collectés par Railway), sans le niveau debug
@@ -66,16 +70,16 @@ export default defineRailway((ctx) => {
     QUEUE_CONNECTION: "redis",
     CACHE_STORE: "redis",
 
-    // Authentification SPA par cookie httpOnly (Sanctum) : app.<domaine> et api.<domaine> partagent le domaine principal
+    // Authentification SPA par cookie httpOnly (Sanctum), sur la même origine que l'application.
+    // SESSION_DOMAIN volontairement vide : cookie limité à l'hôte (app. ou staging.), jamais .ekalewa.com,
+    // sinon le cookie de production serait envoyé à staging.ekalewa.com.
     SESSION_DRIVER: "redis",
     SESSION_LIFETIME: "480",
-    SESSION_DOMAIN: `.${DOMAIN}`,
+    SESSION_DOMAIN: "null",
     SESSION_COOKIE: prod ? "lecolso_session" : "lecolso_staging_session",
     SESSION_SECURE_COOKIE: "true",
     SESSION_SAME_SITE: "lax",
-    SANCTUM_STATEFUL_DOMAINS: `app.${DOMAIN},*.${DOMAIN}`,
-    // CORS avec cookies : FRONTEND_URL (ci-dessus) et les pages des écoles <slug>.<domaine>
-    CORS_ALLOWED_ORIGIN_PATTERN: `#^https://[a-z0-9-]+\\.${DOMAIN.replaceAll(".", "\\.")}$#`,
+    SANCTUM_STATEFUL_DOMAINS: host,
 
     FILESYSTEM_DISK: "s3",
     // Identifiants fournis par le bucket Railway (références, jamais en clair dans le dépôt)
@@ -106,9 +110,11 @@ export default defineRailway((ctx) => {
     healthcheck: "/api/v1/health",
     healthcheckTimeout: 60,
     replicas: REGION,
-    domains: [`api.${DOMAIN}`],
+    // Joint par le proxy du service web (réseau privé) ; domaine public en production seulement
+    domains: prod ? [PUBLIC_API_HOST] : [],
     env: {
       ...backendEnv,
+      PORT: API_PORT,
       // Super-admin : rôle de connexion séparé app_platform (BYPASSRLS), mot de passe propre.
       // Fourni au seul service api (routes /api/v1/platform/*), jamais à worker ni scheduler.
       DB_PLATFORM_USERNAME: "app_platform",
@@ -138,15 +144,16 @@ export default defineRailway((ctx) => {
   const web = service("web", {
     source: github(REPO, { branch }),
     replicas: REGION,
-    // app.<domaine> pour le personnel ; *.<domaine> pour la page de chaque école (<slug>.<domaine>)
-    domains: [`app.${DOMAIN}`, `*.${DOMAIN}`],
+    // Une seule adresse : personnel, parents, enseignants et pages publiques des écoles (/{slug})
+    domains: [host],
     env: {
       RAILWAY_DOCKERFILE_PATH: "docker/production/web.Dockerfile",
-      VITE_API_URL: `https://api.${DOMAIN}/api/v1`,
+      // Même origine : /api/* et /sanctum/* relayés par Caddy vers l'API sur le réseau privé
+      VITE_API_URL: "/api/v1",
+      API_UPSTREAM: `http://\${{api.RAILWAY_PRIVATE_DOMAIN}}:${API_PORT}`,
       // staging : page /design et données de démonstration des modules sans backend
       VITE_APP_ENV: prod ? "production" : "staging",
       VITE_DEMO_MODULES: prod ? "false" : "true",
-      VITE_TENANT_DOMAIN: DOMAIN,
     },
   });
 

@@ -84,13 +84,17 @@ de s'exécuter en production. Connexion par téléphone (« 07 00 00 00 03 » ou
 
 ### Espaces de l'application
 
+Une seule application, un chemin par établissement : `https://app.ekalewa.com/{slug}/…` (staging :
+`https://staging.ekalewa.com/{slug}/…`), sans sous-domaine par école (ADR 0005). Écoles de démo : `les-lauriers`, `petits-genies`.
+
 | Espace | Adresse | Pour qui | À essayer avec |
 | --- | --- | --- | --- |
-| Back-office | `/gestion` | promoteur, direction, secrétariat, comptabilité | Yao Directeur, Moussa Comptable, Aminata (maternelle) |
-| Enseignant (mobile) | `/enseignant` | enseignants | Fatou Enseignante (CE1 A et CM1 A) |
-| Parent (mobile) | `/parent` | parents | Kouadio Parent (2 enfants aux Lauriers, 1 aux Petits Génies) |
+| Back-office | `/{slug}/tableau-de-bord`, `/{slug}/eleves`, `/{slug}/encaissements`… | promoteur, direction, secrétariat, comptabilité | Yao Directeur, Moussa Comptable, Aminata (maternelle) |
+| Enseignant (mobile) | `/{slug}/enseignant` | enseignants | Fatou Enseignante (CE1 A et CM1 A) |
+| Parent (mobile) | `/{slug}/parent` | parents | Kouadio Parent (2 enfants aux Lauriers, 1 aux Petits Génies) |
+| Page publique | `/{slug}`, `/{slug}/preinscription` | tout le monde, sans connexion | `/les-lauriers`, pré-inscription |
 | Plateforme | `/plateforme` | super-admin | Super-admin Démo (liste et création d'écoles) |
-| Page publique | `/ecole/<slug>` (en production : `<slug>.<domaine>`) | tout le monde, sans connexion | `/ecole/les-lauriers`, pré-inscription |
+| Compte, connexion | `/compte`, `/connexion`, `/etablissements` | tous | — |
 | Design system | `/design` | équipe (local et staging seulement) | — |
 
 Les modules sans backend (élèves, paiements, notes, présences, messages…) affichent des **données de démonstration**

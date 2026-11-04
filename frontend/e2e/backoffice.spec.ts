@@ -17,7 +17,7 @@ test('encaissement au guichet (démo) : recherche, montant, confirmation, reçu 
   page,
 }) => {
   await mockApi(page, { session: ACCOUNTS.director })
-  await page.goto('/gestion/encaissements')
+  await page.goto('/les-lauriers/encaissements')
 
   await page.getByRole('searchbox', { name: /Rechercher l’élève/ }).fill('LAU-2026-0001')
   await page.getByRole('button', { name: /^Choisir / }).click()
@@ -55,7 +55,7 @@ test('encaissement au guichet (démo) : recherche, montant, confirmation, reçu 
 
 test('appel de classe (démo) : absent en un geste, enregistrement', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.director })
-  await page.goto('/gestion/presences')
+  await page.goto('/les-lauriers/presences')
 
   // Classes en appel uniquement (la crèche est en arrivées/départs, paramètre du cycle)
   const picker = page.getByRole('combobox', { name: 'Classe' })
@@ -77,7 +77,7 @@ test('appel de classe (démo) : absent en un geste, enregistrement', async ({ pa
 
 test('saisie des notes au clavier : Entrée descend, note invalide signalée', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.director })
-  await page.goto('/gestion/notes')
+  await page.goto('/les-lauriers/notes')
   await expect(page.getByText('Évaluation 1').first()).toBeVisible()
 
   const cells = page.getByRole('textbox', { name: /^Note de .*, Évaluation 1$/ })
@@ -92,7 +92,7 @@ test('saisie des notes au clavier : Entrée descend, note invalide signalée', a
 
 test('promoteur (consultation des notes) : grille en lecture seule', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.promoter })
-  await page.goto('/gestion/notes')
+  await page.goto('/les-lauriers/notes')
   const cell = page.getByRole('textbox', { name: /^Note de .*, Évaluation 1$/ }).first()
   await expect(cell).toHaveAttribute('readonly', '')
   await expect(page.getByRole('button', { name: 'Nouvelle évaluation' })).toHaveCount(0)
@@ -100,17 +100,17 @@ test('promoteur (consultation des notes) : grille en lecture seule', async ({ pa
 
 test('comptabilité : finances visibles, inscription et paramètres fermés', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.accountant })
-  await page.goto('/gestion/eleves')
+  await page.goto('/les-lauriers/eleves')
   await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Inscrire un élève' })).toHaveCount(0)
 
-  await page.goto('/gestion/inscriptions')
+  await page.goto('/les-lauriers/inscriptions')
   await expect(page.getByRole('heading', { name: 'Accès réservé', level: 1 })).toBeVisible()
 })
 
 test('directrice limitée à la maternelle : seuls les élèves de maternelle', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.kindergartenDirector })
-  await page.goto('/gestion/eleves')
+  await page.goto('/les-lauriers/eleves')
 
   const cycle = page.getByRole('combobox', { name: 'Cycle' })
   await expect(cycle.locator('option')).toHaveText(['Tous les cycles', 'Maternelle'])

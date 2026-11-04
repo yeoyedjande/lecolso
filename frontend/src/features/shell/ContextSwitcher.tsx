@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SPACE_PATHS, spacesOf, type Space } from '@/features/auth/access'
+import { SPACE_HOME, spacesOf, type Space } from '@/features/auth/access'
 import { useMe } from '@/features/auth/api'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { cn } from '@/lib/utils'
@@ -76,7 +76,7 @@ export function ContextSwitcher({
               <DropdownMenuItem
                 key={candidate}
                 onSelect={() => {
-                  void navigate({ to: SPACE_PATHS[candidate] })
+                  void navigate({ to: SPACE_HOME[candidate], params: { school: school.slug } })
                 }}
               >
                 <ArrowLeftRight aria-hidden />

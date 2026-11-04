@@ -137,7 +137,12 @@ export function TeacherGrades({ classroomId }: { classroomId: string | undefined
               classrooms={eligible}
               value={classroom.id}
               onChange={(id) => {
-                void navigate({ to: '/enseignant/notes', search: { classe: id }, replace: true })
+                void navigate({
+                  from: '/$school',
+                  to: '/$school/enseignant/notes',
+                  search: { classe: id },
+                  replace: true,
+                })
               }}
             />
             <NativeSelect

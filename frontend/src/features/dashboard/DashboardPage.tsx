@@ -386,7 +386,7 @@ export function DashboardPage() {
           <>
             <Can permission="attendance.manage">
               <Button asChild variant="outline">
-                <Link to="/gestion/presences">
+                <Link from="/$school" to="/$school/presences">
                   <ClipboardCheck aria-hidden />
                   {t('dashboard.rollCall')}
                 </Link>
@@ -394,7 +394,7 @@ export function DashboardPage() {
             </Can>
             <Can permission="billing.manage">
               <Button asChild variant="accent">
-                <Link to="/gestion/encaissements">
+                <Link from="/$school" to="/$school/encaissements">
                   <Wallet aria-hidden />
                   {t('dashboard.collect')}
                 </Link>

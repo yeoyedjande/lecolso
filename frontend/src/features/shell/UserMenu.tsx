@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from '@tanstack/react-router'
+import { useLocation, useMatch, useNavigate } from '@tanstack/react-router'
 import { Building2, ChevronDown, KeyRound, LogOut, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,6 +22,8 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
   const logout = useLogout()
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  // Back-office d'un établissement (/{slug}/…, hors espaces parent et enseignant)
+  const inBackOffice = useMatch({ from: '/$school/_gestion', shouldThrow: false }) !== undefined
 
   if (profile === undefined) return null
 
@@ -63,10 +65,10 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
             {t('nav.platform')}
           </DropdownMenuItem>
         )}
-        {pathname.startsWith('/gestion') && (
+        {inBackOffice && (
           <DropdownMenuItem
             onSelect={() => {
-              void navigate({ to: '/gestion/profil' })
+              void navigate({ from: '/$school', to: '/$school/profil' })
             }}
           >
             <UserRound aria-hidden />

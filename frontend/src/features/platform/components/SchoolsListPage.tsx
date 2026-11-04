@@ -91,7 +91,7 @@ export function SchoolsListPage() {
                             size="icon-sm"
                             aria-label={t('platform.schools.visit', { name: school.name })}
                           >
-                            <Link to="/ecole/$slug" params={{ slug: school.slug }}>
+                            <Link to="/$school" params={{ school: school.slug }}>
                               <ExternalLink aria-hidden />
                             </Link>
                           </Button>

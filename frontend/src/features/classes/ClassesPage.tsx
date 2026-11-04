@@ -52,7 +52,8 @@ export function ClassesPage() {
                     {group.classrooms.map((classroom, index) => (
                       <Reveal key={classroom.id} index={groupIndex + index}>
                         <Link
-                          to="/gestion/eleves"
+                          from="/$school"
+                          to="/$school/eleves"
                           search={{ classe: classroom.id }}
                           className={cn(
                             'grid gap-4 rounded-2xl border-l-4 bg-card p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift',
