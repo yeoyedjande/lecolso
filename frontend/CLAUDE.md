@@ -79,6 +79,8 @@ src/
 - Le comportement des écrans pédagogiques vient des paramètres du cycle (`usePedagogyClasses`) : notes pour
   `assessment_mode = weighted_average`, compétences pour `competency`, appel pour `attendance_mode = roll_call`,
   garderie pour `check_in_out`, bulletin ou livret selon `report_document`.
+- Espaces parent et enseignant : rattachement par le téléphone du compte (`features/parent`, `features/teacher`) ; un parent
+  ne lit que ses enfants, un enseignant que ses classes (tests de cloisonnement dans `parent.test.ts`).
 - Graphiques : Recharts, couleurs de `components/charts/chartTheme.ts` et `CYCLE_CHART` (palette validée), toujours avec
   un tableau équivalent pour les lecteurs d'écran.
 

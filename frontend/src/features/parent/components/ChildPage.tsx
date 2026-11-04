@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { CycleBadge } from '@/components/CycleBadge'
 import { EmptyState } from '@/components/states/EmptyState'
-import { QueryState } from '@/components/states/QueryState'
+import { ListSkeleton, QueryState } from '@/components/states/QueryState'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,7 +49,7 @@ function Report({
 
 function Child({ child }: { child: ChildDetail }) {
   const { t } = useTranslation()
-  const { settings } = useCycleSettings()
+  const { settings, loading } = useCycleSettings()
   const [reportOpen, setReportOpen] = useState(false)
   const cycle = settings[child.classroom.cycle]
   const mode = cycle?.assessment_mode ?? 'observation'
@@ -71,6 +71,9 @@ function Child({ child }: { child: ChildDetail }) {
     'absences' as const,
     ...(daily !== 'none' ? (['daycare'] as const) : []),
   ]
+
+  // Les onglets dépendent des paramètres du cycle : on attend qu'ils soient chargés
+  if (loading) return <ListSkeleton />
 
   return (
     <div className="grid gap-5">

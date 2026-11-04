@@ -5,6 +5,9 @@ Une ligne par décision, la plus récente en haut.
 
 | Date | Domaine | Question | Décision |
 | --- | --- | --- | --- |
+| 04/11/2026 | Parents | Quels enfants voit un parent ? | Ceux dont il est tuteur, rapprochés par le téléphone du compte (E.164). Toute autre fiche, tout autre reçu ou message est introuvable. L'API appliquera la même règle (Policy + test d'isolation) |
+| 04/11/2026 | Parents | Justification d'absence ? | Le parent justifie une absence passée ou prévient d'une absence à venir (jours de classe seulement) ; l'absence devient « excusée ». Validation par l'école à prévoir avec le module présences |
+| 04/11/2026 | Paiements | Paiement Mobile Money ? | Orange Money, MTN MoMo, Moov Money, Wave. En démonstration, simulé (aucun prélèvement) ; en réel, le paiement ne sera validé qu'à la réception du webhook signé de l'opérateur, traité de façon idempotente |
 | 04/11/2026 | Interface | Quels écrans pédagogiques pour quelle classe ? | D'après les paramètres du cycle, jamais son nom : notes (moyenne pondérée), compétences, appel ou arrivées/départs, bulletin ou livret. Un établissement qui change un paramètre voit l'écran correspondant changer |
 | 04/11/2026 | Finances | Taux de recouvrement affiché ? | Part de l'échu effectivement réglée à ce jour ; les paiements d'avance ne gonflent pas le taux |
 | 04/11/2026 | Finances | Reçu de paiement ? | Numéro séquentiel par établissement et par année, montant en chiffres et en lettres, reste à payer après le paiement, caissier ; une erreur se corrige par une annulation (à venir avec le module paiements) |

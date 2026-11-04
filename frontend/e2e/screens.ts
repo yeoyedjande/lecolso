@@ -76,27 +76,42 @@ export const SCREENS: Screen[] = [
     school: LAURIERS,
     dark: true,
   })),
-  {
-    name: 'enseignant-accueil',
-    path: '/enseignant',
+  ...(
+    [
+      ['enseignant-accueil', '/enseignant', 'Faire l’appel'],
+      ['enseignant-appel', '/enseignant/appel', /présent\(s\)/],
+      ['enseignant-notes', '/enseignant/notes', 'Évaluation'],
+      [
+        'enseignant-journal',
+        '/enseignant/journal',
+        'Aucune de vos classes ne tient de journal quotidien (paramètre du cycle).',
+      ],
+      ['enseignant-messages', '/enseignant/messages', 'Nouveau message'],
+      ['enseignant-profil', '/enseignant/profil', 'Changer mon mot de passe'],
+    ] as const
+  ).map(([name, path, ready]): Screen => ({
+    name,
+    path,
+    ready,
     session: ACCOUNTS.teacher,
     school: LAURIERS,
-    ready: 'Bonjour, Fatou',
-  },
-  {
-    name: 'parent-accueil',
-    path: '/parent',
+  })),
+  ...(
+    [
+      ['parent-accueil', '/parent', 'Reste à payer'],
+      ['parent-enfant', '/parent/enfants/lau-el-0001', 'Journal'],
+      ['parent-paiements', '/parent/paiements', 'Payer par Mobile Money'],
+      ['parent-messages', '/parent/messages', 'Devoirs de la semaine'],
+      ['parent-justifier', '/parent/justifier', 'Envoyer la justification'],
+      ['parent-profil', '/parent/profil', 'Changer mon mot de passe'],
+    ] as const
+  ).map(([name, path, ready]): Screen => ({
+    name,
+    path,
+    ready,
     session: ACCOUNTS.guardian,
     school: LAURIERS,
-    ready: 'Bonjour, Kouadio',
-  },
-  {
-    name: 'parent-bientot',
-    path: '/parent/paiements',
-    session: ACCOUNTS.guardian,
-    school: LAURIERS,
-    ready: 'Bientôt disponible',
-  },
+  })),
   { name: 'design', path: '/design', dark: true, ready: 'Design system' },
   { name: 'introuvable', path: '/nulle-part', ready: 'Page introuvable' },
   { name: 'etat', path: '/etat', ready: 'API : OK' },

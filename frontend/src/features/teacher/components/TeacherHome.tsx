@@ -97,13 +97,23 @@ export function TeacherHome() {
         }
       </QueryState>
       <div className="grid grid-cols-2 gap-2">
-        <Button asChild variant="secondary" size="lg">
+        <Button
+          asChild
+          variant="secondary"
+          size="lg"
+          className="h-auto min-h-12 py-2 text-center whitespace-normal"
+        >
           <Link to="/enseignant/journal">
             <NotebookPen aria-hidden />
             {t('teacher.home.journal')}
           </Link>
         </Button>
-        <Button asChild variant="secondary" size="lg">
+        <Button
+          asChild
+          variant="secondary"
+          size="lg"
+          className="h-auto min-h-12 py-2 text-center whitespace-normal"
+        >
           <Link to="/enseignant/messages">
             <MessageCircle aria-hidden />
             {t('teacher.home.messages')}

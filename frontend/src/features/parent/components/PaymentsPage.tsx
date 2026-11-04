@@ -17,6 +17,7 @@ import { useMe } from '@/features/auth/api'
 import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { parseAmount } from '@/features/billing/amount'
+import { demoToday } from '@/lib/demo/dates'
 import { formatDateTime, formatDay, formatMoney, formatPhone } from '@/lib/format'
 import { normalizeCiPhone } from '@/lib/phone'
 import type { DemoPayment, PaymentMethod } from '@/lib/demo/types'
@@ -263,10 +264,15 @@ export function PaymentsPage() {
                       </div>
                       {child.balance.nextInstallment !== null && (
                         <p className="text-sm text-muted-foreground">
-                          {t('parent.payments.next', {
-                            date: formatDay(child.balance.nextInstallment.dueDate),
-                            amount: formatMoney(child.balance.nextInstallment.amount),
-                          })}
+                          {t(
+                            child.balance.nextInstallment.dueDate <= demoToday()
+                              ? 'parent.payments.late'
+                              : 'parent.payments.next',
+                            {
+                              date: formatDay(child.balance.nextInstallment.dueDate),
+                              amount: formatMoney(child.balance.nextInstallment.amount),
+                            },
+                          )}
                         </p>
                       )}
                       {can(school, 'billing.pay') && child.balance.remaining > 0 && (

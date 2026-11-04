@@ -193,7 +193,7 @@
     "calendar": "Calendrier",
     "settings": "Paramètres",
     "home": "Accueil",
-    "myClasses": "Mes classes",
+    "myClasses": "Classes",
     "rollCall": "Appel",
     "children": "Mes enfants",
     "payMobile": "Paiements",
@@ -1034,7 +1034,8 @@
           "wallet": "Saisissez un numéro ivoirien à 10 chiffres."
         },
         "simulated": "Paiement simulé : aucun argent n’est prélevé en démonstration."
-      }
+      },
+      "late": "Échéance du {{date}} non réglée : {{amount}}"
     },
     "justify": {
       "title": "Justifier une absence",
