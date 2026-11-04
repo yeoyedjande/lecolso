@@ -51,6 +51,8 @@ jobs:
       DB_PASSWORD: app_user_secret
       DB_OWNER_USERNAME: app_owner
       DB_OWNER_PASSWORD: app_owner_secret
+      DB_PLATFORM_USERNAME: app_platform
+      DB_PLATFORM_PASSWORD: app_platform_secret
       REDIS_HOST: 127.0.0.1
     defaults:
       run:
@@ -69,8 +71,13 @@ jobs:
           key: composer-${{ hashFiles('backend/composer.lock') }}
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
-      - name: Rôles PostgreSQL (app_user soumis à la RLS)
-        run: PGPASSWORD=app_owner_secret psql -h 127.0.0.1 -U app_owner -d gestion_ecole -f ../docker/postgres/init/01-roles.sql
+      - name: Base de test et rôles PostgreSQL (app_user soumis à la RLS)
+        env:
+          PGPASSWORD: app_owner_secret
+        run: |
+          # Ordre imposé : 01-roles.sql fait \connect gestion_ecole_test, créée par 00-test-database.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U app_owner -d gestion_ecole -f ../docker/postgres/init/00-test-database.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U app_owner -d gestion_ecole -f ../docker/postgres/init/01-roles.sql
       - name: Formatage
         run: vendor/bin/pint --test
       - name: Analyse statique
@@ -104,9 +111,23 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test -- --run
-      - run: npm run build
+      - name: Build de production (sans la page /design)
+        run: npm run build
         env:
           VITE_API_URL: https://api.example.invalid/api/v1
+          VITE_APP_ENV: production
+      - name: Budget JS initial (< 300 Ko gzip)
+        run: npm run size
+      - name: Navigateur Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Parcours e2e et accessibilité (axe), 360 et 1280 px
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results
+          retention-days: 7
 
   # Railway (« Wait for CI ») ne déploie que si ce job est vert
   ci-ok:

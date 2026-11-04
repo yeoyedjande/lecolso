@@ -12,7 +12,7 @@ Plan de travail du sprint en cours : `docs/sprints/`.
 | Couche | Choix |
 | --- | --- |
 | API | Laravel (dernière version stable), PHP 8.4, API REST `/api/v1` |
-| Auth | Laravel Sanctum (tokens), OTP SMS pour les parents, 2FA pour le personnel |
+| Auth | Laravel Sanctum en mode SPA (cookie de session httpOnly, sessions Redis, CSRF) ; identifiant (téléphone ou e-mail) + mot de passe pour tous ; pas de 2FA ni d'OTP en V1 |
 | Base | PostgreSQL 17, Row-Level Security |
 | Files / cache | Redis + Laravel Horizon |
 | Frontend | React + TypeScript strict + Vite, TanStack Router, TanStack Query, shadcn/ui + Tailwind |
@@ -80,9 +80,15 @@ Interface utilisateur en français, code (classes, tables, variables) en anglais
 ### 1. Isolation multi-établissements
 - Toute table métier a une colonne `school_id` (uuid, non nulle, indexée, clé étrangère).
 - Tout modèle métier utilise le trait `BelongsToSchool` (scope global + remplissage automatique de `school_id`).
-- PostgreSQL applique une politique RLS sur `school_id = current_setting('app.school_id')::uuid` pour chaque table métier,
-  ajoutée dans la migration même qui crée la table (helper `Rls::enable('table')`).
+- PostgreSQL applique une politique RLS **en mode fermé** sur chaque table métier :
+  `school_id = NULLIF(current_setting('app.school_id', true), '')::uuid` (sans contexte : aucune ligne visible ni écrivable),
+  ajoutée dans la migration même qui crée la table (helper `Rls::enable('table')`). Un test fait échouer la CI
+  si une table avec `school_id` n'a pas de RLS.
+- La table `schools` n'est visible que pour l'école courante et les écoles où l'utilisateur courant (`app.user_id`) a une affectation ;
+  aucune création ni suppression d'école par la connexion applicative.
 - L'application se connecte avec un rôle PostgreSQL non propriétaire des tables (`app_user`) ; les migrations tournent avec `app_owner`.
+- Super-admin : rôle de connexion **séparé** `app_platform` (`BYPASSRLS`, mot de passe propre, service `api` uniquement), que `app_user`
+  ne peut pas endosser. Le code n'y accède que par `Platform::run()`, dans les routes `/api/v1/platform/*` (test d'architecture).
 - N'utilise jamais `withoutGlobalScopes()`, `DB::table()` ou du SQL brut sur une table métier sans le justifier dans un commentaire.
 - Chaque nouvelle ressource API a un test qui prouve qu'un utilisateur de l'école A ne peut ni lire, ni modifier, ni deviner une ressource de l'école B (réponse 404).
 

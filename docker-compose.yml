@@ -1,33 +1,42 @@
 # Environnement de développement local. Identifiants factices : ne jamais les réutiliser ailleurs.
 name: gestion-ecole
 
+x-php-env: &php-env
+  APP_ENV: local
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: gestion_ecole
+  DB_USERNAME: app_user          # rôle applicatif soumis à la RLS
+  DB_PASSWORD: app_user_secret
+  DB_OWNER_USERNAME: app_owner   # rôle propriétaire, réservé aux migrations
+  DB_OWNER_PASSWORD: app_owner_secret
+  REDIS_HOST: redis
+  QUEUE_CONNECTION: redis
+  CACHE_STORE: redis
+  # Authentification SPA par cookie httpOnly (Sanctum) : frontend Vite sur localhost:5173
+  SESSION_DRIVER: redis
+  SESSION_LIFETIME: "480"
+  SESSION_SECURE_COOKIE: "false"
+  SESSION_SAME_SITE: lax
+  FRONTEND_URL: http://localhost:5173
+  SANCTUM_STATEFUL_DOMAINS: localhost:5173
+  FILESYSTEM_DISK: s3
+  AWS_ACCESS_KEY_ID: minio
+  AWS_SECRET_ACCESS_KEY: minio_secret
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_BUCKET: gestion-ecole
+  AWS_ENDPOINT: http://minio:9000
+  AWS_USE_PATH_STYLE_ENDPOINT: "true"
+  GOTENBERG_URL: http://gotenberg:3000
+
 x-php: &php
   build:
     context: ./docker/php
   volumes:
     - ./backend:/var/www/html
     - ./docs:/var/www/docs
-  environment:
-    APP_ENV: local
-    DB_CONNECTION: pgsql
-    DB_HOST: postgres
-    DB_PORT: 5432
-    DB_DATABASE: gestion_ecole
-    DB_USERNAME: app_user          # rôle applicatif soumis à la RLS
-    DB_PASSWORD: app_user_secret
-    DB_OWNER_USERNAME: app_owner   # rôle propriétaire, réservé aux migrations
-    DB_OWNER_PASSWORD: app_owner_secret
-    REDIS_HOST: redis
-    QUEUE_CONNECTION: redis
-    CACHE_STORE: redis
-    FILESYSTEM_DISK: s3
-    AWS_ACCESS_KEY_ID: minio
-    AWS_SECRET_ACCESS_KEY: minio_secret
-    AWS_DEFAULT_REGION: us-east-1
-    AWS_BUCKET: gestion-ecole
-    AWS_ENDPOINT: http://minio:9000
-    AWS_USE_PATH_STYLE_ENDPOINT: "true"
-    GOTENBERG_URL: http://gotenberg:3000
+  environment: *php-env
   depends_on:
     postgres:
       condition: service_healthy
@@ -86,6 +95,12 @@ services:
 
   app:
     <<: *php
+    environment:
+      <<: *php-env
+      # Connexion super-admin (rôle app_platform, BYPASSRLS) : réservée au service api,
+      # jamais fournie à horizon ni au scheduler tant qu'aucun job n'en a besoin
+      DB_PLATFORM_USERNAME: app_platform
+      DB_PLATFORM_PASSWORD: app_platform_secret
 
   nginx:
     image: nginx:alpine

@@ -59,4 +59,40 @@ ni de pousser sur `main` (voir `.claude/settings.json`).
 
 ## Comptes de démo
 
-À compléter à l'étape 5 du sprint 0.
+Créés par `make migrate` ou `make fresh` (seeder `DemoSeeder`), en local et en staging uniquement : le seeder refuse
+de s'exécuter en production. Connexion par téléphone (« 07 00 00 00 03 » ou « +2250700000003 ») ou par e-mail.
+
+**Mot de passe commun : `Demo2026!`** (aucun changement de mot de passe demandé à la première connexion).
+
+| Compte | Téléphone | E-mail | Rôle |
+| --- | --- | --- | --- |
+| Super-admin Démo | +225 07 00 00 00 01 | superadmin@demo.lecolso.ci | super-admin de la plateforme |
+| Konan Promoteur | +225 07 00 00 00 02 | promoteur@demo.lecolso.ci | promoteur des deux écoles |
+| Yao Directeur | +225 07 00 00 00 03 | directeur@demo.lecolso.ci | directeur, Les Lauriers (toute l'école) |
+| Aminata Directrice maternelle | +225 07 00 00 00 04 | directrice.maternelle@demo.lecolso.ci | directrice, Les Lauriers, **maternelle uniquement** |
+| Awa Secrétaire | +225 07 00 00 00 05 | secretaire@demo.lecolso.ci | secrétaire, Les Lauriers |
+| Moussa Comptable | +225 07 00 00 00 06 | comptable@demo.lecolso.ci | comptable, Les Lauriers |
+| Fatou Enseignante | +225 07 00 00 00 07 | enseignante@demo.lecolso.ci | enseignante, Les Lauriers, primaire |
+| Kouadio Parent | +225 07 00 00 00 08 | parent@demo.lecolso.ci | parent dans les deux écoles |
+| Mariam Directrice | +225 07 00 00 00 09 | directrice@demo.lecolso.ci | directrice, Petits Génies |
+
+| École | Cycles |
+| --- | --- |
+| Les Lauriers | garderie, maternelle, primaire |
+| Petits Génies | garderie, maternelle |
+
+### Espaces de l'application
+
+| Espace | Adresse | Pour qui | À essayer avec |
+| --- | --- | --- | --- |
+| Back-office | `/gestion` | promoteur, direction, secrétariat, comptabilité | Yao Directeur, Moussa Comptable, Aminata (maternelle) |
+| Enseignant (mobile) | `/enseignant` | enseignants | Fatou Enseignante (CE1 A et CM1 A) |
+| Parent (mobile) | `/parent` | parents | Kouadio Parent (2 enfants aux Lauriers, 1 aux Petits Génies) |
+| Plateforme | `/plateforme` | super-admin | Super-admin Démo (liste et création d'écoles) |
+| Page publique | `/ecole/<slug>` (en production : `<slug>.<domaine>`) | tout le monde, sans connexion | `/ecole/les-lauriers`, pré-inscription |
+| Design system | `/design` | équipe (local et staging seulement) | — |
+
+Les modules sans backend (élèves, paiements, notes, présences, messages…) affichent des **données de démonstration**
+générées dans le navigateur (`VITE_DEMO_MODULES=true`) : elles sont cohérentes entre les écrans mais repartent de zéro
+au rechargement. Restent sur la vraie API : connexion, profil, établissements, cycles et leurs paramètres,
+réinitialisation de mot de passe, liste et création d'écoles (super-admin), page publique d'une école.

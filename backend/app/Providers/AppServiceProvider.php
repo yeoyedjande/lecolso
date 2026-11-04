@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Providers;
+
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        // Staging et production (Railway) : toutes les URL générées en https (TLS terminé par le proxy)
+        if ($this->app->environment('production', 'staging')) {
+            URL::forceScheme('https');
+        }
+    }
+}

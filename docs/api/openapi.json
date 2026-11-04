@@ -1,0 +1,1276 @@
+{
+    "openapi": "3.1.2",
+    "info": {
+        "title": "Gestion Ecole",
+        "version": "0.0.1",
+        "description": "API de la plateforme Gestion \u00c9cole. Les routes m\u00e9tier exigent un token Sanctum et l'en-t\u00eate X-School-Id."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080/api/v1"
+        }
+    ],
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "operationId": "auth.login",
+                "description": "Identifiant (t\u00e9l\u00e9phone ou e-mail) et mot de passe. Session par cookie httpOnly : appeler d'abord\nGET /sanctum/csrf-cookie. M\u00eame r\u00e9ponse 422 que le compte existe ou non ; 429 apr\u00e8s 5 tentatives par minute\npour un identifiant, ou 20 par minute depuis une adresse IP.",
+                "summary": "Connexion",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "description": "Trop de tentatives (par identifiant ou par adresse IP).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "code": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "code"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "operationId": "auth.logout",
+                "description": "Invalide la session et renouvelle le jeton CSRF.",
+                "summary": "D\u00e9connexion",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/auth/password": {
+            "post": {
+                "operationId": "auth.password",
+                "description": "Obligatoire \u00e0 la premi\u00e8re connexion avec un mot de passe provisoire. 8 caract\u00e8res minimum.",
+                "summary": "Changer son mot de passe",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "operationId": "me",
+                "description": "Ses \u00e9coles, ses r\u00f4les (par cycle) et ses permissions par \u00e9cole (null = toute l'\u00e9cole, sinon les cycles).",
+                "summary": "Profil de l'utilisateur connect\u00e9",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/platform/schools": {
+            "post": {
+                "operationId": "platform.schools.store",
+                "description": "Ouvre les cycles choisis (catalogue) et rattache le directeur. Si le directeur n'a pas encore de compte,\nil est cr\u00e9\u00e9 avec un mot de passe provisoire, renvoy\u00e9 une seule fois et \u00e0 changer \u00e0 la premi\u00e8re connexion.\nR\u00e9serv\u00e9 aux super-admins (404 pour les autres).",
+                "summary": "Cr\u00e9er une \u00e9cole (super-admin)",
+                "tags": [
+                    "CreateSchool"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateSchoolRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "\u00c9cole cr\u00e9\u00e9e.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolResource"
+                                        },
+                                        "director": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "phone": {
+                                                    "type": "string"
+                                                },
+                                                "provisional_password": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "phone",
+                                                "provisional_password"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "director"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "404": {
+                        "description": "L\u2019utilisateur n\u2019est pas super-admin : la route n\u2019est pas r\u00e9v\u00e9l\u00e9e.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "operationId": "platform.schools.index",
+                "description": "R\u00e9serv\u00e9 aux super-admins (404 pour les autres). Lecture hors RLS par la connexion s\u00e9par\u00e9e app_platform.\nPagination par curseur, 50 \u00e9coles par page, tri\u00e9es par nom.",
+                "summary": "Tous les \u00e9tablissements (super-admin)",
+                "tags": [
+                    "ListSchools"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Une page d\u2019\u00e9coles, tri\u00e9es par nom.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SchoolResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the next set of items."
+                                                },
+                                                "prev_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the previous set of items."
+                                                }
+                                            },
+                                            "required": [
+                                                "path",
+                                                "per_page",
+                                                "next_cursor",
+                                                "prev_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "404": {
+                        "description": "L\u2019utilisateur n\u2019est pas super-admin : la route n\u2019est pas r\u00e9v\u00e9l\u00e9e.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/cycles": {
+            "get": {
+                "operationId": "cycles.index",
+                "description": "Avec leurs niveaux et param\u00e8tres. Un utilisateur limit\u00e9 \u00e0 un cycle ne voit que celui-ci.",
+                "summary": "Cycles de l'\u00e9cole",
+                "tags": [
+                    "Cycle"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `CycleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CycleResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/cycles/{cycle}": {
+            "patch": {
+                "operationId": "cycles.update",
+                "description": "Nom et/ou param\u00e8tres (fusionn\u00e9s avec les param\u00e8tres actuels). Permission school.settings.manage\nsur ce cycle (403 sinon) ; 404 si le cycle n'appartient pas \u00e0 l'\u00e9cole.",
+                "summary": "Modifier un cycle",
+                "tags": [
+                    "Cycle"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cycle ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCycleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CycleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CycleResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "operationId": "health",
+                "description": "V\u00e9rifie la base de donn\u00e9es et Redis. R\u00e9pond 200 si tout est disponible, 503 sinon\n(utilis\u00e9 comme healthcheck par Railway au d\u00e9ploiement). Route publique, hors tenant.",
+                "summary": "\u00c9tat de l'API",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "La base de donn\u00e9es et Redis r\u00e9pondent.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResource"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Au moins un composant est indisponible (aucun d\u00e9tail d'erreur renvoy\u00e9).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResource"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/users/{user}/password-reset": {
+            "post": {
+                "operationId": "users.password-reset",
+                "description": "Directeur ou secr\u00e9taire de l'\u00e9cole (dans la limite de leurs cycles). G\u00e9n\u00e8re un mot de passe provisoire,\nrenvoy\u00e9 une seule fois, \u00e0 changer \u00e0 la prochaine connexion. 404 si l'utilisateur n'est pas membre de l'\u00e9cole.",
+                "summary": "R\u00e9initialiser le mot de passe d'un utilisateur de l'\u00e9cole",
+                "tags": [
+                    "ResetUserPassword"
+                ],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "description": "The user ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "provisional_password": {
+                                            "type": "string",
+                                            "const": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "provisional_password"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/public/schools/{slug}": {
+            "get": {
+                "operationId": "public.schools.show",
+                "description": "Sans authentification : nom, ville, type et cycles ouverts (avec leurs niveaux). Aucune donn\u00e9e personnelle.",
+                "summary": "Page publique d'une \u00e9cole",
+                "tags": [
+                    "ShowPublicSchool"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PublicSchoolResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PublicSchoolResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Aucune \u00e9cole avec ce slug.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ChangePasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "current_password": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "current_password",
+                    "password",
+                    "password_confirmation"
+                ],
+                "title": "ChangePasswordRequest"
+            },
+            "CreateSchoolRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "Sous-domaine <slug>.<domaine> : minuscules, chiffres et tirets",
+                        "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$",
+                        "minLength": 3,
+                        "maxLength": 50
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 80
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/SchoolType"
+                    },
+                    "cycles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "daycare",
+                                "kindergarten",
+                                "primary"
+                            ]
+                        },
+                        "minItems": 1,
+                        "uniqueItems": true
+                    },
+                    "director": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "minLength": 3,
+                                "maxLength": 120
+                            },
+                            "phone": {
+                                "type": "string",
+                                "maxLength": 30
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "format": "email",
+                                "maxLength": 255
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "phone"
+                        ]
+                    }
+                },
+                "required": [
+                    "name",
+                    "slug",
+                    "cycles",
+                    "director"
+                ],
+                "title": "CreateSchoolRequest"
+            },
+            "CycleResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "settings": {
+                        "type": "object",
+                        "properties": {
+                            "term_type": {
+                                "type": "string",
+                                "enum": [
+                                    "trimester",
+                                    "semester",
+                                    "free_period"
+                                ]
+                            },
+                            "assessment_mode": {
+                                "type": "string",
+                                "enum": [
+                                    "observation",
+                                    "competency",
+                                    "weighted_average"
+                                ]
+                            },
+                            "attendance_mode": {
+                                "type": "string",
+                                "enum": [
+                                    "roll_call",
+                                    "check_in_out"
+                                ]
+                            },
+                            "billing_period": {
+                                "type": "string",
+                                "enum": [
+                                    "monthly",
+                                    "quarterly",
+                                    "yearly"
+                                ]
+                            },
+                            "report_document": {
+                                "type": "string",
+                                "enum": [
+                                    "none",
+                                    "skills_booklet",
+                                    "report_card"
+                                ]
+                            },
+                            "daily_log": {
+                                "type": "string",
+                                "enum": [
+                                    "none",
+                                    "optional",
+                                    "required"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "term_type",
+                            "assessment_mode",
+                            "attendance_mode",
+                            "billing_period",
+                            "report_document",
+                            "daily_log"
+                        ]
+                    },
+                    "levels": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LevelResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "position",
+                    "is_active",
+                    "settings",
+                    "levels"
+                ],
+                "title": "CycleResource"
+            },
+            "HealthResource": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ok",
+                            "error"
+                        ]
+                    },
+                    "database": {
+                        "type": "string",
+                        "enum": [
+                            "ok",
+                            "error"
+                        ]
+                    },
+                    "redis": {
+                        "type": "string",
+                        "enum": [
+                            "ok",
+                            "error"
+                        ]
+                    }
+                },
+                "required": [
+                    "status",
+                    "database",
+                    "redis"
+                ],
+                "title": "HealthResource"
+            },
+            "LevelResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "position"
+                ],
+                "title": "LevelResource"
+            },
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "login": {
+                        "type": "string",
+                        "description": "T\u00e9l\u00e9phone (\u00ab 07 00 00 00 00 \u00bb, \u00ab +225\u2026 \u00bb) ou adresse e-mail",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "remember": {
+                        "type": "boolean",
+                        "description": "\u00ab Se souvenir de moi \u00bb (30 jours) : ignor\u00e9 pour les comptes du personnel"
+                    }
+                },
+                "required": [
+                    "login",
+                    "password"
+                ],
+                "title": "LoginRequest"
+            },
+            "ProfileResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "must_change_password": {
+                        "type": "boolean"
+                    },
+                    "is_super_admin": {
+                        "type": "boolean"
+                    },
+                    "can_be_remembered": {
+                        "type": "boolean",
+                        "description": "\u00ab Se souvenir de moi \u00bb propos\u00e9 (comptes sans r\u00f4le du personnel)"
+                    },
+                    "schools": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SchoolMembershipResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "phone",
+                    "email",
+                    "must_change_password",
+                    "is_super_admin",
+                    "can_be_remembered",
+                    "schools"
+                ],
+                "title": "ProfileResource"
+            },
+            "PublicSchoolResource": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "cycles": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "levels": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "code",
+                                "name",
+                                "levels"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "name",
+                    "slug",
+                    "city",
+                    "type",
+                    "cycles"
+                ],
+                "title": "PublicSchoolResource"
+            },
+            "RoleAssignmentResource": {
+                "type": "object",
+                "properties": {
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "super_admin",
+                            "promoter",
+                            "director",
+                            "secretary",
+                            "accountant",
+                            "teacher",
+                            "guardian"
+                        ]
+                    },
+                    "cycle_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "role",
+                    "cycle_id"
+                ],
+                "title": "RoleAssignmentResource"
+            },
+            "SchoolMembershipResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RoleAssignmentResource"
+                        }
+                    },
+                    "permissions": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": [
+                                "array",
+                                "null"
+                            ],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "roles",
+                    "permissions"
+                ],
+                "title": "SchoolMembershipResource"
+            },
+            "SchoolResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "organization_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "preschool_primary",
+                            "secondary",
+                            "higher"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "organization_id",
+                    "name",
+                    "slug",
+                    "type",
+                    "city",
+                    "currency",
+                    "created_at"
+                ],
+                "title": "SchoolResource"
+            },
+            "SchoolType": {
+                "type": "string",
+                "description": "Type d'\u00e9tablissement (ADR 0003) : seul preschool_primary est disponible en V1.\n",
+                "enum": [
+                    "preschool_primary",
+                    "secondary",
+                    "higher"
+                ],
+                "title": "SchoolType"
+            },
+            "UpdateCycleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 100
+                    },
+                    "settings": {
+                        "type": "object",
+                        "properties": {
+                            "term_type": {
+                                "type": "string"
+                            },
+                            "assessment_mode": {
+                                "type": "string"
+                            },
+                            "attendance_mode": {
+                                "type": "string"
+                            },
+                            "billing_period": {
+                                "type": "string"
+                            },
+                            "report_document": {
+                                "type": "string"
+                            },
+                            "daily_log": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": "UpdateCycleRequest"
+            }
+        },
+        "responses": {
+            "AuthenticationException": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthorizationException": {
+                "description": "Authorization error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

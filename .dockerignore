@@ -1,0 +1,25 @@
+# Contexte des images de production (docker/production/*.Dockerfile, construites depuis la racine).
+# Aucun secret ni artefact local dans les images : les variables viennent de Railway.
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.claude
+.railway/node_modules
+**/node_modules
+backend/vendor
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/app/*
+backend/bootstrap/cache/*.php
+backend/tests
+frontend/dist
+frontend/dev-dist
+frontend/test-results
+frontend/playwright-report
+frontend/captures
+frontend/coverage
+docs
