@@ -25,8 +25,13 @@ export function App() {
     () =>
       session.onUnauthorized(() => {
         // Toutes les données du compte quittent le cache (profil, cycles filtrés par les droits, démo…),
-        // comme à la déconnexion : un autre compte connecté ensuite dans cet onglet ne les verra pas
-        queryClient.clear()
+        // comme à la déconnexion : un autre compte connecté ensuite dans cet onglet ne les verra pas.
+        // Après la tâche en cours seulement : vider le cache tout de suite annulerait la requête qui vient de
+        // recevoir ce 401 (/me de la garde), qui échouerait alors en « annulée » au lieu de « non connecté »
+        // et afficherait l'écran d'erreur au lieu de mener à la connexion.
+        setTimeout(() => {
+          queryClient.clear()
+        }, 0)
         const { pathname, href } = router.state.location
         const isPublic =
           PUBLIC_PATHS.has(pathname) ||
