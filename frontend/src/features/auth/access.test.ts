@@ -22,9 +22,17 @@ describe('spacesOf', () => {
       ['director', 'teacher', 'guardian'],
       ['gestion', 'enseignant', 'parent'],
     ],
+    // Rôle personnalisé de l'école (clé = identifiant) : back-office
+    [['0195f000-0000-7000-8000-00000000c0de'], ['gestion']],
+    [
+      ['0195f000-0000-7000-8000-00000000c0de', 'guardian'],
+      ['gestion', 'parent'],
+    ],
   ] as const)('%j → %j', (roles, spaces) => {
     expect(
-      spacesOf(membership({ roles: roles.map((role) => ({ role, cycle_id: null })) })),
+      spacesOf(
+        membership({ roles: roles.map((role) => ({ role, role_name: null, cycle_id: null })) }),
+      ),
     ).toEqual(spaces)
   })
 })
@@ -94,7 +102,7 @@ describe('decideAccess : écrans d’un établissement (/{slug}/…)', () => {
 
   it('espace non autorisé : premier espace permis dans la même école', () => {
     const teacher = profile({
-      schools: [membership({ roles: [{ role: 'teacher', cycle_id: 'cycle-1' }] })],
+      schools: [membership({ roles: [{ role: 'teacher', role_name: null, cycle_id: 'cycle-1' }] })],
     })
     expect(
       decideAccess({ ...inSchool('les-lauriers'), profile: teacher, requirement: 'gestion' }),
@@ -152,8 +160,8 @@ describe('decideAccess : accueil (/)', () => {
       schools: [
         membership({
           roles: [
-            { role: 'guardian', cycle_id: null },
-            { role: 'teacher', cycle_id: null },
+            { role: 'guardian', role_name: null, cycle_id: null },
+            { role: 'teacher', role_name: null, cycle_id: null },
           ],
         }),
       ],

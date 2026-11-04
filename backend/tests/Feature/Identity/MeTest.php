@@ -22,7 +22,7 @@ it('renvoie le profil, les écoles, les rôles par cycle et les permissions', fu
         ->assertJsonPath('data.is_super_admin', false)
         ->assertJsonCount(2, 'data.schools')
         ->assertJsonPath('data.schools.0.id', $schoolA->id)
-        ->assertJsonPath('data.schools.0.roles', [['role' => 'director', 'cycle_id' => $kindergarten->id]])
+        ->assertJsonPath('data.schools.0.roles', [['role' => 'director', 'role_name' => null, 'cycle_id' => $kindergarten->id]])
         ->assertJsonPath('data.schools.1.id', $schoolB->id);
 
     // Clés avec des points : lues directement (assertJsonPath les prendrait pour des chemins)
@@ -57,7 +57,7 @@ it('donne les permissions d’un rôle personnalisé, sous sa clé d’affectati
     login($user)->assertOk();
 
     $me = spa('GET', '/api/v1/me')->assertOk()
-        ->assertJsonPath('data.schools.0.roles', [['role' => $role->id, 'cycle_id' => null]]);
+        ->assertJsonPath('data.schools.0.roles', [['role' => $role->id, 'role_name' => 'Surveillant général', 'cycle_id' => null]]);
 
     $permissions = $me->json('data.schools.0.permissions');
     \assert(is_array($permissions));

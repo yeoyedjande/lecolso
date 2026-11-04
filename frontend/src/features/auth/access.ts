@@ -1,6 +1,7 @@
 import type { components } from '@/lib/api/schema'
 
 import type { Profile } from './api'
+import { isSystemRole } from './roles'
 
 /**
  * Règles d'accès côté interface (fonctions pures, testées) : quel espace pour quel rôle, et où rediriger.
@@ -22,7 +23,7 @@ export const SPACE_HOME = {
   parent: '/$school/parent',
 } as const satisfies Record<Space, string>
 
-/** Rôles du personnel administratif : back-office. */
+/** Rôles système du personnel administratif : back-office. */
 const BACK_OFFICE_ROLES: ReadonlySet<Role> = new Set([
   'promoter',
   'director',
@@ -30,10 +31,15 @@ const BACK_OFFICE_ROLES: ReadonlySet<Role> = new Set([
   'accountant',
 ])
 
+/** Back-office : personnel administratif, et tout rôle personnalisé créé par l'école. */
+function isBackOfficeRole(role: Role): boolean {
+  return BACK_OFFICE_ROLES.has(role) || !isSystemRole(role)
+}
+
 export function spacesOf(membership: Membership): Space[] {
   const roles = new Set(membership.roles.map((assignment) => assignment.role))
   const spaces: Space[] = []
-  if ([...roles].some((role) => BACK_OFFICE_ROLES.has(role))) spaces.push('gestion')
+  if ([...roles].some(isBackOfficeRole)) spaces.push('gestion')
   if (roles.has('teacher')) spaces.push('enseignant')
   if (roles.has('guardian')) spaces.push('parent')
   return spaces

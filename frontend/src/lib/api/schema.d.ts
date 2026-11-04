@@ -196,6 +196,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rôles de l'école
+         * @description Rôles système (dans l'ordre : promoteur, direction, secrétariat, comptabilité, enseignant, parent) puis rôles
+         *     personnalisés par nom, avec leurs permissions et le nombre d'affectations. Qui gère les rôles ou voit les
+         *     utilisateurs.
+         */
+        get: operations["roles.index"];
+        put?: never;
+        /**
+         * Créer un rôle personnalisé
+         * @description Permission roles.manage sur toute l'école. On ne peut accorder que des permissions que l'on détient sur
+         *     toute l'école (422 sinon), jamais une permission réservée aux parents.
+         */
+        post: operations["roles.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles/{role}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer un rôle personnalisé
+         * @description 409 `role_in_use` s'il est encore attribué, 409 `role_locked` pour un rôle système, 404 s'il n'existe pas
+         *     dans l'école.
+         */
+        delete: operations["roles.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un rôle
+         * @description Rôle personnalisé : nom, description, permissions. Rôle système modifiable (secrétariat, comptabilité) :
+         *     permissions seulement. Autre rôle système : 409 `role_locked`. 404 si le rôle n'existe pas dans l'école.
+         */
+        patch: operations["roles.update"];
+        trace?: never;
+    };
+    "/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Catalogue des permissions
+         * @description Toutes les permissions, groupées par module, pour l'écran des rôles.
+         */
+        get: operations["permissions.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/schools/{slug}": {
         parameters: {
             query?: never;
@@ -291,6 +364,12 @@ export interface components {
             /** @description « Se souvenir de moi » (30 jours) : ignoré pour les comptes du personnel */
             remember?: boolean;
         };
+        /** PermissionResource */
+        PermissionResource: {
+            key: string;
+            group: string;
+            staff_assignable: boolean;
+        };
         /** ProfileResource */
         ProfileResource: {
             id: string;
@@ -317,8 +396,8 @@ export interface components {
         };
         /** RoleAssignmentResource */
         RoleAssignmentResource: {
-            /** @enum {string} */
-            role: "super_admin" | "promoter" | "director" | "secretary" | "accountant" | "teacher" | "guardian";
+            role: string;
+            role_name: string | null;
             cycle_id: string | null;
         };
         /** SchoolMembershipResource */
@@ -343,12 +422,29 @@ export interface components {
             currency: string;
             created_at: string | null;
         };
+        /** SchoolRoleResource */
+        SchoolRoleResource: {
+            key: string;
+            name: string | null;
+            description: string | null;
+            is_system: boolean;
+            is_editable: boolean;
+            permissions: string[];
+            assignments_count: number;
+        };
         /**
          * SchoolType
          * @description Type d'établissement (ADR 0003) : seul preschool_primary est disponible en V1.
          * @enum {string}
          */
         SchoolType: "preschool_primary" | "secondary" | "higher";
+        /** StoreSchoolRoleRequest */
+        StoreSchoolRoleRequest: {
+            name: string;
+            description?: string | null;
+            /** @description Clés de GET /permissions ; validées par ValidateRolePermissions (catalogue, parents, élévation) */
+            permissions: string[];
+        };
         /** UpdateCycleRequest */
         UpdateCycleRequest: {
             name?: string;
@@ -360,6 +456,12 @@ export interface components {
                 report_document?: string;
                 daily_log?: string;
             };
+        };
+        /** UpdateSchoolRoleRequest */
+        UpdateSchoolRoleRequest: {
+            name?: string;
+            description?: string | null;
+            permissions?: string[];
         };
     };
     responses: {
@@ -747,6 +849,139 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `SchoolRoleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolRoleResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreSchoolRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolRoleResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolRoleResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSchoolRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolRoleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolRoleResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "permissions.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `PermissionResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PermissionResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };

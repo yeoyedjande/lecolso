@@ -7,7 +7,7 @@ import { server } from '@/test/msw/server'
 
 import { api } from './client'
 import { csrfCookieUrl } from './csrf'
-import { UnauthorizedError, ValidationError } from './errors'
+import { ConflictError, UnauthorizedError, ValidationError } from './errors'
 import { session } from './session'
 
 function setXsrfCookie(value: string): void {
@@ -183,5 +183,24 @@ describe('client HTTP (cookie de session Sanctum)', () => {
 
     expect(error).toBeInstanceOf(ValidationError)
     expect(error).toMatchObject({ fields: { login: ['Identifiant ou mot de passe incorrect.'] } })
+  })
+
+  it('lève ConflictError avec le code métier sur un 409', async () => {
+    setXsrfCookie('jeton')
+    server.use(
+      http.post(loginUrl, () =>
+        HttpResponse.json(
+          { message: 'Ce rôle est encore attribué.', code: 'role_in_use' },
+          { status: 409 },
+        ),
+      ),
+    )
+
+    const error: unknown = await api
+      .POST('/auth/login', { body: { login: 'x', password: 'y' } })
+      .catch((caught: unknown) => caught)
+
+    expect(error).toBeInstanceOf(ConflictError)
+    expect(error).toMatchObject({ code: 'role_in_use', message: 'Ce rôle est encore attribué.' })
   })
 })

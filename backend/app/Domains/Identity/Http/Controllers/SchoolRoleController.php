@@ -9,6 +9,7 @@ use App\Domains\Identity\Actions\DeleteCustomRole;
 use App\Domains\Identity\Actions\ListSchoolRoles;
 use App\Domains\Identity\Actions\UpdateSchoolRole;
 use App\Domains\Identity\Authorization\RoleCatalog;
+use App\Domains\Identity\Data\PermissionEntry;
 use App\Domains\Identity\Http\Requests\DeleteSchoolRoleRequest;
 use App\Domains\Identity\Http\Requests\StoreSchoolRoleRequest;
 use App\Domains\Identity\Http\Requests\UpdateSchoolRoleRequest;
@@ -98,11 +99,11 @@ final class SchoolRoleController
      */
     public function permissions(ViewSchoolRolesRequest $request, RoleCatalog $catalog): AnonymousResourceCollection
     {
-        return PermissionResource::collection(array_map(static fn (string $permission): array => [
-            'key' => $permission,
-            'group' => $catalog->group($permission),
-            'staff_assignable' => ! $catalog->isGuardianOnly($permission),
-        ], $catalog->permissions()));
+        return PermissionResource::collection(array_map(static fn (string $permission): PermissionEntry => new PermissionEntry(
+            key: $permission,
+            group: $catalog->group($permission),
+            staffAssignable: ! $catalog->isGuardianOnly($permission),
+        ), $catalog->permissions()));
     }
 
     private function school(): School

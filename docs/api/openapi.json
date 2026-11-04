@@ -1147,7 +1147,7 @@
                         "type": "string"
                     },
                     "staff_assignable": {
-                        "type": "string"
+                        "type": "boolean"
                     }
                 },
                 "required": [
@@ -1263,6 +1263,12 @@
                     "role": {
                         "type": "string"
                     },
+                    "role_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cycle_id": {
                         "type": [
                             "string",
@@ -1272,6 +1278,7 @@
                 },
                 "required": [
                     "role",
+                    "role_name",
                     "cycle_id"
                 ],
                 "title": "RoleAssignmentResource"
