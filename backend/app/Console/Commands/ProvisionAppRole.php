@@ -8,6 +8,8 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use InvalidArgumentException;
+use PDOException;
+use RuntimeException;
 
 /**
  * Pré-déploiement (Railway) : crée ou met à jour les rôles PostgreSQL de l'application, avec le rôle propriétaire
@@ -42,6 +44,26 @@ final class ProvisionAppRole extends Command
             return self::FAILURE;
         }
 
+        try {
+            $this->provision($owner, $app, $platform);
+        } catch (RuntimeException $failure) {
+            // Message sans requête ni exception d'origine (voir upsertRole) : aucun mot de passe affiché
+            $this->error($failure->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $this->info("Rôles {$app['username']} et {$platform['username']} à jour.");
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @param  array{username: string, password: string}  $app
+     * @param  array{username: string, password: string}  $platform
+     */
+    private function provision(Connection $owner, array $app, array $platform): void
+    {
         $owner->transaction(function () use ($owner, $app, $platform): void {
             $this->upsertRole($owner, $app['username'], $app['password'], 'NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION');
             $this->upsertRole($owner, $platform['username'], $platform['password'], 'NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION');
@@ -63,10 +85,6 @@ final class ProvisionAppRole extends Command
             $owner->statement("ALTER DEFAULT PRIVILEGES FOR ROLE {$ownerIdent} IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {$roles}");
             $owner->statement("ALTER DEFAULT PRIVILEGES FOR ROLE {$ownerIdent} IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO {$roles}");
         });
-
-        $this->info("Rôles {$app['username']} et {$platform['username']} à jour.");
-
-        return self::SUCCESS;
     }
 
     /**
@@ -96,8 +114,17 @@ final class ProvisionAppRole extends Command
         $exists = $owner->selectOne('SELECT 1 AS found FROM pg_roles WHERE rolname = ?', [$role]) !== null;
         $verb = $exists ? 'ALTER ROLE' : 'CREATE ROLE';
 
-        // DDL : pas de paramètre lié possible, le mot de passe est échappé par le pilote (jamais affiché)
-        $owner->statement("{$verb} {$this->quoteIdent($role)} WITH LOGIN {$attributes} PASSWORD {$owner->getPdo()->quote($password)}");
+        // DDL : pas de paramètre lié possible, le mot de passe est échappé par le pilote.
+        // Exécuté par PDO directement : ni journal des requêtes ni événement QueryExecuted, et en cas d'échec
+        // ni la requête (QueryException la recopie) ni le message du serveur (il peut citer la requête) ne sont repris.
+        $pdo = $owner->getPdo();
+        try {
+            $pdo->exec("{$verb} {$this->quoteIdent($role)} WITH LOGIN {$attributes} PASSWORD {$pdo->quote($password)}");
+        } catch (PDOException $failure) {
+            $state = is_string($failure->errorInfo[0] ?? null) ? $failure->errorInfo[0] : 'inconnu';
+
+            throw new RuntimeException("Impossible de créer ou de mettre à jour le rôle {$role} (SQLSTATE {$state}) : vérifiez les droits du rôle propriétaire.");
+        }
     }
 
     /**

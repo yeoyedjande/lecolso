@@ -79,6 +79,8 @@ function canLogin(string $role, string $password): bool
 
 beforeEach(function (): void {
     dropTestRoles();
+    // Connexion sans droit CREATE ROLE (le vrai app_user), pour le cas d'échec
+    config()->set('database.connections.prov_unprivileged', config()->array('database.connections.pgsql'));
     config()->set('database.connections.pgsql.username', TEST_APP_ROLE);
     config()->set('database.connections.pgsql.password', 'app-password-0001');
     config()->set('database.connections.pgsql_platform.username', TEST_PLATFORM_ROLE);
@@ -149,6 +151,21 @@ it('refuse un mot de passe vide ou trop court, et deux rôles identiques, sans r
     config()->set('database.connections.pgsql.password', 'app-password-0001');
     config()->set('database.connections.pgsql_platform.username', TEST_APP_ROLE);
     provision()->assertFailed();
+
+    expect(provOwner()->selectOne('SELECT 1 FROM pg_roles WHERE rolname = ?', [TEST_APP_ROLE]))->toBeNull();
+});
+
+it('échoue proprement sans afficher la requête ni le mot de passe quand le rôle ne peut pas être créé', function (): void {
+    // app_user n'a pas le droit CREATE ROLE : l'instruction échoue côté serveur
+    $command = artisan('db:provision-app-role', ['--database' => 'prov_unprivileged']);
+    if (! $command instanceof PendingCommand) {
+        throw new RuntimeException('Commande artisan non simulée');
+    }
+
+    $command->expectsOutputToContain('SQLSTATE 42501')
+        ->doesntExpectOutputToContain('app-password-0001')
+        ->doesntExpectOutputToContain('PASSWORD')
+        ->assertFailed();
 
     expect(provOwner()->selectOne('SELECT 1 FROM pg_roles WHERE rolname = ?', [TEST_APP_ROLE]))->toBeNull();
 });
