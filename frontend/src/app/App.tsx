@@ -21,7 +21,7 @@ export function App() {
       session.onUnauthorized(() => {
         queryClient.removeQueries({ queryKey: meQueryOptions.queryKey })
         const { pathname, href } = router.state.location
-        if (!PUBLIC_PATHS.has(pathname)) {
+        if (!PUBLIC_PATHS.has(pathname) && !pathname.startsWith('/ecole/')) {
           void router.navigate({ to: '/connexion', search: { redirect: href } })
         }
       }),

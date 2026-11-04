@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { LogOut } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -54,6 +54,13 @@ function SchoolsPage() {
           <EmptyState
             title={t('auth.schools.emptyTitle')}
             description={t('auth.schools.emptyDescription')}
+            action={
+              profile?.is_super_admin === true && (
+                <Button asChild>
+                  <Link to="/plateforme">{t('nav.platform')}</Link>
+                </Button>
+              )
+            }
           />
         ) : (
           <SchoolPicker

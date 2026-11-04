@@ -80,3 +80,19 @@ de s'exécuter en production. Connexion par téléphone (« 07 00 00 00 03 » ou
 | --- | --- |
 | Les Lauriers | garderie, maternelle, primaire |
 | Petits Génies | garderie, maternelle |
+
+### Espaces de l'application
+
+| Espace | Adresse | Pour qui | À essayer avec |
+| --- | --- | --- | --- |
+| Back-office | `/gestion` | promoteur, direction, secrétariat, comptabilité | Yao Directeur, Moussa Comptable, Aminata (maternelle) |
+| Enseignant (mobile) | `/enseignant` | enseignants | Fatou Enseignante (CE1 A et CM1 A) |
+| Parent (mobile) | `/parent` | parents | Kouadio Parent (2 enfants aux Lauriers, 1 aux Petits Génies) |
+| Plateforme | `/plateforme` | super-admin | Super-admin Démo (liste et création d'écoles) |
+| Page publique | `/ecole/<slug>` (en production : `<slug>.<domaine>`) | tout le monde, sans connexion | `/ecole/les-lauriers`, pré-inscription |
+| Design system | `/design` | équipe (local et staging seulement) | — |
+
+Les modules sans backend (élèves, paiements, notes, présences, messages…) affichent des **données de démonstration**
+générées dans le navigateur (`VITE_DEMO_MODULES=true`) : elles sont cohérentes entre les écrans mais repartent de zéro
+au rechargement. Restent sur la vraie API : connexion, profil, établissements, cycles et leurs paramètres,
+réinitialisation de mot de passe, liste et création d'écoles (super-admin), page publique d'une école.

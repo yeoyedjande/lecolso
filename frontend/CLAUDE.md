@@ -81,6 +81,9 @@ src/
   garderie pour `check_in_out`, bulletin ou livret selon `report_document`.
 - Espaces parent et enseignant : rattachement par le téléphone du compte (`features/parent`, `features/teacher`) ; un parent
   ne lit que ses enfants, un enseignant que ses classes (tests de cloisonnement dans `parent.test.ts`).
+- Plateforme (`/plateforme`, super-admin, `features/platform`) et page publique (`/ecole/<slug>`, `features/public`) :
+  vraie API (`/platform/schools`, `/public/schools/{slug}`). Sur `<slug>.<domaine>` sans session, l'accueil mène à la page
+  publique. Tarifs publics et pré-inscription restent en démonstration.
 - Graphiques : Recharts, couleurs de `components/charts/chartTheme.ts` et `CYCLE_CHART` (palette validée), toujours avec
   un tableau équivalent pour les lecteurs d'écran.
 

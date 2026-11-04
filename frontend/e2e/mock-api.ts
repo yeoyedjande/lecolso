@@ -116,9 +116,18 @@ export interface Account {
   email: string
   roles: Assignment[]
   mustChangePassword?: boolean
+  superAdmin?: boolean
 }
 
 export const ACCOUNTS = {
+  /** Super-admin sans affectation dans une école (espace /plateforme). */
+  superAdmin: {
+    phone: '+2250700000001',
+    name: 'Super-admin Démo',
+    email: 'superadmin@demo.lecolso.ci',
+    roles: [],
+    superAdmin: true,
+  },
   promoter: {
     phone: '+2250700000002',
     name: 'Konan Promoteur',
@@ -187,7 +196,7 @@ function profileOf(account: Account, mustChangePassword: boolean) {
     phone: account.phone,
     email: account.email,
     must_change_password: mustChangePassword,
-    is_super_admin: false,
+    is_super_admin: account.superAdmin === true,
     can_be_remembered: !staff,
     schools: [...bySchool].map(([key, assignments]) => {
       const roles = assignments.map((assignment) => ({
@@ -231,6 +240,26 @@ export async function mockApi(
   let mustChange = current?.mustChangePassword ?? false
   let failures = 0
   const calls = new Map<string, number>()
+  interface MockSchool {
+    id: string
+    organization_id: null
+    name: string
+    slug: string
+    type: string
+    city: string | null
+    currency: string
+    created_at: string
+  }
+  const platformSchools: MockSchool[] = Object.values(SCHOOLS).map((school, index) => ({
+    id: school.id,
+    organization_id: null,
+    name: school.name,
+    slug: school.slug,
+    type: 'preschool_primary',
+    city: 'Abidjan',
+    currency: 'XOF',
+    created_at: `2026-0${String(index + 7)}-01T08:00:00+00:00`,
+  }))
   const origin = new URL(E2E_API_URL).origin
 
   await page.route(`${origin}/sanctum/csrf-cookie`, (route) => route.fulfill({ status: 204 }))
@@ -299,7 +328,83 @@ export async function mockApi(
       case 'POST /auth/logout':
         current = null
         return route.fulfill({ status: 204 })
+      case 'GET /platform/schools':
+        return current?.superAdmin !== true
+          ? route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          : route.fulfill({
+              json: {
+                data: platformSchools,
+                links: {},
+                meta: { next_cursor: null, prev_cursor: null, per_page: 50, path: '' },
+              },
+            })
+      case 'POST /platform/schools': {
+        if (current?.superAdmin !== true)
+          return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+        const body = z
+          .object({
+            name: z.string(),
+            slug: z.string(),
+            city: z.nullable(z.string()),
+            director: z.object({ name: z.string(), phone: z.string() }),
+          })
+          .parse(request.postDataJSON())
+        if (platformSchools.some((school) => school.slug === body.slug)) {
+          return route.fulfill({
+            status: 422,
+            json: {
+              message: 'Cette adresse est déjà utilisée.',
+              errors: { slug: ['Cette adresse est déjà utilisée par une autre école.'] },
+            },
+          })
+        }
+        const school = {
+          id: `0195f000-0000-7000-8000-00000000010${String(platformSchools.length)}`,
+          organization_id: null,
+          name: body.name,
+          slug: body.slug,
+          type: 'preschool_primary',
+          city: body.city,
+          currency: 'XOF',
+          created_at: '2026-11-04T09:30:00+00:00',
+        }
+        platformSchools.push(school)
+        return route.fulfill({
+          status: 201,
+          json: {
+            data: school,
+            director: {
+              id: '0195f000-0000-7000-8000-0000000000d1',
+              name: body.director.name,
+              phone: body.director.phone,
+              provisional_password: 'k7Pm2xQa9R',
+            },
+          },
+        })
+      }
       default:
+        if (request.method() === 'GET' && path.startsWith('/public/schools/')) {
+          const slug = path.slice('/public/schools/'.length)
+          const school = Object.values(SCHOOLS).find((candidate) => candidate.slug === slug)
+          if (school === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          const cycles = (slug === 'petits-genies' ? CYCLES.slice(0, 2) : CYCLES).map((cycle) => ({
+            code: cycle.code,
+            name: cycle.name,
+            levels: cycle.levels.map((level) => level.name),
+          }))
+          return route.fulfill({
+            json: {
+              data: {
+                name: school.name,
+                slug: school.slug,
+                city: 'Abidjan',
+                type: 'preschool_primary',
+                cycles,
+              },
+            },
+          })
+        }
         if (request.method() === 'PATCH' && path.startsWith('/cycles/')) {
           const cycle = CYCLES.find((candidate) => path.endsWith(candidate.id))
           const body = z.object({ name: z.optional(z.string()) }).parse(request.postDataJSON())

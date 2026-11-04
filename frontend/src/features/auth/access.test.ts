@@ -157,3 +157,39 @@ describe('can', () => {
     expect(can(null, 'students.view')).toBe(false)
   })
 })
+
+describe('espace plateforme (super-admin)', () => {
+  it('super-admin sans école : accueil = plateforme ; plateforme autorisée', () => {
+    const admin = profile({ is_super_admin: true, schools: [] })
+    expect(
+      decideAccess({ profile: admin, schoolId: null, slug: null, requirement: 'home' }),
+    ).toEqual({ kind: 'redirect', to: '/plateforme' })
+    expect(
+      decideAccess({ profile: admin, schoolId: null, slug: null, requirement: 'platform' }).kind,
+    ).toBe('allow')
+  })
+
+  it('utilisateur ordinaire : la plateforme le renvoie vers son espace', () => {
+    expect(
+      decideAccess({
+        profile: profile(),
+        schoolId: 'school-a',
+        slug: null,
+        requirement: 'platform',
+      }),
+    ).toEqual({
+      kind: 'redirect',
+      to: '/gestion',
+    })
+  })
+
+  it('mot de passe provisoire : même un super-admin doit d’abord le changer', () => {
+    const admin = profile({ is_super_admin: true, schools: [], must_change_password: true })
+    expect(
+      decideAccess({ profile: admin, schoolId: null, slug: null, requirement: 'platform' }),
+    ).toEqual({
+      kind: 'redirect',
+      to: '/mot-de-passe',
+    })
+  })
+})

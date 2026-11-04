@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { ChevronDown, KeyRound, LogOut, UserRound } from 'lucide-react'
+import { Building2, ChevronDown, KeyRound, LogOut, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@/components/ui/avatar'
@@ -53,6 +53,16 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {profile.is_super_admin && !pathname.startsWith('/plateforme') && (
+          <DropdownMenuItem
+            onSelect={() => {
+              void navigate({ to: '/plateforme' })
+            }}
+          >
+            <Building2 aria-hidden />
+            {t('nav.platform')}
+          </DropdownMenuItem>
+        )}
         {pathname.startsWith('/gestion') && (
           <DropdownMenuItem
             onSelect={() => {
