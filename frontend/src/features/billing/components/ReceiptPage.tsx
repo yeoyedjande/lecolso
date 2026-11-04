@@ -14,7 +14,13 @@ import { formatDateTime, formatPhone } from '@/lib/format'
 import { useReceipt } from '../api'
 
 /** Reçu imprimable (format A5 portrait à l'impression ; le menu et l'en-tête sont masqués). */
-export function ReceiptPage({ paymentId }: { paymentId: string }) {
+export function ReceiptPage({
+  paymentId,
+  backTo = '/gestion/caisse',
+}: {
+  paymentId: string
+  backTo?: '/gestion/caisse' | '/parent/paiements'
+}) {
   const { t } = useTranslation()
   const query = useReceipt(paymentId)
 
@@ -22,7 +28,7 @@ export function ReceiptPage({ paymentId }: { paymentId: string }) {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Button asChild variant="ghost" size="sm">
-          <Link to="/gestion/caisse">
+          <Link to={backTo}>
             <ArrowLeft aria-hidden />
             {t('billing.receipt.back')}
           </Link>

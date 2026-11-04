@@ -126,7 +126,11 @@ Décisions à intégrer à cette étape (prises le 03/11/2026, voir `docs/decisi
 >   garderie, messages et annonces, calendrier, paramètres (cycles sur la vraie API), profil. Données de démonstration
 >   cohérentes entre écrans (`lib/demo`). Tests : Vitest (calculs, formulaires), Playwright (encaissement, appel, notes,
 >   droits par rôle et par cycle) et axe sur les 23 écrans du back-office, en 360 et 1280 px, clair et sombre.
-> - [ ] **6c** — espaces parent et enseignant (`feat/ui-mobile`)
+> - [x] **6c** — espaces parent et enseignant (360 px) : fait sur `feat/ui-mobile`. Parent : accueil (une carte par enfant),
+>   fiche enfant (onglets selon les paramètres du cycle : notes ou compétences, bulletin ou livret, absences, journal),
+>   paiements et Mobile Money simulé avec reçu, messages, justification d'absence, profil. Enseignant : mes classes, appel en
+>   deux gestes, saisie des notes, journal, messages aux parents, profil. Tests : cloisonnement parent/enseignant (Vitest),
+>   parcours parent et appel enseignant (Playwright), axe sur les 12 écrans en 360 et 1280 px.
 > - [ ] **6d** — super-admin, page publique, pré-inscription, finitions (`feat/ui-platform-public`)
 
 ```text

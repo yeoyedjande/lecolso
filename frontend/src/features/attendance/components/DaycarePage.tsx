@@ -61,14 +61,23 @@ function nowTime(): string {
 type Child = DaycareBoard['children'][number]
 
 /** Garderie : pour chaque enfant (cycles en « check_in_out »), arrivée, départ et journal du jour. */
-export function DaycarePage() {
+export function DaycarePage({
+  journal,
+}: { journal?: { classroomIds: string[]; title: string; description: string } } = {}) {
   const { t } = useTranslation()
   const school = useCurrentSchool()
   const editable = can(school, 'attendance.manage')
-  const { classrooms, loading } = usePedagogyClasses(
-    'attendance.view',
-    (settings) => settings.attendance_mode === 'check_in_out',
+  // Back-office : classes en arrivées/départs ; espace enseignant : ses classes tenant un journal quotidien
+  const pedagogy = usePedagogyClasses('attendance.view', (settings) =>
+    journal === undefined
+      ? settings.attendance_mode === 'check_in_out'
+      : settings.daily_log !== 'none',
   )
+  const classrooms =
+    journal === undefined
+      ? pedagogy.classrooms
+      : pedagogy.classrooms.filter((classroom) => journal.classroomIds.includes(classroom.id))
+  const loading = pedagogy.loading
   const check = useDaycareCheck()
   const addLog = useAddDaycareLog()
   const [checking, setChecking] = useState<{ child: Child; direction: 'in' | 'out' } | null>(null)
@@ -81,11 +90,16 @@ export function DaycarePage() {
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader title={t('daycare.title')} description={t('daycare.description')} />
+      <ScreenHeader
+        title={journal?.title ?? t('daycare.title')}
+        description={journal?.description ?? t('daycare.description')}
+      />
       {loading ? (
         <CardsSkeleton count={3} />
       ) : classrooms.length === 0 ? (
-        <EmptyState title={t('daycare.noClass')} />
+        <EmptyState
+          title={journal === undefined ? t('daycare.noClass') : t('teacher.journal.noClass')}
+        />
       ) : (
         <QueryState query={board} skeleton={<CardsSkeleton count={3} />}>
           {(data) => {
