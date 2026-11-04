@@ -1,9 +1,9 @@
 {
   "app": {
-    "name": "Lecolso"
+    "name": "EKALEWA"
   },
   "brand": {
-    "name": "Lecolso",
+    "name": "EKALEWA",
     "tagline": "La vie de l’école, en toute confiance"
   },
   "common": {
@@ -205,7 +205,7 @@
   },
   "design": {
     "title": "Design system",
-    "description": "Tokens, typographie et composants de Lecolso. Page visible en local et en staging uniquement.",
+    "description": "Tokens, typographie et composants d’EKALEWA. Page visible en local et en staging uniquement.",
     "sections": {
       "colors": "Couleurs",
       "cycles": "Couleurs des cycles",
@@ -272,7 +272,7 @@
     }
   },
   "home": {
-    "title": "Lecolso",
+    "title": "EKALEWA",
     "subtitle": "Plateforme de gestion des établissements scolaires"
   },
   "health": {
@@ -521,7 +521,7 @@
     "title": "Importer des élèves",
     "description": "Depuis un fichier Excel (.xlsx). Les lignes valides sont inscrites ; les autres sont signalées une par une.",
     "columnsTitle": "Colonnes attendues (première ligne du fichier)",
-    "columnsHint": "Sexe : F ou M. Date de naissance : JJ/MM/AAAA. Classe : telle qu’affichée dans Lecolso (ex. CE1 A). Téléphone : numéro ivoirien.",
+    "columnsHint": "Sexe : F ou M. Date de naissance : JJ/MM/AAAA. Classe : telle qu’affichée dans EKALEWA (ex. CE1 A). Téléphone : numéro ivoirien.",
     "choose": "Choisir un fichier Excel",
     "dropHint": "Fichier .xlsx, première feuille utilisée",
     "reading": "Lecture du fichier…",
@@ -1114,7 +1114,7 @@
     }
   },
   "platform": {
-    "space": "Plateforme Lecolso",
+    "space": "Plateforme EKALEWA",
     "schools": {
       "title": "Écoles",
       "description": "Tous les établissements de la plateforme.",
@@ -1187,7 +1187,7 @@
       "pay": "Paiement par Mobile Money, reçu immédiat"
     },
     "notFound": "Cette école n’existe pas ou n’a pas encore de page.",
-    "footer": "Page de l’école propulsée par Lecolso",
+    "footer": "Page de l’école propulsée par EKALEWA",
     "pre": {
       "title": "Pré-inscription",
       "description": "Remplissez ce formulaire : l’école vous rappelle pour finaliser l’inscription.",

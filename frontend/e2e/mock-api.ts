@@ -124,14 +124,14 @@ export const ACCOUNTS = {
   superAdmin: {
     phone: '+2250700000001',
     name: 'Super-admin Démo',
-    email: 'superadmin@demo.lecolso.ci',
+    email: 'superadmin@demo.ekalewa.com',
     roles: [],
     superAdmin: true,
   },
   promoter: {
     phone: '+2250700000002',
     name: 'Konan Promoteur',
-    email: 'promoteur@demo.lecolso.ci',
+    email: 'promoteur@demo.ekalewa.com',
     roles: [
       { school: 'lauriers', role: 'promoter' },
       { school: 'genies', role: 'promoter' },
@@ -140,14 +140,14 @@ export const ACCOUNTS = {
   director: {
     phone: '+2250700000003',
     name: 'Yao Directeur',
-    email: 'directeur@demo.lecolso.ci',
+    email: 'directeur@demo.ekalewa.com',
     roles: [{ school: 'lauriers', role: 'director' }],
   },
   /** Directrice limitée à la maternelle (affectation avec cycle). */
   kindergartenDirector: {
     phone: '+2250700000004',
     name: 'Aminata Directrice maternelle',
-    email: 'directrice.maternelle@demo.lecolso.ci',
+    email: 'directrice.maternelle@demo.ekalewa.com',
     roles: [
       { school: 'lauriers', role: 'director', cycle: '0195f000-0000-7000-8000-0000000000c2' },
     ],
@@ -155,19 +155,19 @@ export const ACCOUNTS = {
   accountant: {
     phone: '+2250700000006',
     name: 'Moussa Comptable',
-    email: 'comptable@demo.lecolso.ci',
+    email: 'comptable@demo.ekalewa.com',
     roles: [{ school: 'lauriers', role: 'accountant' }],
   },
   teacher: {
     phone: '+2250700000007',
     name: 'Fatou Enseignante',
-    email: 'enseignante@demo.lecolso.ci',
+    email: 'enseignante@demo.ekalewa.com',
     roles: [{ school: 'lauriers', role: 'teacher', cycle: CYCLE_PRIMARY }],
   },
   guardian: {
     phone: '+2250700000008',
     name: 'Kouadio Parent',
-    email: 'parent@demo.lecolso.ci',
+    email: 'parent@demo.ekalewa.com',
     roles: [
       { school: 'lauriers', role: 'guardian' },
       { school: 'genies', role: 'guardian' },
@@ -177,7 +177,7 @@ export const ACCOUNTS = {
   provisional: {
     phone: '+2250700000010',
     name: 'Adjoua Secrétaire',
-    email: 'nouvelle@demo.lecolso.ci',
+    email: 'nouvelle@demo.ekalewa.com',
     roles: [{ school: 'lauriers', role: 'secretary' }],
     mustChangePassword: true,
   },

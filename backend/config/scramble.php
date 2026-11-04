@@ -58,7 +58,7 @@ return [
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
-        'description' => 'API de la plateforme Gestion École. Les routes métier exigent un token Sanctum et l\'en-tête X-School-Id.',
+        'description' => 'API de la plateforme EKALEWA. Les routes métier exigent un token Sanctum et l\'en-tête X-School-Id.',
     ],
 
     'ui' => [

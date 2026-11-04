@@ -1,6 +1,7 @@
-# Gestion École
+# EKALEWA
 
 Plateforme SaaS de gestion d'établissements scolaires (garderie, maternelle, primaire ; secondaire en V2, supérieur en V3).
+Domaine officiel : [ekalewa.com](https://ekalewa.com) — application sur `app.ekalewa.com`, recette sur `staging.ekalewa.com`.
 Développée à 100 % avec [Claude Code](https://docs.claude.com/en/docs/claude-code/overview), hébergée sur GitHub, déployée sur Railway.
 
 ## Prérequis
@@ -66,15 +67,15 @@ de s'exécuter en production. Connexion par téléphone (« 07 00 00 00 03 » ou
 
 | Compte | Téléphone | E-mail | Rôle |
 | --- | --- | --- | --- |
-| Super-admin Démo | +225 07 00 00 00 01 | superadmin@demo.lecolso.ci | super-admin de la plateforme |
-| Konan Promoteur | +225 07 00 00 00 02 | promoteur@demo.lecolso.ci | promoteur des deux écoles |
-| Yao Directeur | +225 07 00 00 00 03 | directeur@demo.lecolso.ci | directeur, Les Lauriers (toute l'école) |
-| Aminata Directrice maternelle | +225 07 00 00 00 04 | directrice.maternelle@demo.lecolso.ci | directrice, Les Lauriers, **maternelle uniquement** |
-| Awa Secrétaire | +225 07 00 00 00 05 | secretaire@demo.lecolso.ci | secrétaire, Les Lauriers |
-| Moussa Comptable | +225 07 00 00 00 06 | comptable@demo.lecolso.ci | comptable, Les Lauriers |
-| Fatou Enseignante | +225 07 00 00 00 07 | enseignante@demo.lecolso.ci | enseignante, Les Lauriers, primaire |
-| Kouadio Parent | +225 07 00 00 00 08 | parent@demo.lecolso.ci | parent dans les deux écoles |
-| Mariam Directrice | +225 07 00 00 00 09 | directrice@demo.lecolso.ci | directrice, Petits Génies |
+| Super-admin Démo | +225 07 00 00 00 01 | superadmin@demo.ekalewa.com | super-admin de la plateforme |
+| Konan Promoteur | +225 07 00 00 00 02 | promoteur@demo.ekalewa.com | promoteur des deux écoles |
+| Yao Directeur | +225 07 00 00 00 03 | directeur@demo.ekalewa.com | directeur, Les Lauriers (toute l'école) |
+| Aminata Directrice maternelle | +225 07 00 00 00 04 | directrice.maternelle@demo.ekalewa.com | directrice, Les Lauriers, **maternelle uniquement** |
+| Awa Secrétaire | +225 07 00 00 00 05 | secretaire@demo.ekalewa.com | secrétaire, Les Lauriers |
+| Moussa Comptable | +225 07 00 00 00 06 | comptable@demo.ekalewa.com | comptable, Les Lauriers |
+| Fatou Enseignante | +225 07 00 00 00 07 | enseignante@demo.ekalewa.com | enseignante, Les Lauriers, primaire |
+| Kouadio Parent | +225 07 00 00 00 08 | parent@demo.ekalewa.com | parent dans les deux écoles |
+| Mariam Directrice | +225 07 00 00 00 09 | directrice@demo.ekalewa.com | directrice, Petits Génies |
 
 | École | Cycles |
 | --- | --- |

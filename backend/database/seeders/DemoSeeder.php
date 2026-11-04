@@ -40,31 +40,31 @@ final class DemoSeeder extends Seeder
      * @var array<string, array{name: string, email: string, super_admin?: bool, roles: list<array{school: string, role: Role, cycle?: string}>}>
      */
     public const array ACCOUNTS = [
-        '+2250700000001' => ['name' => 'Super-admin Démo', 'email' => 'superadmin@demo.lecolso.ci', 'super_admin' => true, 'roles' => []],
-        '+2250700000002' => ['name' => 'Konan Promoteur', 'email' => 'promoteur@demo.lecolso.ci', 'roles' => [
+        '+2250700000001' => ['name' => 'Super-admin Démo', 'email' => 'superadmin@demo.ekalewa.com', 'super_admin' => true, 'roles' => []],
+        '+2250700000002' => ['name' => 'Konan Promoteur', 'email' => 'promoteur@demo.ekalewa.com', 'roles' => [
             ['school' => 'les-lauriers', 'role' => Role::Promoter],
             ['school' => 'petits-genies', 'role' => Role::Promoter],
         ]],
-        '+2250700000003' => ['name' => 'Yao Directeur', 'email' => 'directeur@demo.lecolso.ci', 'roles' => [
+        '+2250700000003' => ['name' => 'Yao Directeur', 'email' => 'directeur@demo.ekalewa.com', 'roles' => [
             ['school' => 'les-lauriers', 'role' => Role::Director],
         ]],
-        '+2250700000004' => ['name' => 'Aminata Directrice maternelle', 'email' => 'directrice.maternelle@demo.lecolso.ci', 'roles' => [
+        '+2250700000004' => ['name' => 'Aminata Directrice maternelle', 'email' => 'directrice.maternelle@demo.ekalewa.com', 'roles' => [
             ['school' => 'les-lauriers', 'role' => Role::Director, 'cycle' => 'kindergarten'],
         ]],
-        '+2250700000005' => ['name' => 'Awa Secrétaire', 'email' => 'secretaire@demo.lecolso.ci', 'roles' => [
+        '+2250700000005' => ['name' => 'Awa Secrétaire', 'email' => 'secretaire@demo.ekalewa.com', 'roles' => [
             ['school' => 'les-lauriers', 'role' => Role::Secretary],
         ]],
-        '+2250700000006' => ['name' => 'Moussa Comptable', 'email' => 'comptable@demo.lecolso.ci', 'roles' => [
+        '+2250700000006' => ['name' => 'Moussa Comptable', 'email' => 'comptable@demo.ekalewa.com', 'roles' => [
             ['school' => 'les-lauriers', 'role' => Role::Accountant],
         ]],
-        '+2250700000007' => ['name' => 'Fatou Enseignante', 'email' => 'enseignante@demo.lecolso.ci', 'roles' => [
+        '+2250700000007' => ['name' => 'Fatou Enseignante', 'email' => 'enseignante@demo.ekalewa.com', 'roles' => [
             ['school' => 'les-lauriers', 'role' => Role::Teacher, 'cycle' => 'primary'],
         ]],
-        '+2250700000008' => ['name' => 'Kouadio Parent', 'email' => 'parent@demo.lecolso.ci', 'roles' => [
+        '+2250700000008' => ['name' => 'Kouadio Parent', 'email' => 'parent@demo.ekalewa.com', 'roles' => [
             ['school' => 'les-lauriers', 'role' => Role::Guardian],
             ['school' => 'petits-genies', 'role' => Role::Guardian],
         ]],
-        '+2250700000009' => ['name' => 'Mariam Directrice', 'email' => 'directrice@demo.lecolso.ci', 'roles' => [
+        '+2250700000009' => ['name' => 'Mariam Directrice', 'email' => 'directrice@demo.ekalewa.com', 'roles' => [
             ['school' => 'petits-genies', 'role' => Role::Director],
         ]],
     ];

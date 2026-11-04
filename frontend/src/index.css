@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system Lecolso. Tokens bruts (couleurs de marque) puis tokens sémantiques.
+ * Design system EKALEWA. Tokens bruts (couleurs de marque) puis tokens sémantiques.
  * Règle AA : les couleurs vives (accent, cycles, succès) servent aux fonds, pastilles, graphiques et bordures ;
  * le texte et les icônes utilisent les variantes « -ink » (contraste ≥ 4,5:1 sur crème et blanc).
  * src/styles/contrast.test.ts vérifie les paires texte/fond de ce fichier.

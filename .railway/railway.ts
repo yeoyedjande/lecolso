@@ -35,7 +35,7 @@ export default defineRailway((ctx) => {
   // Variables communes aux trois services backend (même image, commandes différentes)
   const backendEnv = {
     RAILWAY_DOCKERFILE_PATH: "docker/production/api.Dockerfile",
-    APP_NAME: "Gestion École",
+    APP_NAME: "EKALEWA",
     APP_ENV: prod ? "production" : "staging",
     APP_KEY: preserve(),
     APP_URL: `https://api.${DOMAIN}`,
