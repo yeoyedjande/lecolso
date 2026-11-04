@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Derrière le proxy Railway (TLS terminé en amont, IP variables) : en-têtes X-Forwarded-* de confiance,
+        // pour le schéma https, l'hôte et l'IP réelle (limites de débit par IP)
+        $middleware->trustProxies(at: '*');
+
         // Authentification SPA par cookie httpOnly : session + CSRF pour les requêtes du frontend (SANCTUM_STATEFUL_DOMAINS)
         $middleware->statefulApi();
 

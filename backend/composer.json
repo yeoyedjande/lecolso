@@ -12,6 +12,7 @@
         "laravel/horizon": "^5.50",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
+        "league/flysystem-aws-s3-v3": "^3.0",
         "spatie/laravel-activitylog": "^4.12"
     },
     "require-dev": {

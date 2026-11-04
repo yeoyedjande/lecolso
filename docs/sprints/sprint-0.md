@@ -161,7 +161,7 @@ Mets à jour le README (démarrage, comptes de démo, commandes).
 
 Ensuite, côté GitHub (à la main) : protéger `main`, rendre le job `ci-ok` obligatoire.
 
-## Étape 8 — Premier déploiement sur Railway (staging)
+## Étape 8 — Premier déploiement sur Railway (staging) ✅
 
 ```text
 Lis docs/deploiement-railway.md et docs/adr/0004.
@@ -179,6 +179,11 @@ Ne lance pas toi-même railway config apply : prépare et montre-moi la sortie d
 ```
 
 Ensuite, à la main : suivre « Première mise en place » dans `docs/deploiement-railway.md` pour l'environnement `staging`.
+
+> Fait : `db:provision-app-role` (testée), Laravel derrière le proxy (TrustProxies, https, stderr, Redis, bucket privé),
+> `.dockerignore`, cache de `index.html`, `railway.ts` corrigé (références du bucket, PostgreSQL 17 en EU West,
+> domaine de staging distinct, comptes de démo en staging). L'école est lue depuis `<slug>.<domaine>` depuis l'étape 6.
+> Restent à faire à la main : domaines, `railway config plan` puis `railway config apply`, secrets.
 
 ## Revue de fin de sprint
 

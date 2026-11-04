@@ -7,9 +7,12 @@
 	root * /srv
 	encode zstd gzip
 
-	header /assets/* Cache-Control "public, max-age=31536000, immutable"
-	header /sw.js Cache-Control "no-cache"
-	header /index.html Cache-Control "no-cache"
+	# Fichiers versionnés (hash dans le nom) : cache long. Tout le reste (index.html servi pour chaque route de
+	# l'application, sw.js, manifeste, icônes) est revalidé, pour qu'un déploiement soit pris en compte aussitôt.
+	@versioned path /assets/*
+	@revalidated not path /assets/*
+	header @versioned Cache-Control "public, max-age=31536000, immutable"
+	header @revalidated Cache-Control "no-cache"
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
