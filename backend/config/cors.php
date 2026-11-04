@@ -21,11 +21,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // Frontend du personnel (app.<domaine>) ; jamais « * » : les cookies de session accompagnent les requêtes
+    // En staging et en production, le frontend appelle l'API sur sa propre origine (proxy Caddy, ADR 0005) :
+    // aucune requête CORS. Seul le développement local (Vite sur localhost:5173 → API sur localhost:8080)
+    // en a besoin. Jamais « * » ni motif de sous-domaines : les cookies de session accompagnent les requêtes.
     'allowed_origins' => array_filter([env('FRONTEND_URL')]),
 
-    // Pages des écoles (<slug>.<domaine>), ex. #^https://[a-z0-9-]+\.exemple\.ci$#
-    'allowed_origins_patterns' => array_filter([env('CORS_ALLOWED_ORIGIN_PATTERN')]),
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 

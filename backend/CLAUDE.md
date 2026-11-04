@@ -52,8 +52,9 @@ dans le `routes.php` de son domaine, sans préfixe (`Route::get('health', …)` 
 
 ## Multi-tenant : comment ça marche
 
-1. Middleware `ResolveSchool` (alias `school`, après `auth:sanctum`) : lit l'en-tête `X-School-Id` (l'API a son propre domaine
-   `api.<domaine>`, le sous-domaine de l'école ne sert qu'au frontend). **400** si l'en-tête est absent ou n'est pas un UUID ;
+1. Middleware `ResolveSchool` (alias `school`, après `auth:sanctum`) : lit l'en-tête `X-School-Id` (UUID). L'URL du frontend
+   `app.<domaine>/{slug}/*` (ADR 0005) ne sert qu'au frontend, qui retrouve l'UUID dans `/me` : l'API ne lit jamais
+   ni le slug ni le nom d'hôte, et un slug n'autorise rien. **400** si l'en-tête est absent ou n'est pas un UUID ;
    **404** si l'école n'existe pas ou si l'utilisateur n'y a aucune affectation (même réponse : rien à deviner).
 2. Le contexte passe par `App\Support\Tenancy\TenantContext` : `CurrentSchool` côté PHP (liaison `scoped`) et, côté PostgreSQL,
    `set_config('app.school_id', …)` et `set_config('app.user_id', …)` (paramètres liés), lus par les politiques RLS.
@@ -65,6 +66,10 @@ dans le `routes.php` de son domaine, sans préfixe (`Route::get('health', …)` 
 5. RLS en base, en mode fermé, bloque tout ce qui aurait échappé au scope (`App\Support\Database\Rls`).
 6. Jobs : implémenter `TenantAware` et utiliser le trait `RunsInSchool` (propriété publique `$schoolId`) ; le middleware de job
    `SetTenantContext` rétablit l'école le temps du job.
+
+Slugs : identifiants d'URL figés à la création (aucune route ne les modifie), hors segments réservés
+(`config/tenancy.php`, français et anglais). Tout lien envoyé à un utilisateur passe par
+`App\Support\Tenancy\SchoolUrl::to($school, 'chemin')` (`FRONTEND_URL/{slug}/chemin`), jamais par une URL construite à la main.
 
 Routes hors tenant (super-admin, pré-inscription publique, webhooks) : groupe de routes dédié, sans `ResolveSchool`,
 qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l'école depuis la transaction).

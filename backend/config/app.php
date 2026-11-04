@@ -56,6 +56,10 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Origine de l'application web (https://app.<domaine>) : base des liens envoyés aux utilisateurs
+    // (App\Support\Tenancy\SchoolUrl) et origine autorisée par CORS en développement local.
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
