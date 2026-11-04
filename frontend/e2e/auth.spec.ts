@@ -45,6 +45,29 @@ test('accueil sans session : connexion, pas d’écran d’erreur (régression s
   await expect(page.getByText('Un problème est survenu')).toHaveCount(0)
 })
 
+test('session expirée pendant la navigation : connexion, puis retour à l’écran demandé', async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date('2026-11-04T09:30:00Z') })
+  const api = await mockApi(page, { session: ACCOUNTS.director })
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/les-lauriers/eleves')
+  await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
+
+  // Le profil reste en cache côté navigateur ; le serveur, lui, a fermé la session. Deux minutes plus tard,
+  // l'écran suivant revérifie le profil (/me → 401) alors que l'ancien profil est encore en cache.
+  api.expireSession()
+  await page.clock.fastForward('02:00')
+  await page.getByRole('navigation', { name: 'Menu' }).getByRole('link', { name: 'Notes' }).click()
+
+  await expect(page).toHaveURL(/\/connexion\?redirect=/)
+  await expect(page.getByRole('heading', { name: 'Bon retour parmi nous', level: 1 })).toBeVisible()
+  // Le profil expiré ne renvoie pas vers l'espace : on reste sur la connexion
+  await page.clock.fastForward('00:01')
+  await expect(page).toHaveURL(/\/connexion/)
+  await expect(page.getByRole('heading', { name: 'Bon retour parmi nous', level: 1 })).toBeVisible()
+})
+
 test('identifiants refusés : message sur le champ, sans dire lequel est faux', async ({ page }) => {
   await mockApi(page)
   await page.goto('/connexion')

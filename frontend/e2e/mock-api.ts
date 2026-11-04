@@ -228,6 +228,8 @@ export interface MockApi {
   calls: Map<string, number>
   /** En-têtes X-School-Id reçus, dans l'ordre (contrôle d'isolation entre écoles). */
   schoolHeaders: string[]
+  /** Session expirée côté serveur : toute requête suivante répond 401. */
+  expireSession: () => void
 }
 
 /**
@@ -273,9 +275,20 @@ export async function mockApi(
     const key = `${request.method()} ${path}`
     calls.set(key, (calls.get(key) ?? 0) + 1)
 
+    // Comme auth:sanctum : sans session (jamais connecté ou session expirée), 401 hors routes publiques
+    const anonymousAllowed =
+      key === 'GET /me' ||
+      key === 'POST /auth/login' ||
+      key === 'GET /health' ||
+      path.startsWith('/public/')
+    if (current === null && !anonymousAllowed) {
+      return route.fulfill({ status: 401, json: { message: 'Unauthenticated.' } })
+    }
+
     // Comme ResolveSchool : école sans affectation pour le compte connecté = 404 (rien à deviner)
+    // (routes hors école comme /me, /auth/*, /health, /public/* : pas de ResolveSchool, l'en-tête est ignoré)
     const schoolHeader = request.headers()['x-school-id']
-    if (schoolHeader !== undefined) {
+    if (schoolHeader !== undefined && !anonymousAllowed) {
       schoolHeaders.push(schoolHeader)
       const member =
         current?.roles.some((role) => SCHOOLS[role.school].id === schoolHeader) ?? false
@@ -428,5 +441,11 @@ export async function mockApi(
     }
   })
 
-  return { calls, schoolHeaders }
+  return {
+    calls,
+    schoolHeaders,
+    expireSession: () => {
+      current = null
+    },
+  }
 }

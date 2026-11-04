@@ -24,21 +24,24 @@ export function App() {
   useEffect(
     () =>
       session.onUnauthorized(() => {
-        // Toutes les données du compte quittent le cache (profil, cycles filtrés par les droits, démo…),
-        // comme à la déconnexion : un autre compte connecté ensuite dans cet onglet ne les verra pas.
-        // Après la tâche en cours seulement : vider le cache tout de suite annulerait la requête qui vient de
-        // recevoir ce 401 (/me de la garde), qui échouerait alors en « annulée » au lieu de « non connecté »
-        // et afficherait l'écran d'erreur au lieu de mener à la connexion.
-        setTimeout(() => {
-          queryClient.clear()
-        }, 0)
+        // Écran au moment du 401 (avant toute redirection faite par une garde)
         const { pathname, href } = router.state.location
         const isPublic =
           PUBLIC_PATHS.has(pathname) ||
           router.state.matches.some((match) => PUBLIC_ROUTE_IDS.has(match.routeId))
-        if (!isPublic) {
-          void router.navigate({ to: '/connexion', search: { redirect: href } })
-        }
+
+        // Après la tâche en cours seulement : vider le cache tout de suite annulerait la requête qui vient de
+        // recevoir ce 401 (/me d'une garde), qui échouerait en « annulée » au lieu de « non connecté » et
+        // afficherait l'écran d'erreur. La redirection suit le vidage, jamais l'inverse : sinon l'écran de
+        // connexion trouverait encore le profil expiré en cache et renverrait vers l'espace de l'utilisateur.
+        setTimeout(() => {
+          // Toutes les données du compte quittent le cache (profil, cycles filtrés par les droits, démo…),
+          // comme à la déconnexion : un autre compte connecté ensuite dans cet onglet ne les verra pas
+          queryClient.clear()
+          if (!isPublic) {
+            void router.navigate({ to: '/connexion', search: { redirect: href } })
+          }
+        }, 0)
       }),
     [queryClient, router],
   )
