@@ -6,11 +6,13 @@ import { messageParent, myClasses, teacherConversations } from '../teacher/demo'
 
 import {
   childDetail,
+  isDay,
   justifyAbsence,
   myChildren,
   parentConversations,
   parentPayments,
   payMobile,
+  relevantAnnouncements,
 } from './demo'
 
 const NOW = new Date('2026-11-04T09:00:00Z')
@@ -142,5 +144,72 @@ describe('espace enseignant (démonstration)', () => {
         NOW,
       ),
     ).toThrow()
+  })
+})
+
+describe('corrections de revue', () => {
+  it('justification : vacances exclues (aucune absence pendant les congés de Noël)', () => {
+    const school = generateSchool('les-lauriers', NOW)
+    const child = myChildren(school, DEMO_PARENT.phone, TODAY)[0]
+    if (child === undefined) throw new Error('Aucun enfant')
+    const count = justifyAbsence(school, {
+      phone: DEMO_PARENT.phone,
+      studentId: child.student.id,
+      from: '2026-12-21',
+      to: '2026-12-25',
+      reason: 'family',
+      comment: '',
+    })
+    expect(count).toBe(0)
+    expect(
+      school.attendance.some(
+        (a) => a.studentId === child.student.id && a.date >= '2026-12-21' && a.date <= '2026-12-25',
+      ),
+    ).toBe(false)
+  })
+
+  it('justification : date vide ou invalide refusée sans rien écrire', () => {
+    const school = generateSchool('les-lauriers', NOW)
+    const child = myChildren(school, DEMO_PARENT.phone, TODAY)[0]
+    if (child === undefined) throw new Error('Aucun enfant')
+    const before = school.attendance.length
+    for (const [from, to] of [
+      ['', '2026-11-06'],
+      ['2026-11-06', ''],
+      ['2026-02-30', '2026-03-02'],
+    ]) {
+      expect(() =>
+        justifyAbsence(school, {
+          phone: DEMO_PARENT.phone,
+          studentId: child.student.id,
+          from: from ?? '',
+          to: to ?? '',
+          reason: 'other',
+          comment: '',
+        }),
+      ).toThrow('Période invalide')
+    }
+    expect(school.attendance.length).toBe(before)
+    expect(isDay('2026-11-06')).toBe(true)
+    expect(isDay('')).toBe(false)
+  })
+
+  it('annonces : seulement celles de l’école entière, du cycle ou de la classe des enfants', () => {
+    const school = generateSchool('petits-genies', NOW)
+    const children = myChildren(school, DEMO_PARENT.phone, TODAY)
+    expect(children.map((child) => child.classroom.cycle)).toEqual(['kindergarten'])
+    const titles = relevantAnnouncements(school.announcements, children).map(
+      (announcement) => announcement.title,
+    )
+    expect(titles).not.toContain('Vaccination à la crèche')
+    expect(titles).toContain('Réunion des parents d’élèves')
+    const base = school.announcements[0]
+    if (base === undefined) throw new Error('Aucune annonce')
+    const classAudience: typeof base = {
+      ...base,
+      id: 'x',
+      audience: `class:${children[0]?.classroom.id ?? ''}`,
+    }
+    expect(relevantAnnouncements([classAudience], children)).toHaveLength(1)
   })
 })
