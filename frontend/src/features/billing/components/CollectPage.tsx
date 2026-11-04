@@ -1,5 +1,13 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Banknote, CheckCircle2, Printer, RotateCcw, Search, Smartphone, Wallet } from 'lucide-react'
+import {
+  Banknote,
+  CheckCircle2,
+  Printer,
+  RotateCcw,
+  Search,
+  Smartphone,
+  Wallet,
+} from 'lucide-react'
 import { useDeferredValue, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -31,7 +39,15 @@ import { cn } from '@/lib/utils'
 import { parseAmount } from '../amount'
 import { useRecordPayment } from '../api'
 
-const METHODS: PaymentMethod[] = ['cash', 'orange_money', 'mtn_momo', 'moov_money', 'wave', 'cheque', 'transfer']
+const METHODS: PaymentMethod[] = [
+  'cash',
+  'orange_money',
+  'mtn_momo',
+  'moov_money',
+  'wave',
+  'cheque',
+  'transfer',
+]
 
 function StudentPicker({ onPick }: { onPick: (id: string) => void }) {
   const { t } = useTranslation()
@@ -42,7 +58,10 @@ function StudentPicker({ onPick }: { onPick: (id: string) => void }) {
   return (
     <div className="grid gap-3">
       <div className="relative">
-        <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           type="search"
           autoFocus
@@ -92,7 +111,15 @@ function StudentPicker({ onPick }: { onPick: (id: string) => void }) {
   )
 }
 
-function PaymentForm({ detail, onDone, onChange }: { detail: StudentDetail; onDone: (payment: DemoPayment) => void; onChange: () => void }) {
+function PaymentForm({
+  detail,
+  onDone,
+  onChange,
+}: {
+  detail: StudentDetail
+  onDone: (payment: DemoPayment) => void
+  onChange: () => void
+}) {
   const { t } = useTranslation()
   const { data: profile } = useMe()
   const record = useRecordPayment()
@@ -110,7 +137,8 @@ function PaymentForm({ detail, onDone, onChange }: { detail: StudentDetail; onDo
       : amount > balance.remaining && balance.remaining > 0
         ? t('billing.collect.errors.tooMuch', { amount: formatMoney(balance.remaining) })
         : undefined
-  const referenceError = method !== 'cash' && reference.trim() === '' ? t('billing.collect.errors.reference') : undefined
+  const referenceError =
+    method !== 'cash' && reference.trim() === '' ? t('billing.collect.errors.reference') : undefined
   const suggestions = [
     ['suggestOverdue', balance.overdue],
     ['suggestNext', balance.nextInstallment === null ? 0 : balance.nextInstallment.amount],
@@ -125,20 +153,30 @@ function PaymentForm({ detail, onDone, onChange }: { detail: StudentDetail; onDo
             <Avatar name={detail.name} size="lg" />
             <div className="grid gap-1">
               <p className="font-display text-xl font-bold">{detail.name}</p>
-              <CycleBadge code={detail.classroom.cycle} label={detail.classroom.name} className="w-fit" />
+              <CycleBadge
+                code={detail.classroom.cycle}
+                label={detail.classroom.name}
+                className="w-fit"
+              />
             </div>
           </div>
           <dl className="grid gap-3 rounded-2xl bg-muted/60 p-4">
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-sm text-muted-foreground">{t('billing.collect.remaining')}</dt>
               <dd>
-                <MoneyAmount value={balance.remaining} className="font-display text-2xl font-bold" />
+                <MoneyAmount
+                  value={balance.remaining}
+                  className="font-display text-2xl font-bold"
+                />
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-sm text-muted-foreground">{t('billing.collect.overdue')}</dt>
               <dd>
-                <MoneyAmount value={balance.overdue} className={cn('font-semibold', balance.overdue > 0 && 'text-destructive-ink')} />
+                <MoneyAmount
+                  value={balance.overdue}
+                  className={cn('font-semibold', balance.overdue > 0 && 'text-destructive-ink')}
+                />
               </dd>
             </div>
           </dl>
@@ -168,7 +206,11 @@ function PaymentForm({ detail, onDone, onChange }: { detail: StudentDetail; onDo
       >
         <Card>
           <CardContent className="grid gap-5 pt-6">
-            <Field label={t('billing.collect.amount')} hint={t('billing.collect.amountHint')} error={submitted ? amountError : undefined}>
+            <Field
+              label={t('billing.collect.amount')}
+              hint={t('billing.collect.amountHint')}
+              error={submitted ? amountError : undefined}
+            >
               {(control) => (
                 <Input
                   {...control}
@@ -232,7 +274,11 @@ function PaymentForm({ detail, onDone, onChange }: { detail: StudentDetail; onDo
               </div>
             </fieldset>
             {method !== 'cash' && (
-              <Field label={t('billing.collect.reference')} hint={t('billing.collect.referenceHint')} error={submitted ? referenceError : undefined}>
+              <Field
+                label={t('billing.collect.reference')}
+                hint={t('billing.collect.referenceHint')}
+                error={submitted ? referenceError : undefined}
+              >
                 {(control) => (
                   <Input
                     {...control}
@@ -309,7 +355,10 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader title={t('billing.collect.title')} description={t('billing.collect.description')} />
+      <ScreenHeader
+        title={t('billing.collect.title')}
+        description={t('billing.collect.description')}
+      />
       {done !== null ? (
         <EmptyState
           title={
@@ -318,7 +367,10 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
               {t('billing.collect.doneTitle')}
             </span>
           }
-          description={t('billing.collect.doneDescription', { number: done.receiptNumber, amount: formatMoney(done.amount) })}
+          description={t('billing.collect.doneDescription', {
+            number: done.receiptNumber,
+            amount: formatMoney(done.amount),
+          })}
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild variant="accent">

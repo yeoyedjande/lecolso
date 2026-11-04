@@ -1,7 +1,15 @@
 import { YEAR_START } from '@/lib/demo/dates'
 import { classroomOf, fullName, studentById } from '@/lib/demo/lookup'
 import { demoId } from '@/lib/demo/store'
-import type { CycleCode, DemoInstallment, DemoPayment, DemoSchool, DemoStudent, FeeKind, PaymentMethod } from '@/lib/demo/types'
+import type {
+  CycleCode,
+  DemoInstallment,
+  DemoPayment,
+  DemoSchool,
+  DemoStudent,
+  FeeKind,
+  PaymentMethod,
+} from '@/lib/demo/types'
 
 export interface Balance {
   /** Total attendu sur l'année (toutes les échéances). */
@@ -20,9 +28,13 @@ export function balanceOf(school: DemoSchool, studentId: string, today: string):
   const installments = school.installments
     .filter((installment) => installment.studentId === studentId)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-  const paid = school.payments.filter((payment) => payment.studentId === studentId).reduce((sum, payment) => sum + payment.amount, 0)
+  const paid = school.payments
+    .filter((payment) => payment.studentId === studentId)
+    .reduce((sum, payment) => sum + payment.amount, 0)
   const expected = installments.reduce((sum, installment) => sum + installment.amount, 0)
-  const dueToDate = installments.filter((installment) => installment.dueDate <= today).reduce((sum, i) => sum + i.amount, 0)
+  const dueToDate = installments
+    .filter((installment) => installment.dueDate <= today)
+    .reduce((sum, i) => sum + i.amount, 0)
   // Les paiements soldent les échéances dans l'ordre : la prochaine est la première non couverte
   let covered = paid
   let nextInstallment: DemoInstallment | null = null
@@ -76,7 +88,10 @@ export function unpaid(school: DemoSchool, today: string): UnpaidRow[] {
       daysLate:
         firstLate === undefined
           ? 0
-          : Math.max(0, Math.round((Date.parse(today) - Date.parse(firstLate.dueDate)) / 86_400_000)),
+          : Math.max(
+              0,
+              Math.round((Date.parse(today) - Date.parse(firstLate.dueDate)) / 86_400_000),
+            ),
     })
   }
   return rows.sort((a, b) => b.overdue - a.overdue)
@@ -110,7 +125,9 @@ export function cashDesk(school: DemoSchool, date: string): CashDesk {
     date,
     payments,
     total: payments.reduce((sum, payment) => sum + payment.amount, 0),
-    byMethod: [...methods].map(([method, value]) => ({ method, ...value })).sort((a, b) => b.total - a.total),
+    byMethod: [...methods]
+      .map(([method, value]) => ({ method, ...value }))
+      .sort((a, b) => b.total - a.total),
   }
 }
 
@@ -123,7 +140,11 @@ export interface RecordPaymentInput {
 }
 
 /** Encaissement : numéro de reçu séquentiel par école et par année (REC-2026-000123). */
-export function recordPayment(school: DemoSchool, input: RecordPaymentInput, now: Date): DemoPayment {
+export function recordPayment(
+  school: DemoSchool,
+  input: RecordPaymentInput,
+  now: Date,
+): DemoPayment {
   if (!Number.isInteger(input.amount) || input.amount <= 0) throw new Error('Montant invalide')
   if (studentById(school, input.studentId) === undefined) throw new Error('Élève introuvable')
   school.receiptSequence += 1
@@ -138,7 +159,13 @@ export function recordPayment(school: DemoSchool, input: RecordPaymentInput, now
     receiptNumber: `REC-2026-${String(school.receiptSequence).padStart(6, '0')}`,
   }
   school.payments.push(payment)
-  school.activity.unshift({ id: demoId('act'), at: payment.paidAt, kind: 'payment', label: payment.receiptNumber, studentId: payment.studentId })
+  school.activity.unshift({
+    id: demoId('act'),
+    at: payment.paidAt,
+    kind: 'payment',
+    label: payment.receiptNumber,
+    studentId: payment.studentId,
+  })
   return payment
 }
 
@@ -155,7 +182,9 @@ export interface ScheduleRow {
 export function schedules(school: DemoSchool): ScheduleRow[] {
   const collectedById = new Map<string, number>()
   for (const student of school.students) {
-    let paid = school.payments.filter((payment) => payment.studentId === student.id).reduce((sum, p) => sum + p.amount, 0)
+    let paid = school.payments
+      .filter((payment) => payment.studentId === student.id)
+      .reduce((sum, p) => sum + p.amount, 0)
     const own = school.installments
       .filter((installment) => installment.studentId === student.id)
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
@@ -183,12 +212,21 @@ export function schedules(school: DemoSchool): ScheduleRow[] {
     row.students += 1
     rows.set(key, row)
   }
-  return [...rows.values()].sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.kind.localeCompare(b.kind))
+  return [...rows.values()].sort(
+    (a, b) => a.dueDate.localeCompare(b.dueDate) || a.kind.localeCompare(b.kind),
+  )
 }
 
-export function updateFee(school: DemoSchool, levelCode: string, kind: FeeKind, amount: number): void {
+export function updateFee(
+  school: DemoSchool,
+  levelCode: string,
+  kind: FeeKind,
+  amount: number,
+): void {
   if (!Number.isInteger(amount) || amount < 0) throw new Error('Montant invalide')
-  const fee = school.fees.find((candidate) => candidate.levelCode === levelCode && candidate.kind === kind)
+  const fee = school.fees.find(
+    (candidate) => candidate.levelCode === levelCode && candidate.kind === kind,
+  )
   if (fee === undefined) throw new Error('Frais introuvable')
   fee.amount = amount
 }

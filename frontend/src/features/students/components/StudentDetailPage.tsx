@@ -1,5 +1,14 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, CheckCircle2, FileText, HeartPulse, Phone, Printer, Wallet, XCircle } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  FileText,
+  HeartPulse,
+  Phone,
+  Printer,
+  Wallet,
+  XCircle,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,7 +22,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Can } from '@/features/auth/RequirePermission'
 import { demoToday, YEAR_LABEL } from '@/lib/demo/dates'
@@ -35,7 +51,15 @@ function Info({ label, children }: { label: ReactNode; children: ReactNode }) {
 function ageOf(birthDate: string, today: string): number {
   const [by, bm, bd] = birthDate.split('-').map(Number)
   const [ty, tm, td] = today.split('-').map(Number)
-  if (by === undefined || bm === undefined || bd === undefined || ty === undefined || tm === undefined || td === undefined) return 0
+  if (
+    by === undefined ||
+    bm === undefined ||
+    bd === undefined ||
+    ty === undefined ||
+    tm === undefined ||
+    td === undefined
+  )
+    return 0
   return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0)
 }
 
@@ -44,7 +68,8 @@ function Detail({ detail }: { detail: StudentDetail }) {
   const { student, classroom, balance } = detail
   const today = demoToday()
   const counts = absenceCount(detail)
-  const paidShare = balance.expected === 0 ? 100 : Math.round((balance.paid / balance.expected) * 100)
+  const paidShare =
+    balance.expected === 0 ? 100 : Math.round((balance.paid / balance.expected) * 100)
 
   return (
     <div className="grid gap-6">
@@ -52,7 +77,9 @@ function Detail({ detail }: { detail: StudentDetail }) {
         <div className="flex flex-wrap items-center gap-4">
           <Avatar name={detail.name} size="lg" />
           <div className="grid min-w-0 flex-1 gap-1">
-            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{detail.name}</h1>
+            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+              {detail.name}
+            </h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <CycleBadge code={classroom.cycle} label={classroom.name} />
               <span>{student.matricule}</span>
@@ -61,8 +88,16 @@ function Detail({ detail }: { detail: StudentDetail }) {
             </div>
           </div>
           <div className="grid gap-1 text-right">
-            <span className="text-xs font-medium text-muted-foreground uppercase">{t('students.detail.remaining')}</span>
-            <MoneyAmount value={balance.remaining} className={cn('font-display text-2xl font-bold', balance.overdue > 0 && 'text-destructive-ink')} />
+            <span className="text-xs font-medium text-muted-foreground uppercase">
+              {t('students.detail.remaining')}
+            </span>
+            <MoneyAmount
+              value={balance.remaining}
+              className={cn(
+                'font-display text-2xl font-bold',
+                balance.overdue > 0 && 'text-destructive-ink',
+              )}
+            />
           </div>
         </div>
       </section>
@@ -70,7 +105,17 @@ function Detail({ detail }: { detail: StudentDetail }) {
       <Tabs defaultValue="identity">
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
           <TabsList className="w-max">
-            {(['identity', 'guardians', 'schooling', 'payments', 'grades', 'attendance', 'documents'] as const).map((tab) => (
+            {(
+              [
+                'identity',
+                'guardians',
+                'schooling',
+                'payments',
+                'grades',
+                'attendance',
+                'documents',
+              ] as const
+            ).map((tab) => (
               <TabsTrigger key={tab} value={tab}>
                 {t(`students.detail.tabs.${tab}`)}
               </TabsTrigger>
@@ -84,7 +129,9 @@ function Detail({ detail }: { detail: StudentDetail }) {
               <dl className="grid gap-4 sm:grid-cols-2">
                 <Info label={t('students.detail.matricule')}>{student.matricule}</Info>
                 <Info label={t('students.detail.born')}>{formatDay(student.birthDate)}</Info>
-                <Info label={t('students.detail.gender')}>{t(`students.detail.genders.${student.gender}`)}</Info>
+                <Info label={t('students.detail.gender')}>
+                  {t(`students.detail.genders.${student.gender}`)}
+                </Info>
                 <Info label={t('students.detail.district')}>{student.district}</Info>
                 <Info label={t('students.detail.enrolledAt')}>{formatDay(student.enrolledAt)}</Info>
                 <Info label={t('students.detail.year')}>{YEAR_LABEL}</Info>
@@ -113,14 +160,21 @@ function Detail({ detail }: { detail: StudentDetail }) {
                 <div className="grid min-w-0 flex-1 gap-1">
                   <p className="flex flex-wrap items-center gap-2 font-semibold">
                     {guardian.name}
-                    {guardian.isPayer && <Badge variant="accent">{t('students.detail.payerBadge')}</Badge>}
+                    {guardian.isPayer && (
+                      <Badge variant="accent">{t('students.detail.payerBadge')}</Badge>
+                    )}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {guardian.relation} · {guardian.profession}
                   </p>
                   <p className="tabular text-sm">{formatPhone(guardian.phone)}</p>
                 </div>
-                <Button asChild variant="outline" size="icon" aria-label={t('students.detail.call', { name: guardian.name })}>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="icon"
+                  aria-label={t('students.detail.call', { name: guardian.name })}
+                >
                   <a href={`tel:${guardian.phone}`}>
                     <Phone aria-hidden />
                   </a>
@@ -171,8 +225,13 @@ function Detail({ detail }: { detail: StudentDetail }) {
             ).map(([key, value, tone]) => (
               <Card key={key}>
                 <CardContent className="grid gap-1 pt-5">
-                  <span className="text-sm text-muted-foreground">{t(`students.detail.${key}`)}</span>
-                  <MoneyAmount value={value} className={cn('font-display text-xl font-bold', tone)} />
+                  <span className="text-sm text-muted-foreground">
+                    {t(`students.detail.${key}`)}
+                  </span>
+                  <MoneyAmount
+                    value={value}
+                    className={cn('font-display text-xl font-bold', tone)}
+                  />
                 </CardContent>
               </Card>
             ))}
@@ -277,13 +336,19 @@ function Detail({ detail }: { detail: StudentDetail }) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <Card>
                   <CardContent className="grid gap-1 pt-5">
-                    <span className="text-sm text-muted-foreground">{t('students.detail.average')}</span>
-                    <span className="font-display text-3xl font-bold tabular">{formatAverage(detail.results.average)}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t('students.detail.average')}
+                    </span>
+                    <span className="font-display text-3xl font-bold tabular">
+                      {formatAverage(detail.results.average)}
+                    </span>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="grid gap-1 pt-5">
-                    <span className="text-sm text-muted-foreground">{t('students.detail.rank')}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t('students.detail.rank')}
+                    </span>
                     <span className="font-display text-3xl font-bold">
                       {formatRank(detail.results.rank)}{' '}
                       <span className="text-base font-medium text-muted-foreground">
@@ -298,7 +363,9 @@ function Detail({ detail }: { detail: StudentDetail }) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('students.detail.subject')}</TableHead>
-                      <TableHead className="text-center">{t('students.detail.coefficient')}</TableHead>
+                      <TableHead className="text-center">
+                        {t('students.detail.coefficient')}
+                      </TableHead>
                       <TableHead className="text-right">{t('students.detail.average')}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -307,7 +374,14 @@ function Detail({ detail }: { detail: StudentDetail }) {
                       <TableRow key={subject.name}>
                         <TableCell className="font-medium">{subject.name}</TableCell>
                         <TableCell className="text-center">{subject.coefficient}</TableCell>
-                        <TableCell className={cn('tabular text-right font-semibold', subject.average !== null && subject.average < 10 && 'text-destructive-ink')}>
+                        <TableCell
+                          className={cn(
+                            'tabular text-right font-semibold',
+                            subject.average !== null &&
+                              subject.average < 10 &&
+                              'text-destructive-ink',
+                          )}
+                        >
                           {formatAverage(subject.average)}
                         </TableCell>
                       </TableRow>
@@ -324,14 +398,29 @@ function Detail({ detail }: { detail: StudentDetail }) {
               <CardContent>
                 <ul className="grid gap-2">
                   {detail.skills.map((skill) => (
-                    <li key={skill.label} className="flex items-center justify-between gap-3 border-b pb-2 last:border-0">
+                    <li
+                      key={skill.label}
+                      className="flex items-center justify-between gap-3 border-b pb-2 last:border-0"
+                    >
                       <span>
                         <span className="text-xs text-muted-foreground">{skill.domain}</span>
                         <br />
                         {skill.label}
                       </span>
-                      <Badge variant={skill.level === 'A' ? 'success' : skill.level === 'EA' ? 'accent' : skill.level === 'NA' ? 'destructive' : 'secondary'}>
-                        {t(`skillLevels.${skill.level === 'A' || skill.level === 'EA' || skill.level === 'NA' ? skill.level : 'none'}`)}
+                      <Badge
+                        variant={
+                          skill.level === 'A'
+                            ? 'success'
+                            : skill.level === 'EA'
+                              ? 'accent'
+                              : skill.level === 'NA'
+                                ? 'destructive'
+                                : 'secondary'
+                        }
+                      >
+                        {t(
+                          `skillLevels.${skill.level === 'A' || skill.level === 'EA' || skill.level === 'NA' ? skill.level : 'none'}`,
+                        )}
                       </Badge>
                     </li>
                   ))}
@@ -354,7 +443,9 @@ function Detail({ detail }: { detail: StudentDetail }) {
             ).map(([key, value]) => (
               <Card key={key}>
                 <CardContent className="grid gap-1 pt-5">
-                  <span className="text-sm text-muted-foreground">{t(`students.detail.${key}`)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t(`students.detail.${key}`)}
+                  </span>
                   <span className="font-display text-3xl font-bold tabular">{value}</span>
                 </CardContent>
               </Card>
@@ -370,10 +461,16 @@ function Detail({ detail }: { detail: StudentDetail }) {
                     <TableRow key={entry.date}>
                       <TableCell>{formatDay(entry.date)}</TableCell>
                       <TableCell>
-                        <Badge variant={entry.status === 'late' ? 'accent' : 'destructive'}>{t(`attendanceStatus.${entry.status}`)}</Badge>
+                        <Badge variant={entry.status === 'late' ? 'accent' : 'destructive'}>
+                          {t(`attendanceStatus.${entry.status}`)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
-                        {t(entry.justified ? 'students.detail.justified' : 'students.detail.notJustified')}
+                        {t(
+                          entry.justified
+                            ? 'students.detail.justified'
+                            : 'students.detail.notJustified',
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -387,11 +484,16 @@ function Detail({ detail }: { detail: StudentDetail }) {
           <p className="text-sm text-muted-foreground">{t('students.detail.documentsHint')}</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {(['birth', 'photo', 'vaccination', 'report'] as const).map((doc, index) => {
-              const provided = classroom.cycle === 'primary' || doc !== 'report' ? (student.matricule.charCodeAt(student.matricule.length - 1) + index) % 4 !== 0 : false
+              const provided =
+                classroom.cycle === 'primary' || doc !== 'report'
+                  ? (student.matricule.charCodeAt(student.matricule.length - 1) + index) % 4 !== 0
+                  : false
               return (
                 <li key={doc} className="flex items-center gap-3 rounded-2xl border bg-card p-4">
                   <FileText aria-hidden className="size-5 text-muted-foreground" />
-                  <span className="flex-1 font-medium">{t(`students.detail.documents.${doc}`)}</span>
+                  <span className="flex-1 font-medium">
+                    {t(`students.detail.documents.${doc}`)}
+                  </span>
                   {provided ? (
                     <Badge variant="success">
                       <CheckCircle2 aria-hidden className="size-3.5" />
@@ -432,7 +534,11 @@ export function StudentDetailPage({ studentId }: { studentId: string }) {
       <QueryState query={query}>
         {(detail) =>
           detail === null ? (
-            <EmptyState headingLevel={1} illustration="lost" title={t('students.detail.notFound')} />
+            <EmptyState
+              headingLevel={1}
+              illustration="lost"
+              title={t('students.detail.notFound')}
+            />
           ) : (
             <Detail detail={detail} />
           )

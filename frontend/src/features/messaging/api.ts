@@ -8,9 +8,11 @@ export function useConversations() {
 }
 
 export function useReply() {
-  return useDemoMutation((school, input: { conversationId: string; body: string; author: string }) => {
-    reply(school, input.conversationId, input.body, input.author, new Date())
-  })
+  return useDemoMutation(
+    (school, input: { conversationId: string; body: string; author: string }) => {
+      reply(school, input.conversationId, input.body, input.author, new Date())
+    },
+  )
 }
 
 export function useMarkRead() {
@@ -25,7 +27,9 @@ export function useAnnouncements() {
 
 export function useAnnounce() {
   return useDemoMutation(
-    (school, input: Pick<DemoAnnouncement, 'title' | 'body' | 'audience' | 'channels' | 'author'>) =>
-      announce(school, input, new Date()),
+    (
+      school,
+      input: Pick<DemoAnnouncement, 'title' | 'body' | 'audience' | 'channels' | 'author'>,
+    ) => announce(school, input, new Date()),
   )
 }

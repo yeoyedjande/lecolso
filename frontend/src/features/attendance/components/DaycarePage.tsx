@@ -1,4 +1,15 @@
-import { Baby, Bed, Heart, LogIn, LogOut, NotebookPen, Palette, Plus, Smile, Utensils } from 'lucide-react'
+import {
+  Baby,
+  Bed,
+  Heart,
+  LogIn,
+  LogOut,
+  NotebookPen,
+  Palette,
+  Plus,
+  Smile,
+  Utensils,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,7 +20,13 @@ import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
@@ -23,11 +40,22 @@ import { toast } from '@/lib/toast'
 import { useAddDaycareLog, useDaycareBoard, useDaycareCheck } from '../api'
 import type { DaycareBoard } from '../demo'
 
-const KIND_ICONS = { meal: Utensils, nap: Bed, diaper: Baby, mood: Smile, activity: Palette, health: Heart } as const
+const KIND_ICONS = {
+  meal: Utensils,
+  nap: Bed,
+  diaper: Baby,
+  mood: Smile,
+  activity: Palette,
+  health: Heart,
+} as const
 const KINDS = Object.keys(KIND_ICONS).filter((kind): kind is DaycareLogKind => kind in KIND_ICONS)
 
 function nowTime(): string {
-  return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Abidjan' })
+  return new Date().toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Africa/Abidjan',
+  })
 }
 
 type Child = DaycareBoard['children'][number]
@@ -37,7 +65,10 @@ export function DaycarePage() {
   const { t } = useTranslation()
   const school = useCurrentSchool()
   const editable = can(school, 'attendance.manage')
-  const { classrooms, loading } = usePedagogyClasses('attendance.view', (settings) => settings.attendance_mode === 'check_in_out')
+  const { classrooms, loading } = usePedagogyClasses(
+    'attendance.view',
+    (settings) => settings.attendance_mode === 'check_in_out',
+  )
   const board = useDaycareBoard()
   const check = useDaycareCheck()
   const addLog = useAddDaycareLog()
@@ -59,8 +90,12 @@ export function DaycarePage() {
       ) : (
         <QueryState query={board} skeleton={<CardsSkeleton count={3} />}>
           {(data) => {
-            const children = data.children.filter((child) => classIds.has(child.student.classroomId))
-            const present = children.filter((child) => child.visit?.arrivedAt != null && child.visit.leftAt === null).length
+            const children = data.children.filter((child) =>
+              classIds.has(child.student.classroomId),
+            )
+            const present = children.filter(
+              (child) => child.visit?.arrivedAt != null && child.visit.leftAt === null,
+            ).length
             return (
               <div className="grid gap-4">
                 <p className="font-semibold">{t('daycare.present', { count: present })}</p>
@@ -81,28 +116,41 @@ export function DaycarePage() {
                               {arrived === null ? (
                                 <Badge variant="secondary">{t('daycare.notArrived')}</Badge>
                               ) : left === null ? (
-                                <Badge variant="success">{t('daycare.arrived', { time: formatTime(arrived) })}</Badge>
+                                <Badge variant="success">
+                                  {t('daycare.arrived', { time: formatTime(arrived) })}
+                                </Badge>
                               ) : (
-                                <Badge variant="outline">{t('daycare.left', { time: formatTime(left) })}</Badge>
+                                <Badge variant="outline">
+                                  {t('daycare.left', { time: formatTime(left) })}
+                                </Badge>
                               )}
                             </div>
                             {child.visit?.droppedBy != null && (
                               <p className="text-xs text-muted-foreground">
                                 {t('daycare.droppedBy', { name: child.visit.droppedBy })}
-                                {child.visit.pickedUpBy !== null && ` · ${t('daycare.pickedUpBy', { name: child.visit.pickedUpBy })}`}
+                                {child.visit.pickedUpBy !== null &&
+                                  ` · ${t('daycare.pickedUpBy', { name: child.visit.pickedUpBy })}`}
                               </p>
                             )}
                             <ol className="grid gap-2 border-l-2 border-cycle-daycare/40 pl-3">
                               {child.logs.length === 0 ? (
-                                <li className="text-sm text-muted-foreground">{t('daycare.emptyLog')}</li>
+                                <li className="text-sm text-muted-foreground">
+                                  {t('daycare.emptyLog')}
+                                </li>
                               ) : (
                                 child.logs.map((log) => {
                                   const Icon = KIND_ICONS[log.kind]
                                   return (
                                     <li key={log.id} className="flex items-start gap-2 text-sm">
-                                      <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-cycle-daycare-ink" />
+                                      <Icon
+                                        aria-hidden
+                                        className="mt-0.5 size-4 shrink-0 text-cycle-daycare-ink"
+                                      />
                                       <span>
-                                        <span className="font-semibold tabular">{log.time}</span> · <span className="sr-only">{t(`daycare.kinds.${log.kind}`)} : </span>
+                                        <span className="font-semibold tabular">{log.time}</span> ·{' '}
+                                        <span className="sr-only">
+                                          {t(`daycare.kinds.${log.kind}`)} :{' '}
+                                        </span>
                                         {log.note}
                                       </span>
                                     </li>
@@ -174,20 +222,33 @@ export function DaycarePage() {
       >
         <DialogContent closeLabel={t('common.close')}>
           <DialogTitle>
-            {checking !== null && t(checking.direction === 'in' ? 'daycare.checkInTitle' : 'daycare.checkOutTitle', { name: checking.child.name })}
+            {checking !== null &&
+              t(checking.direction === 'in' ? 'daycare.checkInTitle' : 'daycare.checkOutTitle', {
+                name: checking.child.name,
+              })}
           </DialogTitle>
           <form
             className="grid gap-4"
             onSubmit={(event) => {
               event.preventDefault()
               if (checking === null || by.trim() === '') return
-              void check.mutateAsync({ studentId: checking.child.student.id, direction: checking.direction, time, by: by.trim() }).then(() => {
-                setChecking(null)
-                toast(t('daycare.saved'), { tone: 'success' })
-              })
+              void check
+                .mutateAsync({
+                  studentId: checking.child.student.id,
+                  direction: checking.direction,
+                  time,
+                  by: by.trim(),
+                })
+                .then(() => {
+                  setChecking(null)
+                  toast(t('daycare.saved'), { tone: 'success' })
+                })
             }}
           >
-            <Field label={t('daycare.by')} hint={checking?.direction === 'out' ? t('daycare.byHint') : undefined}>
+            <Field
+              label={t('daycare.by')}
+              hint={checking?.direction === 'out' ? t('daycare.byHint') : undefined}
+            >
               {(control) => (
                 <NativeSelect
                   {...control}
@@ -237,16 +298,20 @@ export function DaycarePage() {
         }}
       >
         <DialogContent closeLabel={t('common.close')}>
-          <DialogTitle>{logging !== null && t('daycare.addLogTitle', { name: logging.name })}</DialogTitle>
+          <DialogTitle>
+            {logging !== null && t('daycare.addLogTitle', { name: logging.name })}
+          </DialogTitle>
           <form
             className="grid gap-4"
             onSubmit={(event) => {
               event.preventDefault()
               if (logging === null || note.trim() === '') return
-              void addLog.mutateAsync({ studentId: logging.student.id, time, kind, note: note.trim() }).then(() => {
-                setLogging(null)
-                toast(t('daycare.saved'), { tone: 'success' })
-              })
+              void addLog
+                .mutateAsync({ studentId: logging.student.id, time, kind, note: note.trim() })
+                .then(() => {
+                  setLogging(null)
+                  toast(t('daycare.saved'), { tone: 'success' })
+                })
             }}
           >
             <div className="grid gap-4 sm:grid-cols-2">

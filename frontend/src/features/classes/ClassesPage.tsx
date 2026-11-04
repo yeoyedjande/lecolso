@@ -22,16 +22,29 @@ export function ClassesPage() {
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader title={t('classes.title')} description={t('classes.description', { year: YEAR_LABEL })} />
+      <ScreenHeader
+        title={t('classes.title')}
+        description={t('classes.description', { year: YEAR_LABEL })}
+      />
       <QueryState query={query}>
         {(groups) => (
           <div className="grid gap-8">
             {groups
               .filter((group) => allowed === undefined || allowed.includes(group.level.cycle))
               .map((group, groupIndex) => (
-                <section key={group.level.code} aria-labelledby={`level-${group.level.code}`} className="grid gap-3">
-                  <h2 id={`level-${group.level.code}`} className="flex items-center gap-3 font-display text-lg font-semibold">
-                    <span aria-hidden className={cn('h-6 w-1.5 rounded-full', CYCLE_CLASSES[group.level.cycle].dot)} />
+                <section
+                  key={group.level.code}
+                  aria-labelledby={`level-${group.level.code}`}
+                  className="grid gap-3"
+                >
+                  <h2
+                    id={`level-${group.level.code}`}
+                    className="flex items-center gap-3 font-display text-lg font-semibold"
+                  >
+                    <span
+                      aria-hidden
+                      className={cn('h-6 w-1.5 rounded-full', CYCLE_CLASSES[group.level.cycle].dot)}
+                    />
                     {group.level.name}
                     <CycleBadge code={group.level.cycle} label={t(`cycles.${group.level.cycle}`)} />
                   </h2>
@@ -62,15 +75,21 @@ export function ClassesPage() {
                               <span>{t('classes.fill')}</span>
                               <span>{t('classes.capacity', { count: classroom.capacity })}</span>
                             </div>
-                            <Progress value={Math.round((classroom.students / classroom.capacity) * 100)} aria-label={t('classes.fill')} />
+                            <Progress
+                              value={Math.round((classroom.students / classroom.capacity) * 100)}
+                              aria-label={t('classes.fill')}
+                            />
                           </div>
                           <div className="flex flex-wrap justify-between gap-2 text-sm">
                             <span>
-                              <span className="text-muted-foreground">{t('classes.teacher')} : </span>
+                              <span className="text-muted-foreground">
+                                {t('classes.teacher')} :{' '}
+                              </span>
                               <span className="font-medium">{classroom.teacher}</span>
                             </span>
                             <span className="text-muted-foreground">
-                              {t('classes.girls', { count: classroom.girls })} · {t('classes.boys', { count: classroom.boys })}
+                              {t('classes.girls', { count: classroom.girls })} ·{' '}
+                              {t('classes.boys', { count: classroom.boys })}
                             </span>
                           </div>
                         </Link>

@@ -11,13 +11,21 @@ import type { DemoClassroom } from '@/lib/demo/types'
 export function usePedagogyClasses(
   permission: string,
   matches: (settings: CycleSettings) => boolean,
-): { classrooms: DemoClassroom[]; settingsOf: (classroom: DemoClassroom | undefined) => CycleSettings | undefined; loading: boolean } {
+): {
+  classrooms: DemoClassroom[]
+  settingsOf: (classroom: DemoClassroom | undefined) => CycleSettings | undefined
+  loading: boolean
+} {
   const classes = useClassroomOptions()
   const { settings, loading } = useCycleSettings()
   const allowed = useAllowedCycles(permission)
   const classrooms = (classes.data ?? []).filter((classroom) => {
     const cycleSettings = settings[classroom.cycle]
-    return cycleSettings !== undefined && matches(cycleSettings) && (allowed === undefined || allowed.includes(classroom.cycle))
+    return (
+      cycleSettings !== undefined &&
+      matches(cycleSettings) &&
+      (allowed === undefined || allowed.includes(classroom.cycle))
+    )
   })
   return {
     classrooms,

@@ -10,16 +10,28 @@ export function average(values: readonly (number | null)[]): number | null {
 }
 
 /** Moyenne pondérée par les coefficients (matières sans note ignorées). */
-export function weightedAverage(entries: readonly { value: number | null; coefficient: number }[]): number | null {
-  const present = entries.filter((entry): entry is { value: number; coefficient: number } => entry.value !== null)
+export function weightedAverage(
+  entries: readonly { value: number | null; coefficient: number }[],
+): number | null {
+  const present = entries.filter(
+    (entry): entry is { value: number; coefficient: number } => entry.value !== null,
+  )
   const weights = present.reduce((sum, entry) => sum + entry.coefficient, 0)
   if (weights === 0) return null
-  return Math.round((present.reduce((sum, entry) => sum + entry.value * entry.coefficient, 0) / weights) * 100) / 100
+  return (
+    Math.round(
+      (present.reduce((sum, entry) => sum + entry.value * entry.coefficient, 0) / weights) * 100,
+    ) / 100
+  )
 }
 
 /** Rangs avec ex æquo (1, 2, 2, 4) ; les élèves sans moyenne ne sont pas classés. */
-export function ranks(averages: ReadonlyMap<string, number | null>): Map<string, { rank: number; tied: boolean }> {
-  const sorted = [...averages].filter((entry): entry is [string, number] => entry[1] !== null).sort((a, b) => b[1] - a[1])
+export function ranks(
+  averages: ReadonlyMap<string, number | null>,
+): Map<string, { rank: number; tied: boolean }> {
+  const sorted = [...averages]
+    .filter((entry): entry is [string, number] => entry[1] !== null)
+    .sort((a, b) => b[1] - a[1])
   const result = new Map<string, { rank: number; tied: boolean }>()
   sorted.forEach(([id, value], index) => {
     const first = sorted.findIndex(([, other]) => other === value)
@@ -31,17 +43,31 @@ export function ranks(averages: ReadonlyMap<string, number | null>): Map<string,
 
 export interface GradeGrid {
   assessments: DemoAssessment[]
-  rows: { student: DemoStudent; name: string; values: Record<string, number | null>; average: number | null }[]
+  rows: {
+    student: DemoStudent
+    name: string
+    values: Record<string, number | null>
+    average: number | null
+  }[]
 }
 
-export function gradeGrid(school: DemoSchool, classroomId: string, subjectCode: string, term: number): GradeGrid {
+export function gradeGrid(
+  school: DemoSchool,
+  classroomId: string,
+  subjectCode: string,
+  term: number,
+): GradeGrid {
   const assessments = school.assessments
-    .filter((a) => a.classroomId === classroomId && a.subjectCode === subjectCode && a.term === term)
+    .filter(
+      (a) => a.classroomId === classroomId && a.subjectCode === subjectCode && a.term === term,
+    )
     .sort((a, b) => a.date.localeCompare(b.date))
   const rows = studentsOf(school, classroomId).map((student) => {
     const values: Record<string, number | null> = {}
     for (const assessment of assessments) {
-      const grade = school.grades.find((g) => g.assessmentId === assessment.id && g.studentId === student.id)
+      const grade = school.grades.find(
+        (g) => g.assessmentId === assessment.id && g.studentId === student.id,
+      )
       values[assessment.id] = grade?.value ?? null
     }
     return { student, name: fullName(student), values, average: average(Object.values(values)) }
@@ -49,18 +75,31 @@ export function gradeGrid(school: DemoSchool, classroomId: string, subjectCode: 
   return { assessments, rows }
 }
 
-export function saveGrade(school: DemoSchool, assessmentId: string, studentId: string, value: number | null): void {
+export function saveGrade(
+  school: DemoSchool,
+  assessmentId: string,
+  studentId: string,
+  value: number | null,
+): void {
   const assessment = school.assessments.find((a) => a.id === assessmentId)
   if (assessment === undefined) throw new Error('Évaluation introuvable')
-  if (value !== null && (value < 0 || value > assessment.outOf || Math.round(value * 4) !== value * 4)) {
+  if (
+    value !== null &&
+    (value < 0 || value > assessment.outOf || Math.round(value * 4) !== value * 4)
+  ) {
     throw new Error('Note invalide')
   }
-  const grade = school.grades.find((g) => g.assessmentId === assessmentId && g.studentId === studentId)
+  const grade = school.grades.find(
+    (g) => g.assessmentId === assessmentId && g.studentId === studentId,
+  )
   if (grade === undefined) school.grades.push({ assessmentId, studentId, value })
   else grade.value = value
 }
 
-export function addAssessment(school: DemoSchool, input: Omit<DemoAssessment, 'id' | 'outOf'>): DemoAssessment {
+export function addAssessment(
+  school: DemoSchool,
+  input: Omit<DemoAssessment, 'id' | 'outOf'>,
+): DemoAssessment {
   const assessment: DemoAssessment = { ...input, id: demoId('eval'), outOf: 20 }
   school.assessments.push(assessment)
   return assessment
@@ -84,12 +123,24 @@ export function classResults(school: DemoSchool, classroomId: string, term: numb
   const rows = students.map((student) => {
     const bySubject: Record<string, number | null> = {}
     for (const subject of school.subjects) {
-      const grid = school.assessments.filter((a) => a.classroomId === classroomId && a.subjectCode === subject.code && a.term === term)
+      const grid = school.assessments.filter(
+        (a) => a.classroomId === classroomId && a.subjectCode === subject.code && a.term === term,
+      )
       bySubject[subject.code] = average(
-        grid.map((assessment) => school.grades.find((g) => g.assessmentId === assessment.id && g.studentId === student.id)?.value ?? null),
+        grid.map(
+          (assessment) =>
+            school.grades.find(
+              (g) => g.assessmentId === assessment.id && g.studentId === student.id,
+            )?.value ?? null,
+        ),
       )
     }
-    const overall = weightedAverage(school.subjects.map((subject) => ({ value: bySubject[subject.code] ?? null, coefficient: subject.coefficient })))
+    const overall = weightedAverage(
+      school.subjects.map((subject) => ({
+        value: bySubject[subject.code] ?? null,
+        coefficient: subject.coefficient,
+      })),
+    )
     return { student, name: fullName(student), bySubject, average: overall }
   })
   const ranking = ranks(new Map(rows.map((row) => [row.student.id, row.average])))
@@ -108,7 +159,10 @@ export interface SkillMatrix {
 export function skillMatrix(school: DemoSchool, classroomId: string, term: number): SkillMatrix {
   const domains = new Map<string, { id: string; label: string }[]>()
   for (const skill of school.skills) {
-    domains.set(skill.domain, [...(domains.get(skill.domain) ?? []), { id: skill.id, label: skill.label }])
+    domains.set(skill.domain, [
+      ...(domains.get(skill.domain) ?? []),
+      { id: skill.id, label: skill.label },
+    ])
   }
   return {
     domains: [...domains].map(([name, skills]) => ({ name, skills })),
@@ -116,15 +170,25 @@ export function skillMatrix(school: DemoSchool, classroomId: string, term: numbe
       const levels: Record<string, SkillLevel | null> = {}
       for (const skill of school.skills) {
         levels[skill.id] =
-          school.skillEvaluations.find((e) => e.skillId === skill.id && e.studentId === student.id && e.term === term)?.level ?? null
+          school.skillEvaluations.find(
+            (e) => e.skillId === skill.id && e.studentId === student.id && e.term === term,
+          )?.level ?? null
       }
       return { student, name: fullName(student), levels }
     }),
   }
 }
 
-export function setSkill(school: DemoSchool, studentId: string, skillId: string, term: number, level: SkillLevel | null): void {
-  const entry = school.skillEvaluations.find((e) => e.skillId === skillId && e.studentId === studentId && e.term === term)
+export function setSkill(
+  school: DemoSchool,
+  studentId: string,
+  skillId: string,
+  term: number,
+  level: SkillLevel | null,
+): void {
+  const entry = school.skillEvaluations.find(
+    (e) => e.skillId === skillId && e.studentId === studentId && e.term === term,
+  )
   if (entry === undefined) school.skillEvaluations.push({ skillId, studentId, term, level })
   else entry.level = level
 }
@@ -155,7 +219,12 @@ export interface ReportCardData {
 }
 
 /** Données d'un bulletin (moyenne pondérée) ou d'un livret (compétences) pour une période. */
-export function reportCard(school: DemoSchool, studentId: string, term: number, kind: ReportCardData['kind']): ReportCardData | null {
+export function reportCard(
+  school: DemoSchool,
+  studentId: string,
+  term: number,
+  kind: ReportCardData['kind'],
+): ReportCardData | null {
   const student = school.students.find((candidate) => candidate.id === studentId)
   const classroom = school.classrooms.find((candidate) => candidate.id === student?.classroomId)
   if (student === undefined || classroom === undefined) return null
@@ -167,7 +236,9 @@ export function reportCard(school: DemoSchool, studentId: string, term: number, 
     classroom: classroom.name,
     teacher: classroom.teacher,
     school: { name: school.name, address: school.address, year: school.year, motto: school.motto },
-    absences: school.attendance.filter((a) => a.studentId === studentId && (a.status === 'absent' || a.status === 'excused')).length,
+    absences: school.attendance.filter(
+      (a) => a.studentId === studentId && (a.status === 'absent' || a.status === 'excused'),
+    ).length,
     results: results?.rows.find((row) => row.student.id === studentId) ?? null,
     subjects: results?.subjects ?? [],
     classSize: studentsOf(school, classroom.id).length,
@@ -175,22 +246,38 @@ export function reportCard(school: DemoSchool, studentId: string, term: number, 
     skills: school.skills.map((skill) => ({
       domain: skill.domain,
       label: skill.label,
-      level: school.skillEvaluations.find((e) => e.skillId === skill.id && e.studentId === studentId && e.term === term)?.level ?? null,
+      level:
+        school.skillEvaluations.find(
+          (e) => e.skillId === skill.id && e.studentId === studentId && e.term === term,
+        )?.level ?? null,
     })),
   }
 }
 
 /** État des documents d'une classe : complet si toutes les moyennes (ou compétences) sont renseignées. */
-export function reportStatus(school: DemoSchool, classroomId: string, term: number, kind: ReportCardData['kind']): { student: DemoStudent; name: string; complete: boolean }[] {
+export function reportStatus(
+  school: DemoSchool,
+  classroomId: string,
+  term: number,
+  kind: ReportCardData['kind'],
+): { student: DemoStudent; name: string; complete: boolean }[] {
   const results = kind === 'report_card' ? classResults(school, classroomId, term) : null
   return studentsOf(school, classroomId).map((student) => ({
     student,
     name: fullName(student),
     complete:
       kind === 'report_card'
-        ? Object.values(results?.rows.find((row) => row.student.id === student.id)?.bySubject ?? {}).every((value) => value !== null)
+        ? Object.values(
+            results?.rows.find((row) => row.student.id === student.id)?.bySubject ?? {},
+          ).every((value) => value !== null)
         : school.skills.every((skill) =>
-            school.skillEvaluations.some((e) => e.skillId === skill.id && e.studentId === student.id && e.term === term && e.level !== null),
+            school.skillEvaluations.some(
+              (e) =>
+                e.skillId === skill.id &&
+                e.studentId === student.id &&
+                e.term === term &&
+                e.level !== null,
+            ),
           ),
   }))
 }

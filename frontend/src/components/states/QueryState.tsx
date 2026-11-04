@@ -25,7 +25,13 @@ export function QueryState<T>({
 
   if (query.isError) {
     if (query.error instanceof ModuleUnavailableError) {
-      return <EmptyState illustration="soon" title={t('states.soon.title')} description={t('states.moduleUnavailable')} />
+      return (
+        <EmptyState
+          illustration="soon"
+          title={t('states.soon.title')}
+          description={t('states.moduleUnavailable')}
+        />
+      )
     }
     return (
       <ErrorState

@@ -23,19 +23,29 @@ describe('données de démonstration', () => {
     expect(lauriers.payments.every((payment) => ids.has(payment.studentId))).toBe(true)
     expect(lauriers.grades.every((grade) => ids.has(grade.studentId))).toBe(true)
     expect(lauriers.attendance.every((entry) => ids.has(entry.studentId))).toBe(true)
-    expect(lauriers.students.every((student) => lauriers.classrooms.some((c) => c.id === student.classroomId))).toBe(true)
+    expect(
+      lauriers.students.every((student) =>
+        lauriers.classrooms.some((c) => c.id === student.classroomId),
+      ),
+    ).toBe(true)
   })
 
   it('montants entiers en FCFA et reçus séquentiels', () => {
-    expect(lauriers.payments.every((payment) => Number.isInteger(payment.amount) && payment.amount > 0)).toBe(true)
-    expect(lauriers.installments.every((installment) => Number.isInteger(installment.amount))).toBe(true)
+    expect(
+      lauriers.payments.every((payment) => Number.isInteger(payment.amount) && payment.amount > 0),
+    ).toBe(true)
+    expect(lauriers.installments.every((installment) => Number.isInteger(installment.amount))).toBe(
+      true,
+    )
     const numbers = lauriers.payments.map((payment) => payment.receiptNumber)
     expect(numbers[0]).toBe('REC-2026-000001')
     expect(new Set(numbers).size).toBe(numbers.length)
   })
 
   it('téléphones au format E.164 ivoirien', () => {
-    const phones = lauriers.students.flatMap((student) => student.guardians.map((guardian) => guardian.phone))
+    const phones = lauriers.students.flatMap((student) =>
+      student.guardians.map((guardian) => guardian.phone),
+    )
     expect(phones.every((value) => /^\+225(01|05|07)\d{8}$/.test(value))).toBe(true)
   })
 

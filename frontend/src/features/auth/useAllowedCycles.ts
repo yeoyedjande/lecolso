@@ -15,5 +15,8 @@ export function useAllowedCycles(permission: string): readonly CycleCode[] | und
   return cycles
     .filter((cycle) => scope.includes(cycle.id))
     .map((cycle) => cycle.code)
-    .filter((code): code is CycleCode => code === 'daycare' || code === 'kindergarten' || code === 'primary')
+    .filter(
+      (code): code is CycleCode =>
+        code === 'daycare' || code === 'kindergarten' || code === 'primary',
+    )
 }

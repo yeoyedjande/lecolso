@@ -6,7 +6,9 @@ export interface ClassroomSummary extends DemoClassroom {
   boys: number
 }
 
-export function classroomsByLevel(school: DemoSchool): { level: DemoLevel; classrooms: ClassroomSummary[] }[] {
+export function classroomsByLevel(
+  school: DemoSchool,
+): { level: DemoLevel; classrooms: ClassroomSummary[] }[] {
   return school.levels.map((level) => ({
     level,
     classrooms: school.classrooms

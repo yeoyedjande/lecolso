@@ -10,7 +10,14 @@ export interface SchoolIdentity {
 }
 
 export function identity(school: DemoSchool): SchoolIdentity {
-  return { name: school.name, address: school.address, phone: school.phone, email: school.email, motto: school.motto, year: school.year }
+  return {
+    name: school.name,
+    address: school.address,
+    phone: school.phone,
+    email: school.email,
+    motto: school.motto,
+    year: school.year,
+  }
 }
 
 export function updateIdentity(school: DemoSchool, input: Omit<SchoolIdentity, 'year'>): void {

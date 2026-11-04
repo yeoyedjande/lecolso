@@ -15,7 +15,10 @@ export function ReportDocument({ data, termLabel }: { data: ReportCardData; term
   const levelTone = { A: 'text-[#166534]', EA: 'text-[#a14a07]', NA: 'text-[#b91c1c]' } as const
 
   return (
-    <article data-print-document className="mx-auto grid w-full max-w-[210mm] gap-5 bg-white p-6 text-[#1b2559] sm:p-10">
+    <article
+      data-print-document
+      className="mx-auto grid w-full max-w-[210mm] gap-5 bg-white p-6 text-[#1b2559] sm:p-10"
+    >
       <header className="flex items-start justify-between gap-4 border-b-2 border-[#1b2559] pb-4">
         <div className="flex items-center gap-3">
           <LogoMark className="size-12" />
@@ -27,7 +30,9 @@ export function ReportDocument({ data, termLabel }: { data: ReportCardData; term
         </div>
         <div className="text-right">
           <h2 className="font-display text-lg font-bold uppercase">
-            {t(data.kind === 'report_card' ? 'reportCards.reportCard' : 'reportCards.skillsBooklet')}
+            {t(
+              data.kind === 'report_card' ? 'reportCards.reportCard' : 'reportCards.skillsBooklet',
+            )}
           </h2>
           <p className="font-semibold">{termLabel}</p>
           <p className="text-sm text-[#5c544a]">{data.school.year}</p>
@@ -36,7 +41,9 @@ export function ReportDocument({ data, termLabel }: { data: ReportCardData; term
 
       <section className="grid gap-1 rounded-xl bg-[#fbf8f3] p-4 sm:grid-cols-2">
         <p className="font-display text-lg font-bold sm:col-span-2">{data.name}</p>
-        <p className="text-sm">{t('reportCards.born', { date: formatDay(data.student.birthDate) })}</p>
+        <p className="text-sm">
+          {t('reportCards.born', { date: formatDay(data.student.birthDate) })}
+        </p>
         <p className="text-sm">
           {data.classroom} · {data.student.matricule}
         </p>
@@ -62,7 +69,12 @@ export function ReportDocument({ data, termLabel }: { data: ReportCardData; term
                   <tr key={subject.code} className="border-b border-[#e8e1d6]">
                     <td className="px-3 py-2 font-medium">{subject.name}</td>
                     <td className="px-3 py-2 text-center">{subject.coefficient}</td>
-                    <td className={cn('px-3 py-2 text-center font-semibold tabular', value !== null && value < 10 && 'text-[#b91c1c]')}>
+                    <td
+                      className={cn(
+                        'px-3 py-2 text-center font-semibold tabular',
+                        value !== null && value < 10 && 'text-[#b91c1c]',
+                      )}
+                    >
                       {formatAverage(value)}
                     </td>
                     <td className="px-3 py-2 text-[#5c544a]">{appreciation(value)}</td>
@@ -73,8 +85,12 @@ export function ReportDocument({ data, termLabel }: { data: ReportCardData; term
           </table>
           <section className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-[#e8e1d6] p-3 text-center">
-              <p className="text-xs font-semibold text-[#5c544a] uppercase">{t('grades.generalAverage')}</p>
-              <p className="font-display text-3xl font-bold tabular">{formatAverage(data.results?.average ?? null)}</p>
+              <p className="text-xs font-semibold text-[#5c544a] uppercase">
+                {t('grades.generalAverage')}
+              </p>
+              <p className="font-display text-3xl font-bold tabular">
+                {formatAverage(data.results?.average ?? null)}
+              </p>
             </div>
             <div className="rounded-xl border border-[#e8e1d6] p-3 text-center">
               <p className="text-xs font-semibold text-[#5c544a] uppercase">{t('grades.rank')}</p>
@@ -84,11 +100,15 @@ export function ReportDocument({ data, termLabel }: { data: ReportCardData; term
               </p>
             </div>
             <div className="rounded-xl border border-[#e8e1d6] p-3 text-center">
-              <p className="text-xs font-semibold text-[#5c544a] uppercase">{t('reportCards.appreciation')}</p>
+              <p className="text-xs font-semibold text-[#5c544a] uppercase">
+                {t('reportCards.appreciation')}
+              </p>
               <p className="text-sm font-medium">{appreciation(data.results?.average ?? null)}</p>
             </div>
           </section>
-          <p className="text-sm text-[#5c544a]">{t('grades.classAverage', { value: formatAverage(data.classAverage) })}</p>
+          <p className="text-sm text-[#5c544a]">
+            {t('grades.classAverage', { value: formatAverage(data.classAverage) })}
+          </p>
         </>
       ) : (
         <div className="grid gap-4">
@@ -99,9 +119,17 @@ export function ReportDocument({ data, termLabel }: { data: ReportCardData; term
                 {data.skills
                   .filter((skill) => skill.domain === domain)
                   .map((skill) => (
-                    <li key={skill.label} className="flex items-center justify-between gap-3 border-b border-[#e8e1d6] py-1.5 text-sm">
+                    <li
+                      key={skill.label}
+                      className="flex items-center justify-between gap-3 border-b border-[#e8e1d6] py-1.5 text-sm"
+                    >
                       <span>{skill.label}</span>
-                      <span className={cn('font-semibold', skill.level === null ? 'text-[#5c544a]' : levelTone[skill.level])}>
+                      <span
+                        className={cn(
+                          'font-semibold',
+                          skill.level === null ? 'text-[#5c544a]' : levelTone[skill.level],
+                        )}
+                      >
                         {t(`skillLevels.${skill.level ?? 'none'}`)}
                       </span>
                     </li>

@@ -11,7 +11,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useClassroomOptions } from '@/features/classes/api'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -128,13 +135,19 @@ export function ImportPage() {
       )}
 
       {unreadable && (
-        <p role="alert" className="rounded-xl bg-destructive-soft px-4 py-3 text-sm font-medium text-destructive-ink">
+        <p
+          role="alert"
+          className="rounded-xl bg-destructive-soft px-4 py-3 text-sm font-medium text-destructive-ink"
+        >
           {t('import.unreadable')}
         </p>
       )}
 
       {result !== null && imported === null && result.missingColumns.length > 0 && (
-        <p role="alert" className="rounded-xl bg-destructive-soft px-4 py-3 text-sm font-medium text-destructive-ink">
+        <p
+          role="alert"
+          className="rounded-xl bg-destructive-soft px-4 py-3 text-sm font-medium text-destructive-ink"
+        >
           {t('import.missingColumns', { columns: result.missingColumns.join(', ') })}
         </p>
       )}
@@ -168,15 +181,24 @@ export function ImportPage() {
               </TableHeader>
               <TableBody>
                 {shown.map((row) => {
-                  const classroom = (classrooms.data ?? []).find((c) => c.id === row.input?.classroomId)
+                  const classroom = (classrooms.data ?? []).find(
+                    (c) => c.id === row.input?.classroomId,
+                  )
                   return (
-                    <TableRow key={row.line} className={cn(row.input === null && 'bg-destructive-soft/40')}>
+                    <TableRow
+                      key={row.line}
+                      className={cn(row.input === null && 'bg-destructive-soft/40')}
+                    >
                       <TableCell className="tabular">{row.line}</TableCell>
                       <TableCell className="font-medium">
                         {row.values.Nom} {row.values['Prénom']}
                       </TableCell>
                       <TableCell>
-                        {classroom !== undefined ? <CycleBadge code={classroom.cycle} label={classroom.name} /> : row.values.Classe}
+                        {classroom !== undefined ? (
+                          <CycleBadge code={classroom.cycle} label={classroom.name} />
+                        ) : (
+                          row.values.Classe
+                        )}
                       </TableCell>
                       <TableCell>
                         {row.input !== null ? (
@@ -210,7 +232,9 @@ export function ImportPage() {
               })
             }}
           >
-            {t(importStudents.isPending ? 'import.submitting' : 'import.submit', { count: valid.length })}
+            {t(importStudents.isPending ? 'import.submitting' : 'import.submit', {
+              count: valid.length,
+            })}
           </Button>
         </div>
       )}

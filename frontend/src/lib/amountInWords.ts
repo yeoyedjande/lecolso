@@ -1,7 +1,22 @@
 /** Montant en toutes lettres pour les reçus : 150000 → « cent cinquante mille ». Entiers de 0 à 999 999 999. */
 const UNITS = [
-  'zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize',
-  'quatorze', 'quinze', 'seize',
+  'zéro',
+  'un',
+  'deux',
+  'trois',
+  'quatre',
+  'cinq',
+  'six',
+  'sept',
+  'huit',
+  'neuf',
+  'dix',
+  'onze',
+  'douze',
+  'treize',
+  'quatorze',
+  'quinze',
+  'seize',
 ]
 const TENS = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante']
 
@@ -27,21 +42,25 @@ function belowThousand(n: number, final: boolean): string {
   const parts: string[] = []
   if (hundred > 0) {
     // « cents » prend un s s'il termine le nombre (deux cents), pas devant mille (deux cent mille)
-    parts.push(hundred === 1 ? 'cent' : `${UNITS[hundred] ?? ''} cent${rest === 0 && final ? 's' : ''}`)
+    parts.push(
+      hundred === 1 ? 'cent' : `${UNITS[hundred] ?? ''} cent${rest === 0 && final ? 's' : ''}`,
+    )
   }
   if (rest > 0) parts.push(belowHundred(rest))
   return parts.join(' ')
 }
 
 export function amountInWords(amount: number): string {
-  if (!Number.isInteger(amount) || amount < 0 || amount > 999_999_999) throw new Error('Montant hors limites')
+  if (!Number.isInteger(amount) || amount < 0 || amount > 999_999_999)
+    throw new Error('Montant hors limites')
   if (amount === 0) return 'zéro'
   const millions = Math.floor(amount / 1_000_000)
   const thousands = Math.floor((amount % 1_000_000) / 1000)
   const rest = amount % 1000
   const parts: string[] = []
   if (millions > 0) parts.push(`${belowThousand(millions, true)} million${millions > 1 ? 's' : ''}`)
-  if (thousands > 0) parts.push(thousands === 1 ? 'mille' : `${belowThousand(thousands, false)} mille`)
+  if (thousands > 0)
+    parts.push(thousands === 1 ? 'mille' : `${belowThousand(thousands, false)} mille`)
   if (rest > 0) parts.push(belowThousand(rest, true))
   return parts.join(' ')
 }

@@ -4,6 +4,10 @@
  */
 export function normalizeCiPhone(input: string): string | null {
   const digits = input.replace(/[\s.\-()]/g, '')
-  const local = digits.startsWith('+225') ? digits.slice(4) : digits.startsWith('00225') ? digits.slice(5) : digits
+  const local = digits.startsWith('+225')
+    ? digits.slice(4)
+    : digits.startsWith('00225')
+      ? digits.slice(5)
+      : digits
   return /^0[1-9]\d{8}$/.test(local) ? `+225${local}` : null
 }

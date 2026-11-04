@@ -14,7 +14,14 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Can } from '@/features/auth/RequirePermission'
 import { useAllowedCycles } from '@/features/auth/useAllowedCycles'
 import { useClassroomOptions } from '@/features/classes/api'
@@ -41,14 +48,25 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
   const [limit, setLimit] = useState(PAGE)
   const allowedCycles = useAllowedCycles('students.view')
   const classes = useClassroomOptions()
-  const students = useStudents({ search: deferred, cycle: search.cycle, classroomId: search.classe, allowedCycles })
+  const students = useStudents({
+    search: deferred,
+    cycle: search.cycle,
+    classroomId: search.classe,
+    allowedCycles,
+  })
 
   const update = (patch: Partial<StudentsSearch>) => {
     setLimit(PAGE)
-    void navigate({ to: '/gestion/eleves', search: (previous) => ({ ...previous, ...patch }), replace: true })
+    void navigate({
+      to: '/gestion/eleves',
+      search: (previous) => ({ ...previous, ...patch }),
+      replace: true,
+    })
   }
 
-  const visibleCycles = CYCLES.filter((cycle) => allowedCycles === undefined || allowedCycles.includes(cycle))
+  const visibleCycles = CYCLES.filter(
+    (cycle) => allowedCycles === undefined || allowedCycles.includes(cycle),
+  )
   const classOptions = (classes.data ?? []).filter(
     (classroom) =>
       (search.cycle === undefined || classroom.cycle === search.cycle) &&
@@ -80,7 +98,10 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px_200px]">
         <div className="relative">
-          <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             type="search"
             aria-label={t('students.search')}
@@ -130,7 +151,11 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
       <QueryState query={students}>
         {(rows) =>
           rows.length === 0 ? (
-            <EmptyState illustration="search" title={t('students.emptyTitle')} description={t('students.emptyDescription')} />
+            <EmptyState
+              illustration="search"
+              title={t('students.emptyTitle')}
+              description={t('students.emptyDescription')}
+            />
           ) : (
             <div className="grid gap-3">
               <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -158,7 +183,9 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
                             <Avatar name={row.name} size="sm" />
                             <span className="grid">
                               <span>{row.name}</span>
-                              <span className="text-xs font-normal text-muted-foreground">{row.student.matricule}</span>
+                              <span className="text-xs font-normal text-muted-foreground">
+                                {row.student.matricule}
+                              </span>
                             </span>
                           </Link>
                         </TableCell>
@@ -192,10 +219,17 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
                       <Avatar name={row.name} />
                       <span className="grid min-w-0 flex-1 gap-1">
                         <span className="truncate font-semibold">{row.name}</span>
-                        <CycleBadge code={row.classroom.cycle} label={row.classroom.name} className="w-fit" />
+                        <CycleBadge
+                          code={row.classroom.cycle}
+                          label={row.classroom.name}
+                          className="w-fit"
+                        />
                       </span>
                       {row.overdue > 0 ? (
-                        <MoneyAmount value={row.overdue} className="text-sm font-semibold text-destructive-ink" />
+                        <MoneyAmount
+                          value={row.overdue}
+                          className="text-sm font-semibold text-destructive-ink"
+                        />
                       ) : (
                         <Badge variant="success">{t('students.upToDate')}</Badge>
                       )}

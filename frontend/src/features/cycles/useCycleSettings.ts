@@ -6,7 +6,10 @@ import { useCycles, type CycleSettings } from './api'
  * Paramètres de chaque cycle de l'école (vraie API), par code. Les écrans choisissent leur comportement
  * (notes ou compétences, appel ou arrivées/départs, nombre de périodes) d'après ces paramètres, jamais d'après le nom.
  */
-export function useCycleSettings(): { settings: Partial<Record<CycleCode, CycleSettings>>; loading: boolean } {
+export function useCycleSettings(): {
+  settings: Partial<Record<CycleCode, CycleSettings>>
+  loading: boolean
+} {
   const query = useCycles()
   const settings: Partial<Record<CycleCode, CycleSettings>> = {}
   for (const cycle of query.data ?? []) {

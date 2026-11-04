@@ -2,14 +2,23 @@ import { useDemoMutation, useDemoQuery } from '@/lib/demo/hooks'
 import { fullName } from '@/lib/demo/lookup'
 import type { FeeKind } from '@/lib/demo/types'
 
-import { cashDesk, recordPayment, schedules, unpaid, updateFee, type RecordPaymentInput } from './demo'
+import {
+  cashDesk,
+  recordPayment,
+  schedules,
+  unpaid,
+  updateFee,
+  type RecordPaymentInput,
+} from './demo'
 
 export function useUnpaid() {
   return useDemoQuery(['billing', 'unpaid'], (school, today) => unpaid(school, today))
 }
 
 export function useCashDesk(date?: string) {
-  return useDemoQuery(['billing', 'cash', date ?? 'today'], (school, today) => cashDesk(school, date ?? today))
+  return useDemoQuery(['billing', 'cash', date ?? 'today'], (school, today) =>
+    cashDesk(school, date ?? today),
+  )
 }
 
 export function useSchedules() {
@@ -17,7 +26,10 @@ export function useSchedules() {
 }
 
 export function useFees() {
-  return useDemoQuery(['billing', 'fees'], (school) => ({ levels: school.levels, fees: school.fees.map((fee) => ({ ...fee })) }))
+  return useDemoQuery(['billing', 'fees'], (school) => ({
+    levels: school.levels,
+    fees: school.fees.map((fee) => ({ ...fee })),
+  }))
 }
 
 export function useUpdateFee() {
@@ -27,7 +39,9 @@ export function useUpdateFee() {
 }
 
 export function useRecordPayment() {
-  return useDemoMutation((school, input: RecordPaymentInput) => recordPayment(school, input, new Date()))
+  return useDemoMutation((school, input: RecordPaymentInput) =>
+    recordPayment(school, input, new Date()),
+  )
 }
 
 /** Reçu imprimable : paiement, élève, payeur, école. */
@@ -40,7 +54,9 @@ export function useReceipt(paymentId: string) {
     const paid = school.payments
       .filter((p) => p.studentId === payment.studentId && p.paidAt <= payment.paidAt)
       .reduce((sum, p) => sum + p.amount, 0)
-    const expected = school.installments.filter((i) => i.studentId === payment.studentId).reduce((sum, i) => sum + i.amount, 0)
+    const expected = school.installments
+      .filter((i) => i.studentId === payment.studentId)
+      .reduce((sum, i) => sum + i.amount, 0)
     return {
       payment,
       studentName: student === undefined ? '' : fullName(student),
@@ -48,7 +64,12 @@ export function useReceipt(paymentId: string) {
       classroom: classroom?.name ?? '',
       payer: (student?.guardians.find((g) => g.isPayer) ?? student?.guardians[0])?.name ?? '',
       remaining: Math.max(0, expected - paid),
-      school: { name: school.name, address: school.address, phone: school.phone, year: school.year },
+      school: {
+        name: school.name,
+        address: school.address,
+        phone: school.phone,
+        year: school.year,
+      },
     }
   })
 }

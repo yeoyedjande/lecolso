@@ -1,5 +1,13 @@
 import { Link } from '@tanstack/react-router'
-import { AlertTriangle, CalendarCheck, ClipboardCheck, CreditCard, UserPlus, Users, Wallet } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarCheck,
+  ClipboardCheck,
+  CreditCard,
+  UserPlus,
+  Users,
+  Wallet,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   Bar,
@@ -28,15 +36,28 @@ import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { CYCLE_CHART } from '@/lib/cycles'
 import { YEAR_LABEL } from '@/lib/demo/dates'
-import { formatDayMonth, formatLongDate, formatMoney, formatShortMonth, formatTime } from '@/lib/format'
+import {
+  formatDayMonth,
+  formatLongDate,
+  formatMoney,
+  formatShortMonth,
+  formatTime,
+} from '@/lib/format'
 
 import { useDashboard } from './api'
 import type { DashboardSummary } from './demo'
 
-const ACTIVITY_ICONS = { payment: Wallet, enrollment: UserPlus, absence: CalendarCheck, grade: ClipboardCheck, message: CreditCard }
+const ACTIVITY_ICONS = {
+  payment: Wallet,
+  enrollment: UserPlus,
+  absence: CalendarCheck,
+  grade: ClipboardCheck,
+  message: CreditCard,
+}
 
 function compactMoney(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M`
+  if (value >= 1_000_000)
+    return `${(value / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M`
   if (value >= 1000) return `${String(Math.round(value / 1000))} k`
   return String(value)
 }
@@ -57,7 +78,9 @@ function Dashboard({ data }: { data: DashboardSummary }) {
             value={data.students}
             format={(value) => value.toLocaleString('fr-FR')}
             icon={Users}
-            hint={t('dashboard.kpi.studentsHint', { count: data.byCycle.reduce((sum, c) => sum + c.classrooms, 0) })}
+            hint={t('dashboard.kpi.studentsHint', {
+              count: data.byCycle.reduce((sum, c) => sum + c.classrooms, 0),
+            })}
           />
         </Reveal>
         {finance && (
@@ -69,7 +92,9 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                 format={formatMoney}
                 icon={Wallet}
                 tone="accent"
-                hint={t('dashboard.kpi.collectedHint', { amount: formatMoney(data.month.expected) })}
+                hint={t('dashboard.kpi.collectedHint', {
+                  amount: formatMoney(data.month.expected),
+                })}
               />
             </Reveal>
             <Reveal index={2}>
@@ -93,7 +118,10 @@ function Dashboard({ data }: { data: DashboardSummary }) {
             tone="success"
             hint={
               data.rollCallsMissing > 0
-                ? t('dashboard.kpi.absencesHint', { late: data.lateToday, missing: data.rollCallsMissing })
+                ? t('dashboard.kpi.absencesHint', {
+                    late: data.lateToday,
+                    missing: data.rollCallsMissing,
+                  })
                 : t('dashboard.kpi.absencesHintDone', { late: data.lateToday })
             }
           />
@@ -106,12 +134,18 @@ function Dashboard({ data }: { data: DashboardSummary }) {
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>{t('dashboard.monthly.title')}</CardTitle>
-                <CardDescription>{t('dashboard.monthly.description', { year: YEAR_LABEL })}</CardDescription>
+                <CardDescription>
+                  {t('dashboard.monthly.description', { year: YEAR_LABEL })}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-64" aria-hidden>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.monthly} margin={{ top: 24, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
+                    <BarChart
+                      data={data.monthly}
+                      margin={{ top: 24, right: 8, left: 0, bottom: 0 }}
+                      barCategoryGap="28%"
+                    >
                       <CartesianGrid vertical={false} stroke={chart.grid} />
                       <XAxis
                         dataKey="month"
@@ -133,11 +167,21 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                           <ChartTooltip
                             active={active}
                             title={typeof label === 'string' ? formatShortMonth(label) : ''}
-                            rows={[{ label: t('dashboard.monthly.title'), value: formatMoney(Number(payload[0]?.value ?? 0)) }]}
+                            rows={[
+                              {
+                                label: t('dashboard.monthly.title'),
+                                value: formatMoney(Number(payload[0]?.value ?? 0)),
+                              },
+                            ]}
                           />
                         )}
                       />
-                      <Bar dataKey="collected" fill={chart.series} radius={[6, 6, 0, 0]} maxBarSize={44}>
+                      <Bar
+                        dataKey="collected"
+                        fill={chart.series}
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={44}
+                      >
                         <LabelList
                           dataKey="collected"
                           position="top"
@@ -168,17 +212,22 @@ function Dashboard({ data }: { data: DashboardSummary }) {
           <Card className="h-full">
             <CardHeader>
               <CardTitle>{t('dashboard.cycles.title')}</CardTitle>
-              <CardDescription>{t('dashboard.cycles.description', { count: data.students })}</CardDescription>
+              <CardDescription>
+                {t('dashboard.cycles.description', { count: data.students })}
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
               {cycleData.map((entry) => {
-                const share = data.students === 0 ? 0 : Math.round((entry.students / data.students) * 100)
+                const share =
+                  data.students === 0 ? 0 : Math.round((entry.students / data.students) * 100)
                 return (
                   <div key={entry.cycle} className="grid gap-1.5">
                     <div className="flex items-baseline justify-between gap-3 text-sm">
                       <span className="font-semibold">{entry.label}</span>
                       <span className="text-muted-foreground">
-                        <span className="tabular font-display text-base font-bold text-foreground">{entry.students}</span>
+                        <span className="tabular font-display text-base font-bold text-foreground">
+                          {entry.students}
+                        </span>
                         {' · '}
                         {t('dashboard.cycles.classes', { count: entry.classrooms })}
                       </span>
@@ -186,7 +235,10 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                     <div className="h-3 overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${String(share)}%`, background: CYCLE_CHART[chart.dark ? 'dark' : 'light'][entry.cycle] }}
+                        style={{
+                          width: `${String(share)}%`,
+                          background: CYCLE_CHART[chart.dark ? 'dark' : 'light'][entry.cycle],
+                        }}
                       />
                     </div>
                   </div>
@@ -207,9 +259,18 @@ function Dashboard({ data }: { data: DashboardSummary }) {
             <CardContent>
               <div className="h-56" aria-hidden>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.attendance} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
+                  <LineChart
+                    data={data.attendance}
+                    margin={{ top: 16, right: 16, left: 0, bottom: 0 }}
+                  >
                     <CartesianGrid vertical={false} stroke={chart.grid} />
-                    <XAxis dataKey="date" tickFormatter={formatDayMonth} tickLine={false} axisLine={false} tick={{ fill: chart.axis, fontSize: 12 }} />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatDayMonth}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: chart.axis, fontSize: 12 }}
+                    />
                     <YAxis
                       domain={[80, 100]}
                       tickFormatter={(value: number) => `${String(value)} %`}
@@ -224,7 +285,12 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                         <ChartTooltip
                           active={active}
                           title={typeof label === 'string' ? formatDayMonth(label) : ''}
-                          rows={[{ label: t('dashboard.attendance.rate'), value: `${String(payload[0]?.value ?? '')} %` }]}
+                          rows={[
+                            {
+                              label: t('dashboard.attendance.rate'),
+                              value: `${String(payload[0]?.value ?? '')} %`,
+                            },
+                          ]}
                         />
                       )}
                     />
@@ -269,7 +335,10 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                     const student = entry.studentName ?? ''
                     const text =
                       entry.kind === 'payment'
-                        ? t('dashboard.activity.payment', { amount: formatMoney(entry.amount ?? 0), student })
+                        ? t('dashboard.activity.payment', {
+                            amount: formatMoney(entry.amount ?? 0),
+                            student,
+                          })
                         : t(`dashboard.activity.${entry.kind}`, { student })
                     return (
                       <li key={entry.id} className="flex items-start gap-3">
@@ -310,7 +379,11 @@ export function DashboardPage() {
     <div className="grid gap-6">
       <ScreenHeader
         title={t('dashboard.title')}
-        description={query.data === undefined ? undefined : t('dashboard.today', { date: formatLongDate(query.data.today) })}
+        description={
+          query.data === undefined
+            ? undefined
+            : t('dashboard.today', { date: formatLongDate(query.data.today) })
+        }
         actions={
           <>
             <Can permission="attendance.manage">

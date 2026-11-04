@@ -200,7 +200,8 @@
     "children": "Mes enfants",
     "payMobile": "Paiements",
     "profile": "Profil",
-    "schools": "Écoles"
+    "schools": "Écoles",
+    "schedules": "Échéanciers"
   },
   "design": {
     "title": "Design system",
@@ -806,5 +807,163 @@
     "present": "Présent",
     "absent": "Absent",
     "late": "Retard"
+  },
+  "messaging": {
+    "title": "Messages et annonces",
+    "description": "Échanges avec les familles et annonces à toute l’école, à un cycle ou à une classe.",
+    "tabs": {
+      "conversations": "Conversations",
+      "announcements": "Annonces"
+    },
+    "unread": "{{count}} non lu(s)",
+    "about": "À propos de {{student}} ({{classroom}})",
+    "choose": "Choisissez une conversation.",
+    "reply": "Votre réponse",
+    "replyPlaceholder": "Écrivez votre message…",
+    "send": "Envoyer",
+    "back": "Retour aux conversations",
+    "empty": "Aucune conversation.",
+    "school": "École",
+    "new": "Nouvelle annonce",
+    "announcementTitle": "Titre",
+    "announcementBody": "Message",
+    "audience": "Destinataires",
+    "audiences": {
+      "all": "Toute l’école",
+      "daycare": "Garderie",
+      "kindergarten": "Maternelle",
+      "primary": "Primaire"
+    },
+    "classAudience": "Classe {{name}}",
+    "channels": "Canaux",
+    "channelApp": "Application",
+    "channelSms": "SMS",
+    "smsHint": "Un SMS coûte un crédit par famille. Message court conseillé (160 caractères).",
+    "chars": "{{count}} caractère(s)",
+    "publish": "Publier l’annonce",
+    "published": "Annonce envoyée à {{count}} famille(s)",
+    "reach": "{{count}} famille(s)",
+    "by": "Par {{author}}, le {{date}}",
+    "noAnnouncement": "Aucune annonce publiée."
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "description": "Vacances, examens, réunions et événements de l’école.",
+    "previous": "Mois précédent",
+    "next": "Mois suivant",
+    "today": "Aujourd’hui",
+    "add": "Ajouter un événement",
+    "eventTitle": "Intitulé",
+    "start": "Début",
+    "end": "Fin",
+    "kind": "Type",
+    "cycle": "Cycle concerné",
+    "allCycles": "Toute l’école",
+    "location": "Lieu (facultatif)",
+    "kinds": {
+      "holiday": "Vacances",
+      "exam": "Examen",
+      "meeting": "Réunion",
+      "event": "Événement",
+      "training": "Journée pédagogique"
+    },
+    "upcoming": "À venir ce mois-ci",
+    "none": "Aucun événement ce mois-ci.",
+    "more": "+{{count}}",
+    "added": "Événement ajouté",
+    "endBeforeStart": "La fin doit suivre le début."
+  },
+  "settings": {
+    "title": "Paramètres de l’école",
+    "description": "Identité de l’établissement, cycles, utilisateurs et rôles.",
+    "tabs": {
+      "identity": "Identité",
+      "cycles": "Cycles",
+      "users": "Utilisateurs et rôles"
+    },
+    "identity": {
+      "name": "Nom de l’établissement",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "email": "E-mail",
+      "motto": "Devise",
+      "year": "Année scolaire en cours",
+      "saved": "Identité enregistrée"
+    },
+    "cycles": {
+      "realApi": "Paramètres réels de l’établissement (enregistrés sur le serveur).",
+      "name": "Nom affiché",
+      "termType": "Découpage de l’année",
+      "termTypes": {
+        "trimester": "Trimestres",
+        "semester": "Semestres",
+        "free_period": "Périodes libres"
+      },
+      "assessmentMode": "Évaluation",
+      "assessmentModes": {
+        "observation": "Observation",
+        "competency": "Compétences",
+        "weighted_average": "Moyenne pondérée"
+      },
+      "attendanceMode": "Présences",
+      "attendanceModes": {
+        "roll_call": "Appel en classe",
+        "check_in_out": "Arrivées et départs"
+      },
+      "billingPeriod": "Facturation",
+      "billingPeriods": {
+        "monthly": "Mensuelle",
+        "quarterly": "Trimestrielle",
+        "yearly": "Annuelle"
+      },
+      "reportDocument": "Document de fin de période",
+      "reportDocuments": {
+        "none": "Aucun",
+        "skills_booklet": "Livret de compétences",
+        "report_card": "Bulletin de notes"
+      },
+      "dailyLog": "Journal quotidien",
+      "dailyLogs": {
+        "none": "Non",
+        "optional": "Facultatif",
+        "required": "Obligatoire"
+      },
+      "levels": "Niveaux : {{levels}}",
+      "save": "Enregistrer le cycle",
+      "saved": "Cycle « {{name}} » enregistré",
+      "forbidden": "Modification réservée à la direction pour ce cycle.",
+      "failed": "Enregistrement impossible. Réessayez."
+    },
+    "users": {
+      "name": "Nom",
+      "roles": "Rôles",
+      "lastLogin": "Dernière connexion",
+      "never": "Jamais connecté",
+      "wholeSchool": "tout l’établissement",
+      "reset": "Réinitialiser le mot de passe",
+      "resetOf": "Réinitialiser le mot de passe de {{name}}",
+      "resetTitle": "Nouveau mot de passe provisoire",
+      "resetDescription": "{{name}} devra le changer à sa prochaine connexion. Communiquez-le de vive voix ou par SMS : il ne sera plus affiché.",
+      "resetConfirm": "Générer un mot de passe provisoire",
+      "resetDone": "Mot de passe provisoire de {{name}} :",
+      "copy": "Copier",
+      "copied": "Copié"
+    }
+  },
+  "profile": {
+    "title": "Mon profil",
+    "description": "Vos informations et vos préférences.",
+    "account": "Compte",
+    "name": "Nom",
+    "phone": "Téléphone",
+    "email": "E-mail",
+    "none": "Non renseigné",
+    "schools": "Établissements et rôles",
+    "security": "Sécurité",
+    "securityHint": "Choisissez un mot de passe que vous n’utilisez nulle part ailleurs.",
+    "changePassword": "Changer mon mot de passe",
+    "appearance": "Apparence du back-office",
+    "dark": "Mode sombre",
+    "darkHint": "Plus reposant le soir. Les espaces parent et enseignant restent en clair."
   }
 }

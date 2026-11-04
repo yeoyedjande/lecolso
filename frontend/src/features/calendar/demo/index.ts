@@ -2,7 +2,9 @@ import { demoId } from '@/lib/demo/store'
 import type { DemoEvent, DemoSchool } from '@/lib/demo/types'
 
 export function eventsBetween(school: DemoSchool, from: string, to: string): DemoEvent[] {
-  return school.events.filter((event) => event.end >= from && event.start <= to).sort((a, b) => a.start.localeCompare(b.start))
+  return school.events
+    .filter((event) => event.end >= from && event.start <= to)
+    .sort((a, b) => a.start.localeCompare(b.start))
 }
 
 export function addEvent(school: DemoSchool, input: Omit<DemoEvent, 'id'>): DemoEvent {

@@ -1,5 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
-import { ChevronDown, KeyRound, LogOut } from 'lucide-react'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { ChevronDown, KeyRound, LogOut, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@/components/ui/avatar'
@@ -21,6 +21,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
   const { data: profile } = useMe()
   const logout = useLogout()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
 
   if (profile === undefined) return null
 
@@ -52,6 +53,16 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {pathname.startsWith('/gestion') && (
+          <DropdownMenuItem
+            onSelect={() => {
+              void navigate({ to: '/gestion/profil' })
+            }}
+          >
+            <UserRound aria-hidden />
+            {t('common.profile')}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onSelect={() => {
             void navigate({ to: '/mot-de-passe' })

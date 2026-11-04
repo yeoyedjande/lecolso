@@ -9,7 +9,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { termCount } from '@/features/cycles/useCycleSettings'
 
 import { useReportCard, useReportStatus } from '../api'
@@ -18,15 +25,32 @@ import { usePedagogyClasses } from '@/features/cycles/usePedagogyClasses'
 import { ClassPicker, TermPicker } from '@/components/ClassPicker'
 import { ReportDocument } from './ReportDocument'
 
-function Preview({ studentId, term, kind, termLabel }: { studentId: string; term: number; kind: 'report_card' | 'skills_booklet'; termLabel: string }) {
+function Preview({
+  studentId,
+  term,
+  kind,
+  termLabel,
+}: {
+  studentId: string
+  term: number
+  kind: 'report_card' | 'skills_booklet'
+  termLabel: string
+}) {
   const query = useReportCard(studentId, term, kind)
-  return <QueryState query={query}>{(data) => (data === null ? null : <ReportDocument data={data} termLabel={termLabel} />)}</QueryState>
+  return (
+    <QueryState query={query}>
+      {(data) => (data === null ? null : <ReportDocument data={data} termLabel={termLabel} />)}
+    </QueryState>
+  )
 }
 
 /** Bulletins (moyenne pondérée) et livrets (compétences) : document choisi d'après les paramètres du cycle. */
 export function ReportCardsPage() {
   const { t } = useTranslation()
-  const { classrooms, settingsOf, loading } = usePedagogyClasses('grades.view', (settings) => settings.report_document !== 'none')
+  const { classrooms, settingsOf, loading } = usePedagogyClasses(
+    'grades.view',
+    (settings) => settings.report_document !== 'none',
+  )
   const [classroomId, setClassroomId] = useState('')
   const [term, setTerm] = useState(1)
   const [preview, setPreview] = useState<{ id: string; name: string } | null>(null)
@@ -47,10 +71,17 @@ export function ReportCardsPage() {
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Badge variant="secondary">{t(kind === 'report_card' ? 'reportCards.reportCard' : 'reportCards.skillsBooklet')}</Badge>
+            <Badge variant="secondary">
+              {t(kind === 'report_card' ? 'reportCards.reportCard' : 'reportCards.skillsBooklet')}
+            </Badge>
             <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
               <ClassPicker classrooms={classrooms} value={classroom.id} onChange={setClassroomId} />
-              <TermPicker count={termCount(settings)} type={termType} value={term} onChange={setTerm} />
+              <TermPicker
+                count={termCount(settings)}
+                type={termType}
+                value={term}
+                onChange={setTerm}
+              />
             </div>
           </div>
           <QueryState query={status}>
@@ -103,9 +134,14 @@ export function ReportCardsPage() {
           if (!open) setPreview(null)
         }}
       >
-        <DialogContent closeLabel={t('common.close')} className="max-h-[92dvh] max-w-4xl overflow-y-auto bg-[#e8e1d6] p-3 sm:p-6 print:max-h-none print:overflow-visible print:bg-white print:p-0">
+        <DialogContent
+          closeLabel={t('common.close')}
+          className="max-h-[92dvh] max-w-4xl overflow-y-auto bg-[#e8e1d6] p-3 sm:p-6 print:max-h-none print:overflow-visible print:bg-white print:p-0"
+        >
           <div className="flex items-center justify-between gap-3 pr-10 print:hidden">
-            <DialogTitle>{preview === null ? '' : t('reportCards.previewOf', { name: preview.name })}</DialogTitle>
+            <DialogTitle>
+              {preview === null ? '' : t('reportCards.previewOf', { name: preview.name })}
+            </DialogTitle>
             <Button
               variant="accent"
               size="sm"
@@ -117,7 +153,9 @@ export function ReportCardsPage() {
               {t('reportCards.print')}
             </Button>
           </div>
-          {preview !== null && <Preview studentId={preview.id} term={term} kind={kind} termLabel={termLabel} />}
+          {preview !== null && (
+            <Preview studentId={preview.id} term={term} kind={kind} termLabel={termLabel} />
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -62,9 +62,24 @@ export const LEVELS: DemoLevel[] = [
 ]
 
 /** Âge à la rentrée par niveau. */
-const AGE: Record<string, number> = { CRECHE: 2, PS: 3, MS: 4, GS: 5, CP1: 6, CP2: 7, CE1: 8, CE2: 9, CM1: 10, CM2: 11 }
+const AGE: Record<string, number> = {
+  CRECHE: 2,
+  PS: 3,
+  MS: 4,
+  GS: 5,
+  CP1: 6,
+  CP2: 7,
+  CE1: 8,
+  CE2: 9,
+  CM1: 10,
+  CM2: 11,
+}
 
-const TUITION: Record<CycleCode, number> = { daycare: 360_000, kindergarten: 300_000, primary: 270_000 }
+const TUITION: Record<CycleCode, number> = {
+  daycare: 360_000,
+  kindergarten: 300_000,
+  primary: 270_000,
+}
 const TUITION_BONUS: Record<string, number> = { CE1: 10_000, CE2: 10_000, CM1: 20_000, CM2: 30_000 }
 
 export const PRIMARY_SUBJECTS: DemoSubject[] = [
@@ -185,7 +200,12 @@ function guardiansFor(random: Random, lastName: string, prefix: string): DemoGua
   if (random.chance(0.12)) {
     return [{ ...mother, id: `${prefix}-g1`, relation: 'Tutrice', isPayer: true }]
   }
-  return random.chance(0.5) ? [father, mother] : [{ ...mother, isPayer: true }, { ...father, isPayer: false }]
+  return random.chance(0.5)
+    ? [father, mother]
+    : [
+        { ...mother, isPayer: true },
+        { ...father, isPayer: false },
+      ]
 }
 
 function feesFor(level: DemoLevel): DemoFee[] {
@@ -208,7 +228,13 @@ function feesFor(level: DemoLevel): DemoFee[] {
     { levelCode: level.code, kind: 'transport', amount: 120_000, installments: 3, optional: true },
   ]
   if (level.cycle !== 'daycare') {
-    fees.push({ levelCode: level.code, kind: 'daycare', amount: 60_000, installments: 3, optional: true })
+    fees.push({
+      levelCode: level.code,
+      kind: 'daycare',
+      amount: 60_000,
+      installments: 3,
+      optional: true,
+    })
   }
   return fees
 }
@@ -224,7 +250,11 @@ export const FEE_LABELS: Record<FeeKind, string> = {
 }
 
 /** Échéances d'un élève selon la grille de frais de son niveau et ses options. */
-export function installmentsFor(student: DemoStudent, fees: DemoFee[], levelCode: string): DemoInstallment[] {
+export function installmentsFor(
+  student: DemoStudent,
+  fees: DemoFee[],
+  levelCode: string,
+): DemoInstallment[] {
   const result: DemoInstallment[] = []
   for (const fee of fees.filter((candidate) => candidate.levelCode === levelCode)) {
     if (fee.optional && !student.options.includes(fee.kind)) continue
@@ -274,7 +304,9 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
   const random = createRandom(seedFrom(slug))
   const today = demoToday(now)
 
-  const levels = LEVELS.filter((level) => template.classes.some((entry) => entry.level === level.code))
+  const levels = LEVELS.filter((level) =>
+    template.classes.some((entry) => entry.level === level.code),
+  )
   const cycles = [...new Set(levels.map((level) => level.cycle))]
   const fees = levels.flatMap(feesFor)
 
@@ -351,17 +383,30 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
       const partial = profile === 'late' && random.chance(0.4)
       const amount = partial ? Math.round(installment.amount / 2 / 5000) * 5000 : installment.amount
       const lead = random.int(0, 12)
-      const paidAt = installment.dueDate > today ? addDays(today, -random.int(0, 30)) : addDays(installment.dueDate, -lead)
-      const day = paidAt < YEAR_START && installment.kind !== 'registration' ? addDays(YEAR_START, random.int(0, 20)) : paidAt
+      const paidAt =
+        installment.dueDate > today
+          ? addDays(today, -random.int(0, 30))
+          : addDays(installment.dueDate, -lead)
+      const day =
+        paidAt < YEAR_START && installment.kind !== 'registration'
+          ? addDays(YEAR_START, random.int(0, 20))
+          : paidAt
       const method = random.pick(PAYMENT_METHODS)
       pendingPayments.push({
         studentId: student.id,
         amount,
         method,
-        paidAt: at(day > today ? today : day, `${pad(random.int(7, 16), 2)}:${pad(random.int(0, 59), 2)}`),
+        paidAt: at(
+          day > today ? today : day,
+          `${pad(random.int(7, 16), 2)}:${pad(random.int(0, 59), 2)}`,
+        ),
         cashier: random.pick(cashiers),
         reference:
-          method === 'cash' ? null : method === 'cheque' ? `CHQ ${String(random.int(1_000_000, 9_999_999))}` : `MP${String(random.int(10_000_000, 99_999_999))}`,
+          method === 'cash'
+            ? null
+            : method === 'cheque'
+              ? `CHQ ${String(random.int(1_000_000, 9_999_999))}`
+              : `MP${String(random.int(10_000_000, 99_999_999))}`,
       })
     }
   }
@@ -379,7 +424,11 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
   }
   pendingPayments.sort((a, b) => a.paidAt.localeCompare(b.paidAt))
   pendingPayments.forEach((payment, index) => {
-    payments.push({ ...payment, id: `pay-${template.code.toLowerCase()}-${pad(index + 1, 5)}`, receiptNumber: `REC-2026-${pad(index + 1, 6)}` })
+    payments.push({
+      ...payment,
+      id: `pay-${template.code.toLowerCase()}-${pad(index + 1, 5)}`,
+      receiptNumber: `REC-2026-${pad(index + 1, 6)}`,
+    })
   })
 
   // Notes du 1er trimestre (primaire) : deux évaluations par matière, quelques absences
@@ -404,7 +453,12 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
         assessments.push(assessment)
         for (const pupil of pupils) {
           const ability = (seedFrom(pupil.id) % 9) + 8
-          const value = random.chance(0.03) ? null : Math.max(2, Math.min(20, ability + random.int(-3, 3) + (random.chance(0.5) ? 0.5 : 0)))
+          const value = random.chance(0.03)
+            ? null
+            : Math.max(
+                2,
+                Math.min(20, ability + random.int(-3, 3) + (random.chance(0.5) ? 0.5 : 0)),
+              )
           grades.push({ assessmentId: assessment.id, studentId: pupil.id, value })
         }
       }
@@ -432,7 +486,9 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
   // Présences : du début d'année à aujourd'hui ; aujourd'hui, appel fait dans une partie des classes
   const days = schoolDays(YEAR_START, today, HOLIDAYS)
   const attendance: DemoAttendance[] = []
-  const calledToday = new Set(classrooms.filter((_, index) => index % 3 !== 2).map((classroom) => classroom.id))
+  const calledToday = new Set(
+    classrooms.filter((_, index) => index % 3 !== 2).map((classroom) => classroom.id),
+  )
   for (const student of students) {
     const fragile = random.chance(0.1)
     for (const date of days) {
@@ -444,21 +500,32 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
         ['excused', 0.005],
       ] as const)
       if (status === 'present') continue
-      attendance.push({ studentId: student.id, date, status, justified: status === 'excused' || random.chance(0.5) })
+      attendance.push({
+        studentId: student.id,
+        date,
+        status,
+        justified: status === 'excused' || random.chance(0.5),
+      })
     }
   }
 
   const rollCalls: DemoRollCall[] = days.flatMap((date) =>
     classrooms
       .filter((classroom) => date !== today || calledToday.has(classroom.id))
-      .map((classroom) => ({ classroomId: classroom.id, date, takenBy: classroom.teacher, takenAt: at(date, '07:55') })),
+      .map((classroom) => ({
+        classroomId: classroom.id,
+        date,
+        takenBy: classroom.teacher,
+        takenAt: at(date, '07:55'),
+      })),
   )
 
   // Garderie : arrivées, départs et journal du jour pour la crèche
   const daycareVisits: DemoDaycareVisit[] = []
   const daycareLogs: DemoDaycareLog[] = []
   const toddlers = students.filter(
-    (student) => classrooms.find((classroom) => classroom.id === student.classroomId)?.cycle === 'daycare',
+    (student) =>
+      classrooms.find((classroom) => classroom.id === student.classroomId)?.cycle === 'daycare',
   )
   for (const child of toddlers) {
     const absentToday = attendance.some(
@@ -470,20 +537,53 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
       studentId: child.id,
       date: today,
       arrivedAt: at(today, `0${String(random.int(6, 8))}:${pad(random.int(0, 59), 2)}`),
-      leftAt: random.chance(0.15) ? at(today, `1${String(random.int(5, 7))}:${pad(random.int(0, 59), 2)}`) : null,
+      leftAt: random.chance(0.15)
+        ? at(today, `1${String(random.int(5, 7))}:${pad(random.int(0, 59), 2)}`)
+        : null,
       droppedBy: guardian,
       pickedUpBy: null,
     })
     const entries: [string, DemoDaycareLog['kind'], string][] = [
-      ['08:30', 'meal', random.pick(['Bouillie de mil, tout mangé', 'Bouillie, la moitié', 'Pain et lait, bien mangé'])],
-      ['09:30', 'activity', random.pick(['Jeux de construction', 'Comptines et danse', 'Peinture avec les doigts'])],
+      [
+        '08:30',
+        'meal',
+        random.pick([
+          'Bouillie de mil, tout mangé',
+          'Bouillie, la moitié',
+          'Pain et lait, bien mangé',
+        ]),
+      ],
+      [
+        '09:30',
+        'activity',
+        random.pick(['Jeux de construction', 'Comptines et danse', 'Peinture avec les doigts']),
+      ],
       ['10:15', 'diaper', 'Change, RAS'],
-      ['12:00', 'meal', random.pick(['Riz sauce graine, tout mangé', 'Purée d’igname et poisson, un peu', 'Attiéké poisson, bien mangé'])],
-      ['13:00', 'nap', random.pick(['Sieste de 13 h à 14 h 45', 'Sieste agitée, 1 h', 'Belle sieste de 2 h'])],
+      [
+        '12:00',
+        'meal',
+        random.pick([
+          'Riz sauce graine, tout mangé',
+          'Purée d’igname et poisson, un peu',
+          'Attiéké poisson, bien mangé',
+        ]),
+      ],
+      [
+        '13:00',
+        'nap',
+        random.pick(['Sieste de 13 h à 14 h 45', 'Sieste agitée, 1 h', 'Belle sieste de 2 h']),
+      ],
       ['15:30', 'mood', random.pick(['Joyeux et calme', 'Un peu fatigué', 'Très en forme'])],
     ]
     entries.forEach(([time, kind, note], index) => {
-      daycareLogs.push({ id: `${child.id}-log-${String(index)}`, studentId: child.id, date: today, time, kind, note })
+      daycareLogs.push({
+        id: `${child.id}-log-${String(index)}`,
+        studentId: child.id,
+        date: today,
+        time,
+        kind,
+        note,
+      })
     })
   }
 
@@ -502,7 +602,10 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
     const guardian = student.guardians[0]
     if (guardian === undefined) continue
     const subject = subjectsList[index % subjectsList.length] ?? 'Message'
-    const sentAt = at(addDays(today, -index), `${pad(random.int(7, 18), 2)}:${pad(random.int(0, 59), 2)}`)
+    const sentAt = at(
+      addDays(today, -index),
+      `${pad(random.int(7, 18), 2)}:${pad(random.int(0, 59), 2)}`,
+    )
     conversations.push({
       id: `conv-${String(index + 1)}`,
       studentId: student.id,
@@ -524,7 +627,9 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
                 from: 'school' as const,
                 author: 'Secrétariat',
                 body: 'Bonjour, c’est bien noté. Nous revenons vers vous rapidement. Bonne journée !',
-                sentAt: new Date(Date.parse(sentAt) + 3_600_000).toISOString().replace('.000Z', 'Z'),
+                sentAt: new Date(Date.parse(sentAt) + 3_600_000)
+                  .toISOString()
+                  .replace('.000Z', 'Z'),
               },
             ]
           : []),
@@ -567,23 +672,117 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
 
   const month = today.slice(0, 7)
   const allEvents: DemoEvent[] = [
-    { id: 'ev-1', title: 'Vacances de Toussaint', kind: 'holiday', start: '2026-10-30', end: '2026-11-02', cycle: null, location: null },
-    { id: 'ev-2', title: 'Réunion des parents', kind: 'meeting', start: `${month}-14`, end: `${month}-14`, cycle: null, location: 'Cour principale' },
-    { id: 'ev-3', title: 'Évaluations du 1er trimestre', kind: 'exam', start: '2026-12-07', end: '2026-12-11', cycle: 'primary', location: null },
-    { id: 'ev-4', title: 'Fête de Noël', kind: 'event', start: '2026-12-18', end: '2026-12-18', cycle: null, location: 'Préau' },
-    { id: 'ev-5', title: 'Vacances de Noël', kind: 'holiday', start: '2026-12-19', end: '2027-01-04', cycle: null, location: null },
-    { id: 'ev-6', title: 'Journée pédagogique (pas de classe)', kind: 'training', start: `${month}-20`, end: `${month}-20`, cycle: null, location: null },
-    { id: 'ev-7', title: 'Sortie au zoo d’Abidjan', kind: 'event', start: `${month}-26`, end: `${month}-26`, cycle: 'kindergarten', location: 'Zoo national' },
-    { id: 'ev-8', title: 'Visite médicale', kind: 'event', start: `${month}-10`, end: `${month}-10`, cycle: 'daycare', location: 'Infirmerie' },
+    {
+      id: 'ev-1',
+      title: 'Vacances de Toussaint',
+      kind: 'holiday',
+      start: '2026-10-30',
+      end: '2026-11-02',
+      cycle: null,
+      location: null,
+    },
+    {
+      id: 'ev-2',
+      title: 'Réunion des parents',
+      kind: 'meeting',
+      start: `${month}-14`,
+      end: `${month}-14`,
+      cycle: null,
+      location: 'Cour principale',
+    },
+    {
+      id: 'ev-3',
+      title: 'Évaluations du 1er trimestre',
+      kind: 'exam',
+      start: '2026-12-07',
+      end: '2026-12-11',
+      cycle: 'primary',
+      location: null,
+    },
+    {
+      id: 'ev-4',
+      title: 'Fête de Noël',
+      kind: 'event',
+      start: '2026-12-18',
+      end: '2026-12-18',
+      cycle: null,
+      location: 'Préau',
+    },
+    {
+      id: 'ev-5',
+      title: 'Vacances de Noël',
+      kind: 'holiday',
+      start: '2026-12-19',
+      end: '2027-01-04',
+      cycle: null,
+      location: null,
+    },
+    {
+      id: 'ev-6',
+      title: 'Journée pédagogique (pas de classe)',
+      kind: 'training',
+      start: `${month}-20`,
+      end: `${month}-20`,
+      cycle: null,
+      location: null,
+    },
+    {
+      id: 'ev-7',
+      title: 'Sortie au zoo d’Abidjan',
+      kind: 'event',
+      start: `${month}-26`,
+      end: `${month}-26`,
+      cycle: 'kindergarten',
+      location: 'Zoo national',
+    },
+    {
+      id: 'ev-8',
+      title: 'Visite médicale',
+      kind: 'event',
+      start: `${month}-10`,
+      end: `${month}-10`,
+      cycle: 'daycare',
+      location: 'Infirmerie',
+    },
   ]
   const events = allEvents.filter((event) => event.cycle === null || cycles.includes(event.cycle))
 
   const staff: DemoStaff[] = [
-    { id: 'st-1', name: slug === 'petits-genies' ? 'Mariam Directrice' : 'Yao Directeur', phone: slug === 'petits-genies' ? '+2250700000009' : '+2250700000003', email: null, roles: [{ role: 'director', cycle: null }], lastLoginAt: at(today, '07:45') },
-    { id: 'st-2', name: 'Awa Secrétaire', phone: '+2250700000005', email: 'secretaire@demo.lecolso.ci', roles: [{ role: 'secretary', cycle: null }], lastLoginAt: at(today, '07:58') },
-    { id: 'st-3', name: 'Moussa Comptable', phone: '+2250700000006', email: 'comptable@demo.lecolso.ci', roles: [{ role: 'accountant', cycle: null }], lastLoginAt: at(addDays(today, -1), '16:20') },
+    {
+      id: 'st-1',
+      name: slug === 'petits-genies' ? 'Mariam Directrice' : 'Yao Directeur',
+      phone: slug === 'petits-genies' ? '+2250700000009' : '+2250700000003',
+      email: null,
+      roles: [{ role: 'director', cycle: null }],
+      lastLoginAt: at(today, '07:45'),
+    },
+    {
+      id: 'st-2',
+      name: 'Awa Secrétaire',
+      phone: '+2250700000005',
+      email: 'secretaire@demo.lecolso.ci',
+      roles: [{ role: 'secretary', cycle: null }],
+      lastLoginAt: at(today, '07:58'),
+    },
+    {
+      id: 'st-3',
+      name: 'Moussa Comptable',
+      phone: '+2250700000006',
+      email: 'comptable@demo.lecolso.ci',
+      roles: [{ role: 'accountant', cycle: null }],
+      lastLoginAt: at(addDays(today, -1), '16:20'),
+    },
     ...(cycles.includes('kindergarten')
-      ? [{ id: 'st-4', name: 'Aminata Directrice maternelle', phone: '+2250700000004', email: null, roles: [{ role: 'director' as const, cycle: 'kindergarten' as const }], lastLoginAt: at(addDays(today, -2), '09:10') }]
+      ? [
+          {
+            id: 'st-4',
+            name: 'Aminata Directrice maternelle',
+            phone: '+2250700000004',
+            email: null,
+            roles: [{ role: 'director' as const, cycle: 'kindergarten' as const }],
+            lastLoginAt: at(addDays(today, -2), '09:10'),
+          },
+        ]
       : []),
     ...classrooms.slice(0, 6).map((classroom, index) => ({
       id: `st-t${String(index + 1)}`,

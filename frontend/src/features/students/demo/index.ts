@@ -31,24 +31,37 @@ export interface StudentRow {
 }
 
 function normalize(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
-export function listStudents(school: DemoSchool, filters: StudentFilters, today: string): StudentRow[] {
+export function listStudents(
+  school: DemoSchool,
+  filters: StudentFilters,
+  today: string,
+): StudentRow[] {
   const query = normalize(filters.search?.trim() ?? '')
   return school.students
     .map((student) => ({ student, classroom: classroomOf(school, student) }))
-    .filter(({ classroom }) => filters.allowedCycles === undefined || filters.allowedCycles.includes(classroom.cycle))
+    .filter(
+      ({ classroom }) =>
+        filters.allowedCycles === undefined || filters.allowedCycles.includes(classroom.cycle),
+    )
     .filter(({ classroom }) => filters.cycle === undefined || classroom.cycle === filters.cycle)
-    .filter(({ student }) => filters.classroomId === undefined || student.classroomId === filters.classroomId)
+    .filter(
+      ({ student }) =>
+        filters.classroomId === undefined || student.classroomId === filters.classroomId,
+    )
     .filter(
       ({ student }) =>
         query === '' ||
-        normalize(`${student.firstName} ${student.lastName} ${student.matricule}`).includes(query) ||
-        student.guardians.some((guardian) => normalize(guardian.name).includes(query) || guardian.phone.includes(query.replace(/\s/g, ''))),
+        normalize(`${student.firstName} ${student.lastName} ${student.matricule}`).includes(
+          query,
+        ) ||
+        student.guardians.some(
+          (guardian) =>
+            normalize(guardian.name).includes(query) ||
+            guardian.phone.includes(query.replace(/\s/g, '')),
+        ),
     )
     .map(({ student, classroom }) => ({
       student,
@@ -68,7 +81,12 @@ export interface StudentDetail {
   installments: (ReturnType<typeof installmentsFor>[number] & { paid: number })[]
   payments: DemoPayment[]
   attendance: DemoAttendance[]
-  results: { average: number | null; rank: { rank: number; tied: boolean } | null; size: number; bySubject: { name: string; coefficient: number; average: number | null }[] } | null
+  results: {
+    average: number | null
+    rank: { rank: number; tied: boolean } | null
+    size: number
+    bySubject: { name: string; coefficient: number; average: number | null }[]
+  } | null
   skills: { domain: string; label: string; level: string | null }[]
 }
 
@@ -76,7 +94,9 @@ export function studentDetail(school: DemoSchool, id: string, today: string): St
   const student = studentById(school, id)
   if (student === undefined) return null
   const classroom = classroomOf(school, student)
-  const payments = school.payments.filter((p) => p.studentId === id).sort((a, b) => b.paidAt.localeCompare(a.paidAt))
+  const payments = school.payments
+    .filter((p) => p.studentId === id)
+    .sort((a, b) => b.paidAt.localeCompare(a.paidAt))
   let remaining = payments.reduce((sum, p) => sum + p.amount, 0)
   const installments = school.installments
     .filter((i) => i.studentId === id)
@@ -94,7 +114,11 @@ export function studentDetail(school: DemoSchool, id: string, today: string): St
       average: row?.average ?? null,
       rank: row?.rank ?? null,
       size: all.rows.length,
-      bySubject: all.subjects.map((subject) => ({ name: subject.name, coefficient: subject.coefficient, average: row?.bySubject[subject.code] ?? null })),
+      bySubject: all.subjects.map((subject) => ({
+        name: subject.name,
+        coefficient: subject.coefficient,
+        average: row?.bySubject[subject.code] ?? null,
+      })),
     }
   }
   return {
@@ -104,12 +128,16 @@ export function studentDetail(school: DemoSchool, id: string, today: string): St
     balance: balanceOf(school, id, today),
     installments,
     payments,
-    attendance: school.attendance.filter((a) => a.studentId === id).sort((a, b) => b.date.localeCompare(a.date)),
+    attendance: school.attendance
+      .filter((a) => a.studentId === id)
+      .sort((a, b) => b.date.localeCompare(a.date)),
     results,
     skills: school.skills.map((skill) => ({
       domain: skill.domain,
       label: skill.label,
-      level: school.skillEvaluations.find((e) => e.skillId === skill.id && e.studentId === id)?.level ?? null,
+      level:
+        school.skillEvaluations.find((e) => e.skillId === skill.id && e.studentId === id)?.level ??
+        null,
     })),
   }
 }
@@ -123,7 +151,13 @@ export interface EnrollmentInput {
   medicalNote: string | null
   classroomId: string
   options: FeeKind[]
-  guardians: { name: string; relation: 'Père' | 'Mère' | 'Tuteur' | 'Tutrice'; phone: string; profession: string; isPayer: boolean }[]
+  guardians: {
+    name: string
+    relation: 'Père' | 'Mère' | 'Tuteur' | 'Tutrice'
+    phone: string
+    profession: string
+    isPayer: boolean
+  }[]
 }
 
 /** Inscription : crée l'élève, ses tuteurs et ses échéances selon la grille du niveau. */
@@ -146,20 +180,32 @@ export function enroll(school: DemoSchool, input: EnrollmentInput, today: string
     status: 'enrolled',
     medicalNote: input.medicalNote,
     options: input.options,
-    guardians: input.guardians.map((guardian, index) => ({ ...guardian, id: `${id}-g${String(index + 1)}` })),
+    guardians: input.guardians.map((guardian, index) => ({
+      ...guardian,
+      id: `${id}-g${String(index + 1)}`,
+    })),
   }
   school.students.push(student)
   school.installments.push(...installmentsFor(student, school.fees, classroom.levelCode))
-  school.activity.unshift({ id: demoId('act'), at: new Date().toISOString(), kind: 'enrollment', label: '', studentId: id })
+  school.activity.unshift({
+    id: demoId('act'),
+    at: new Date().toISOString(),
+    kind: 'enrollment',
+    label: '',
+    studentId: id,
+  })
   return student
 }
 
 /** Moyenne de présence d'un élève (pour la fiche) : part des jours sans absence. */
-export function absenceCount(detail: StudentDetail): { absent: number; late: number; unjustified: number } {
+export function absenceCount(detail: StudentDetail): {
+  absent: number
+  late: number
+  unjustified: number
+} {
   return {
     absent: detail.attendance.filter((a) => a.status === 'absent' || a.status === 'excused').length,
     late: detail.attendance.filter((a) => a.status === 'late').length,
     unjustified: detail.attendance.filter((a) => a.status === 'absent' && !a.justified).length,
   }
 }
-

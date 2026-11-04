@@ -7,7 +7,13 @@ import { can } from './access'
 import { useCurrentSchool } from './useCurrentSchool'
 
 /** Écran réservé à une permission (lien direct sans le droit) : message clair plutôt qu'un écran cassé. */
-export function RequirePermission({ permission, children }: { permission: string; children: ReactNode }) {
+export function RequirePermission({
+  permission,
+  children,
+}: {
+  permission: string
+  children: ReactNode
+}) {
   const { t } = useTranslation()
   const school = useCurrentSchool()
 

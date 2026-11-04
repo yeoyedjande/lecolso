@@ -29,8 +29,11 @@ export function useResetPassword() {
   return useMutation({
     mutationFn: async (userId: string): Promise<string> => {
       if (!/^[0-9a-f-]{36}$/.test(userId)) return demo(() => provisionalPassword())
-      const { data, response } = await api.POST('/users/{user}/password-reset', { params: { path: { user: userId } } })
-      if (data === undefined) throw new Error(`Réinitialisation impossible (${String(response.status)})`)
+      const { data, response } = await api.POST('/users/{user}/password-reset', {
+        params: { path: { user: userId } },
+      })
+      if (data === undefined)
+        throw new Error(`Réinitialisation impossible (${String(response.status)})`)
       return data.provisional_password
     },
   })

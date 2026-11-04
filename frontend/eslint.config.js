@@ -37,6 +37,8 @@ export default defineConfig([
       // Pas de « as » (frontend/CLAUDE.md) : une exception se justifie par un eslint-disable commenté
       '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
       '@typescript-eslint/no-explicit-any': 'error',
+      // Index numériques dans les chemins de formulaires (`guardians.${index}.name`)
+      '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
     },
   },
   {

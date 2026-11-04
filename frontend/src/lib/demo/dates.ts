@@ -23,10 +23,15 @@ export function isSchoolDay(date: string): boolean {
 }
 
 /** Jours de classe (lundi-vendredi) entre deux dates incluses, hors vacances. */
-export function schoolDays(from: string, to: string, holidays: readonly [string, string][] = []): string[] {
+export function schoolDays(
+  from: string,
+  to: string,
+  holidays: readonly [string, string][] = [],
+): string[] {
   const days: string[] = []
   for (let date = from; date <= to; date = addDays(date, 1)) {
-    if (isSchoolDay(date) && !holidays.some(([start, end]) => date >= start && date <= end)) days.push(date)
+    if (isSchoolDay(date) && !holidays.some(([start, end]) => date >= start && date <= end))
+      days.push(date)
   }
   return days
 }

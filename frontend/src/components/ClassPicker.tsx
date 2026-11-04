@@ -33,7 +33,17 @@ export function ClassPicker({
   )
 }
 
-export function TermPicker({ count, type, value, onChange }: { count: number; type: 'trimester' | 'semester' | 'free_period'; value: number; onChange: (term: number) => void }) {
+export function TermPicker({
+  count,
+  type,
+  value,
+  onChange,
+}: {
+  count: number
+  type: 'trimester' | 'semester' | 'free_period'
+  value: number
+  onChange: (term: number) => void
+}) {
   const { t } = useTranslation()
   return (
     <NativeSelect

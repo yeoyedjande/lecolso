@@ -43,12 +43,7 @@ export interface ImportResult {
 }
 
 function normalizeHeader(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/\(s\)/g, '')
-    .trim()
-    .toLowerCase()
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\(s\)/g, '').trim().toLowerCase()
 }
 
 function cellText(value: unknown): string {
@@ -63,7 +58,12 @@ function cellText(value: unknown): string {
 export function parseBirthDate(text: string): string | null {
   const french = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(text)
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
-  const [year, month, day] = french !== null ? [french[3], french[2], french[1]] : iso !== null ? [iso[1], iso[2], iso[3]] : []
+  const [year, month, day] =
+    french !== null
+      ? [french[3], french[2], french[1]]
+      : iso !== null
+        ? [iso[1], iso[2], iso[3]]
+        : []
   if (year === undefined || month === undefined || day === undefined) return null
   const value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
   const date = new Date(`${value}T12:00:00Z`)
@@ -91,7 +91,10 @@ function parseRelation(text: string): 'Père' | 'Mère' | 'Tuteur' | 'Tutrice' {
  * Vérifie un tableau lu depuis Excel (première ligne = en-têtes) : chaque ligne reçoit ses erreurs, et
  * une ligne valide devient une inscription. Les doublons (même nom, prénom et date de naissance) sont signalés.
  */
-export function parseImport(sheet: readonly (readonly unknown[])[], classrooms: readonly DemoClassroom[]): ImportResult {
+export function parseImport(
+  sheet: readonly (readonly unknown[])[],
+  classrooms: readonly DemoClassroom[],
+): ImportResult {
   const [header = [], ...body] = sheet
   const positions = new Map<Column, number>()
   header.forEach((cell, index) => {
@@ -122,7 +125,9 @@ export function parseImport(sheet: readonly (readonly unknown[])[], classrooms: 
     const errors: ImportError[] = []
     const gender = parseGender(values.Sexe)
     const birthDate = parseBirthDate(values['Date de naissance'])
-    const classroom = classrooms.find((candidate) => normalizeHeader(candidate.name) === normalizeHeader(values.Classe))
+    const classroom = classrooms.find(
+      (candidate) => normalizeHeader(candidate.name) === normalizeHeader(values.Classe),
+    )
     const phone = normalizeCiPhone(values['Téléphone'])
     if (values.Nom === '') errors.push('lastName')
     if (values['Prénom'] === '') errors.push('firstName')
@@ -140,7 +145,11 @@ export function parseImport(sheet: readonly (readonly unknown[])[], classrooms: 
       values,
       errors,
       input:
-        errors.length > 0 || gender === null || birthDate === null || classroom === undefined || phone === null
+        errors.length > 0 ||
+        gender === null ||
+        birthDate === null ||
+        classroom === undefined ||
+        phone === null
           ? null
           : {
               lastName: values.Nom,
@@ -151,7 +160,15 @@ export function parseImport(sheet: readonly (readonly unknown[])[], classrooms: 
               medicalNote: null,
               classroomId: classroom.id,
               options: [],
-              guardians: [{ name: values.Parent, relation: parseRelation(values.Lien), phone, profession: '', isPayer: true }],
+              guardians: [
+                {
+                  name: values.Parent,
+                  relation: parseRelation(values.Lien),
+                  phone,
+                  profession: '',
+                  isPayer: true,
+                },
+              ],
             },
     })
   })

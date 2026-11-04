@@ -8,7 +8,14 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
@@ -53,7 +60,11 @@ function History({ classroomId }: { classroomId: string }) {
           const total = taken.reduce((sum, day) => sum + day.present + day.absent, 0)
           return (
             <div className="grid gap-3">
-              <p className="font-semibold">{t('attendance.rate', { rate: total === 0 ? 100 : Math.round((totalPresent / total) * 1000) / 10 })}</p>
+              <p className="font-semibold">
+                {t('attendance.rate', {
+                  rate: total === 0 ? 100 : Math.round((totalPresent / total) * 1000) / 10,
+                })}
+              </p>
               <Card className="overflow-hidden p-0">
                 <Table>
                   <TableHeader>
@@ -67,11 +78,20 @@ function History({ classroomId }: { classroomId: string }) {
                   <TableBody>
                     {[...days].reverse().map((day) => (
                       <TableRow key={day.date}>
-                        <TableCell className="font-medium capitalize">{formatLongDate(day.date)}</TableCell>
+                        <TableCell className="font-medium capitalize">
+                          {formatLongDate(day.date)}
+                        </TableCell>
                         {day.taken ? (
                           <>
                             <TableCell className="text-right tabular">{day.present}</TableCell>
-                            <TableCell className={cn('text-right font-semibold tabular', day.absent > 0 && 'text-destructive-ink')}>{day.absent}</TableCell>
+                            <TableCell
+                              className={cn(
+                                'text-right font-semibold tabular',
+                                day.absent > 0 && 'text-destructive-ink',
+                              )}
+                            >
+                              {day.absent}
+                            </TableCell>
                             <TableCell className="text-right tabular">{day.late}</TableCell>
                           </>
                         ) : (
@@ -109,10 +129,14 @@ function TodayAbsences() {
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell>{row.classroom}</TableCell>
                     <TableCell>
-                      <Badge variant={row.status === 'late' ? 'accent' : 'destructive'}>{t(`attendanceStatus.${row.status}`)}</Badge>
+                      <Badge variant={row.status === 'late' ? 'accent' : 'destructive'}>
+                        {t(`attendanceStatus.${row.status}`)}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
-                      {row.justified ? t('attendance.justified') : t('students.detail.notJustified')}
+                      {row.justified
+                        ? t('attendance.justified')
+                        : t('students.detail.notJustified')}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -147,7 +171,15 @@ function RollCallTab({ classroomId, editable }: { classroomId: string; editable:
         )}
       </Field>
       <p className="text-sm text-muted-foreground first-letter:uppercase">{formatLongDate(date)}</p>
-      <QueryState query={query}>{(call) => <RollCallPanel key={`${classroomId}-${date}-${call.taken?.at ?? ''}`} call={call} editable={editable} />}</QueryState>
+      <QueryState query={query}>
+        {(call) => (
+          <RollCallPanel
+            key={`${classroomId}-${date}-${call.taken?.at ?? ''}`}
+            call={call}
+            editable={editable}
+          />
+        )}
+      </QueryState>
     </div>
   )
 }
@@ -156,7 +188,10 @@ function RollCallTab({ classroomId, editable }: { classroomId: string; editable:
 export function AttendancePage() {
   const { t } = useTranslation()
   const school = useCurrentSchool()
-  const { classrooms, loading } = usePedagogyClasses('attendance.view', (settings) => settings.attendance_mode === 'roll_call')
+  const { classrooms, loading } = usePedagogyClasses(
+    'attendance.view',
+    (settings) => settings.attendance_mode === 'roll_call',
+  )
   const [classroomId, setClassroomId] = useState('')
   const classroom = classrooms.find((candidate) => candidate.id === classroomId) ?? classrooms[0]
 

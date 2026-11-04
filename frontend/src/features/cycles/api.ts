@@ -28,8 +28,12 @@ export function useUpdateCycle() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: UpdateCycleInput }): Promise<Cycle> => {
-      const { data, response } = await api.PATCH('/cycles/{cycle}', { params: { path: { cycle: id } }, body: input })
-      if (data === undefined) throw new Error(`Modification impossible (${String(response.status)})`)
+      const { data, response } = await api.PATCH('/cycles/{cycle}', {
+        params: { path: { cycle: id } },
+        body: input,
+      })
+      if (data === undefined)
+        throw new Error(`Modification impossible (${String(response.status)})`)
       return data.data
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cycles', school?.id ?? null] }),

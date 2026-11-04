@@ -28,7 +28,9 @@ export function useDemoQuery<T>(parts: QueryKey, select: (school: DemoSchool, to
 }
 
 /** Écriture en démonstration ; toutes les données de l'établissement sont ensuite relues (écrans liés). */
-export function useDemoMutation<Input, Result>(run: (school: DemoSchool, input: Input, today: string) => Result) {
+export function useDemoMutation<Input, Result>(
+  run: (school: DemoSchool, input: Input, today: string) => Result,
+) {
   const key = useDemoKey()
   const queryClient = useQueryClient()
   return useMutation({

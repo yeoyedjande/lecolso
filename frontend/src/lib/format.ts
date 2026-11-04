@@ -52,7 +52,11 @@ export function formatPhone(e164: string): string {
   return `+225 ${pairs.join(' ')}`
 }
 
-const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: DISPLAY_TIME_ZONE, hour: '2-digit', minute: '2-digit' })
+const timeFormatter = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: DISPLAY_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+})
 const longDateFormatter = new Intl.DateTimeFormat('fr-FR', {
   timeZone: DISPLAY_TIME_ZONE,
   weekday: 'long',
@@ -60,10 +64,24 @@ const longDateFormatter = new Intl.DateTimeFormat('fr-FR', {
   month: 'long',
   year: 'numeric',
 })
-const monthFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: DISPLAY_TIME_ZONE, month: 'long', year: 'numeric' })
-const shortMonthFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: DISPLAY_TIME_ZONE, month: 'short' })
-const dayMonthFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: DISPLAY_TIME_ZONE, day: '2-digit', month: '2-digit' })
-const decimalFormatter = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const monthFormatter = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: DISPLAY_TIME_ZONE,
+  month: 'long',
+  year: 'numeric',
+})
+const shortMonthFormatter = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: DISPLAY_TIME_ZONE,
+  month: 'short',
+})
+const dayMonthFormatter = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: DISPLAY_TIME_ZONE,
+  day: '2-digit',
+  month: '2-digit',
+})
+const decimalFormatter = new Intl.NumberFormat('fr-FR', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
 
 /** Date seule « 2026-11-04 » : interprétée à midi UTC pour ne jamais changer de jour. */
 function toDay(value: string): Date {

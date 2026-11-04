@@ -12,7 +12,8 @@ export function useClassroomOptions() {
     [...school.classrooms].sort(
       (a, b) =>
         (school.levels.find((l) => l.code === a.levelCode)?.position ?? 0) -
-          (school.levels.find((l) => l.code === b.levelCode)?.position ?? 0) || a.name.localeCompare(b.name),
+          (school.levels.find((l) => l.code === b.levelCode)?.position ?? 0) ||
+        a.name.localeCompare(b.name),
     ),
   )
 }

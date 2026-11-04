@@ -17,7 +17,13 @@ export function ChartTooltip({
       {rows.map((row, index) => (
         <p key={index} className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-2 text-muted-foreground">
-            {row.color !== undefined && <span aria-hidden className="size-2.5 rounded-full" style={{ background: row.color }} />}
+            {row.color !== undefined && (
+              <span
+                aria-hidden
+                className="size-2.5 rounded-full"
+                style={{ background: row.color }}
+              />
+            )}
             {row.label}
           </span>
           <span className="tabular font-semibold">{row.value}</span>

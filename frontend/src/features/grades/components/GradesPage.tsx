@@ -7,11 +7,24 @@ import { EmptyState } from '@/components/states/EmptyState'
 import { ListSkeleton, QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Can } from '@/features/auth/RequirePermission'
 import { termCount } from '@/features/cycles/useCycleSettings'
@@ -32,7 +45,9 @@ function Results({ classroomId, term }: { classroomId: string; term: number }) {
     <QueryState query={query}>
       {(results) => (
         <div className="grid gap-3">
-          <p className="font-semibold">{t('grades.classAverage', { value: formatAverage(results.classAverage) })}</p>
+          <p className="font-semibold">
+            {t('grades.classAverage', { value: formatAverage(results.classAverage) })}
+          </p>
           <Card className="overflow-hidden p-0">
             <Table>
               <TableHeader>
@@ -43,7 +58,9 @@ function Results({ classroomId, term }: { classroomId: string; term: number }) {
                     <TableHead key={subject.code} className="text-center" title={subject.name}>
                       <span className="grid">
                         <span>{subject.code}</span>
-                        <span className="text-xs font-normal text-muted-foreground">{t('grades.coefficient', { count: subject.coefficient })}</span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {t('grades.coefficient', { count: subject.coefficient })}
+                        </span>
                       </span>
                     </TableHead>
                   ))}
@@ -60,12 +77,23 @@ function Results({ classroomId, term }: { classroomId: string; term: number }) {
                       {results.subjects.map((subject) => {
                         const value = row.bySubject[subject.code] ?? null
                         return (
-                          <TableCell key={subject.code} className={cn('text-center tabular', value !== null && value < 10 && 'text-destructive-ink')}>
+                          <TableCell
+                            key={subject.code}
+                            className={cn(
+                              'text-center tabular',
+                              value !== null && value < 10 && 'text-destructive-ink',
+                            )}
+                          >
                             {formatAverage(value)}
                           </TableCell>
                         )
                       })}
-                      <TableCell className={cn('text-right font-display font-bold tabular', row.average !== null && row.average < 10 && 'text-destructive-ink')}>
+                      <TableCell
+                        className={cn(
+                          'text-right font-display font-bold tabular',
+                          row.average !== null && row.average < 10 && 'text-destructive-ink',
+                        )}
+                      >
                         {formatAverage(row.average)}
                       </TableCell>
                     </TableRow>
@@ -82,7 +110,10 @@ function Results({ classroomId, term }: { classroomId: string; term: number }) {
 /** Notes : saisie en grille (classes évaluées par moyenne pondérée), moyennes et rangs. */
 export function GradesPage() {
   const { t } = useTranslation()
-  const { classrooms, settingsOf, loading } = usePedagogyClasses('grades.view', (settings) => settings.assessment_mode === 'weighted_average')
+  const { classrooms, settingsOf, loading } = usePedagogyClasses(
+    'grades.view',
+    (settings) => settings.assessment_mode === 'weighted_average',
+  )
   const subjects = useSubjects()
   const [classroomId, setClassroomId] = useState('')
   const [subjectCode, setSubjectCode] = useState('')
@@ -93,7 +124,8 @@ export function GradesPage() {
   const addAssessment = useAddAssessment()
 
   const classroom = classrooms.find((candidate) => candidate.id === classroomId) ?? classrooms[0]
-  const subject = subjects.data?.find((candidate) => candidate.code === subjectCode) ?? subjects.data?.[0]
+  const subject =
+    subjects.data?.find((candidate) => candidate.code === subjectCode) ?? subjects.data?.[0]
   const settings = settingsOf(classroom)
   const grid = useGradeGrid(classroom?.id ?? '', subject?.code ?? '', term)
 
@@ -144,7 +176,12 @@ export function GradesPage() {
                   </option>
                 ))}
               </NativeSelect>
-              <TermPicker count={termCount(settings)} type={settings?.term_type ?? 'trimester'} value={term} onChange={setTerm} />
+              <TermPicker
+                count={termCount(settings)}
+                type={settings?.term_type ?? 'trimester'}
+                value={term}
+                onChange={setTerm}
+              />
             </div>
           </div>
           <TabsContent value="entry" className="mt-4">
@@ -153,7 +190,10 @@ export function GradesPage() {
                 data.assessments.length === 0 ? (
                   <EmptyState title={t('grades.noAssessment')} />
                 ) : (
-                  <GradeGridEditor key={`${classroom.id}-${subject?.code ?? ''}-${String(term)}-${String(data.assessments.length)}`} grid={data} />
+                  <GradeGridEditor
+                    key={`${classroom.id}-${subject?.code ?? ''}-${String(term)}-${String(data.assessments.length)}`}
+                    grid={data}
+                  />
                 )
               }
             </QueryState>
@@ -172,7 +212,13 @@ export function GradesPage() {
               event.preventDefault()
               if (classroom === undefined || subject === undefined || title.trim() === '') return
               void addAssessment
-                .mutateAsync({ classroomId: classroom.id, subjectCode: subject.code, term, title: title.trim(), date })
+                .mutateAsync({
+                  classroomId: classroom.id,
+                  subjectCode: subject.code,
+                  term,
+                  title: title.trim(),
+                  date,
+                })
                 .then(() => {
                   setAdding(false)
                   setTitle('')

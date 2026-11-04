@@ -2,7 +2,14 @@ import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { formatAverage, formatDayMonth } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -28,12 +35,19 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
   const table = useRef<HTMLTableElement>(null)
   const [texts, setTexts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      grid.rows.flatMap((row) => grid.assessments.map((a) => [`${row.student.id}|${a.id}`, formatGrade(row.values[a.id] ?? null)])),
+      grid.rows.flatMap((row) =>
+        grid.assessments.map((a) => [
+          `${row.student.id}|${a.id}`,
+          formatGrade(row.values[a.id] ?? null),
+        ]),
+      ),
     ),
   )
 
   const focusCell = (row: number, col: number) => {
-    const input = table.current?.querySelector<HTMLInputElement>(`input[data-row="${String(row)}"][data-col="${String(col)}"]`)
+    const input = table.current?.querySelector<HTMLInputElement>(
+      `input[data-row="${String(row)}"][data-col="${String(col)}"]`,
+    )
     input?.focus()
     input?.select()
   }
@@ -42,7 +56,8 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
     const key = `${studentId}|${assessmentId}`
     const value = parseGrade(texts[key] ?? '')
     const row = grid.rows.find((candidate) => candidate.student.id === studentId)
-    if (value === undefined || row === undefined || (row.values[assessmentId] ?? null) === value) return
+    if (value === undefined || row === undefined || (row.values[assessmentId] ?? null) === value)
+      return
     save.mutate({ assessmentId, studentId, value })
   }
 
@@ -62,13 +77,16 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
         <Table ref={table}>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 z-10 min-w-48 bg-card">{t('grades.student')}</TableHead>
+              <TableHead className="sticky left-0 z-10 min-w-48 bg-card">
+                {t('grades.student')}
+              </TableHead>
               {grid.assessments.map((assessment) => (
                 <TableHead key={assessment.id} className="min-w-28 text-center">
                   <span className="grid">
                     <span>{assessment.title}</span>
                     <span className="text-xs font-normal text-muted-foreground">
-                      {formatDayMonth(assessment.date)} · {t('grades.outOf', { count: assessment.outOf })}
+                      {formatDayMonth(assessment.date)} ·{' '}
+                      {t('grades.outOf', { count: assessment.outOf })}
                     </span>
                   </span>
                 </TableHead>
@@ -78,10 +96,16 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
           </TableHeader>
           <TableBody>
             {grid.rows.map((row, rowIndex) => {
-              const live = average(grid.assessments.map((a) => parseGrade(texts[`${row.student.id}|${a.id}`] ?? '') ?? null))
+              const live = average(
+                grid.assessments.map(
+                  (a) => parseGrade(texts[`${row.student.id}|${a.id}`] ?? '') ?? null,
+                ),
+              )
               return (
                 <TableRow key={row.student.id}>
-                  <TableCell className="sticky left-0 z-10 bg-card font-medium">{row.name}</TableCell>
+                  <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                    {row.name}
+                  </TableCell>
                   {grid.assessments.map((assessment, colIndex) => {
                     const key = `${row.student.id}|${assessment.id}`
                     const text = texts[key] ?? ''
@@ -92,10 +116,16 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
                           data-row={rowIndex}
                           data-col={colIndex}
                           inputMode="decimal"
-                          aria-label={t('grades.cell', { student: row.name, assessment: assessment.title })}
+                          aria-label={t('grades.cell', {
+                            student: row.name,
+                            assessment: assessment.title,
+                          })}
                           aria-invalid={invalid}
                           title={invalid ? t('grades.invalid') : undefined}
-                          className={cn('mx-auto h-10 w-20 text-center font-semibold tabular', invalid && 'bg-destructive-soft')}
+                          className={cn(
+                            'mx-auto h-10 w-20 text-center font-semibold tabular',
+                            invalid && 'bg-destructive-soft',
+                          )}
                           value={text}
                           onFocus={(event) => {
                             event.target.select()
@@ -113,7 +143,12 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
                       </TableCell>
                     )
                   })}
-                  <TableCell className={cn('text-right font-display font-bold tabular', live !== null && live < 10 && 'text-destructive-ink')}>
+                  <TableCell
+                    className={cn(
+                      'text-right font-display font-bold tabular',
+                      live !== null && live < 10 && 'text-destructive-ink',
+                    )}
+                  >
                     {formatAverage(live)}
                   </TableCell>
                 </TableRow>

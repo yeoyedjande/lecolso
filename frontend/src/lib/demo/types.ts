@@ -70,7 +70,8 @@ export interface DemoInstallment {
   amount: number
 }
 
-export type PaymentMethod = 'cash' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'wave' | 'cheque' | 'transfer'
+export type PaymentMethod =
+  'cash' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'wave' | 'cheque' | 'transfer'
 
 export interface DemoPayment {
   id: string

@@ -8,10 +8,23 @@ import { ScreenHeader } from '@/components/ScreenHeader'
 import { QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { YEAR_LABEL } from '@/lib/demo/dates'
@@ -30,13 +43,20 @@ export function FeesPage() {
   const editable = can(school, 'billing.manage')
   const query = useFees()
   const update = useUpdateFee()
-  const [editing, setEditing] = useState<{ level: DemoLevel; kind: FeeKind; amount: number } | null>(null)
+  const [editing, setEditing] = useState<{
+    level: DemoLevel
+    kind: FeeKind
+    amount: number
+  } | null>(null)
   const [text, setText] = useState('')
   const amount = parseAmount(text)
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader title={t('billing.fees.title')} description={t('billing.fees.description', { year: YEAR_LABEL })} />
+      <ScreenHeader
+        title={t('billing.fees.title')}
+        description={t('billing.fees.description', { year: YEAR_LABEL })}
+      />
       <QueryState query={query}>
         {({ levels, fees }) => (
           <Card className="overflow-x-auto p-0">
@@ -58,7 +78,10 @@ export function FeesPage() {
                       <CycleBadge code={level.cycle} label={level.name} />
                     </TableCell>
                     {KINDS.map((kind) => {
-                      const fee = fees.find((candidate) => candidate.levelCode === level.code && candidate.kind === kind)
+                      const fee = fees.find(
+                        (candidate) =>
+                          candidate.levelCode === level.code && candidate.kind === kind,
+                      )
                       if (fee === undefined) {
                         return (
                           <TableCell key={kind} className="text-right text-muted-foreground">
@@ -80,7 +103,10 @@ export function FeesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={t('billing.fees.edit', { kind: t(`fees.kinds.${kind}`), level: level.name })}
+                                aria-label={t('billing.fees.edit', {
+                                  kind: t(`fees.kinds.${kind}`),
+                                  level: level.name,
+                                })}
                                 onClick={() => {
                                   setEditing({ level, kind, amount: fee.amount })
                                   setText(String(fee.amount))
@@ -108,7 +134,11 @@ export function FeesPage() {
       >
         <DialogContent closeLabel={t('common.close')}>
           <DialogTitle>
-            {editing !== null && t('billing.fees.editTitle', { kind: t(`fees.kinds.${editing.kind}`), level: editing.level.name })}
+            {editing !== null &&
+              t('billing.fees.editTitle', {
+                kind: t(`fees.kinds.${editing.kind}`),
+                level: editing.level.name,
+              })}
           </DialogTitle>
           <form
             noValidate
@@ -116,13 +146,18 @@ export function FeesPage() {
             onSubmit={(event) => {
               event.preventDefault()
               if (editing === null || amount === null) return
-              void update.mutateAsync({ levelCode: editing.level.code, kind: editing.kind, amount }).then(() => {
-                setEditing(null)
-                toast(t('billing.fees.saved'), { tone: 'success' })
-              })
+              void update
+                .mutateAsync({ levelCode: editing.level.code, kind: editing.kind, amount })
+                .then(() => {
+                  setEditing(null)
+                  toast(t('billing.fees.saved'), { tone: 'success' })
+                })
             }}
           >
-            <Field label={t('billing.fees.amount')} error={amount === null ? t('billing.collect.errors.amount') : undefined}>
+            <Field
+              label={t('billing.fees.amount')}
+              error={amount === null ? t('billing.collect.errors.amount') : undefined}
+            >
               {(control) => (
                 <Input
                   {...control}
