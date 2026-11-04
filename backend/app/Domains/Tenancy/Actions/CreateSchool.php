@@ -25,6 +25,7 @@ final readonly class CreateSchool
 
     /**
      * @throws ValidationException slug déjà utilisé (vérifié hors RLS : toutes les écoles de la plateforme)
+     *                             ou e-mail du nouveau directeur déjà pris par un autre compte
      */
     public function handle(NewSchool $data): CreatedSchool
     {
@@ -47,6 +48,12 @@ final readonly class CreateSchool
             $provisional = null;
             $director = User::query()->where('phone', $data->directorPhone)->first();
             if ($director === null) {
+                // L'e-mail est unique : un compte existant porte déjà cette adresse (insensible à la casse)
+                if ($data->directorEmail !== null
+                    && User::query()->whereRaw('lower(email) = ?', [mb_strtolower($data->directorEmail)])->exists()) {
+                    throw ValidationException::withMessages(['director.email' => 'Cette adresse e-mail est déjà utilisée par un autre compte.']);
+                }
+
                 $provisional = ResetUserPassword::generate();
                 $director = new User;
                 $director->forceFill([

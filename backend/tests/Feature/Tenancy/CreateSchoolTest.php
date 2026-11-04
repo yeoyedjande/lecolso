@@ -70,6 +70,17 @@ it('rattache un directeur qui a déjà un compte sans toucher à son mot de pass
     expect(owner()->table('users')->where('id', $existing->id)->value('must_change_password'))->toBeFalse();
 });
 
+it('refuse l’e-mail d’un nouveau directeur déjà porté par un autre compte (422, aucune école créée)', function (): void {
+    $other = makeUser();
+    Sanctum::actingAs(superAdmin());
+
+    postJson('/api/v1/platform/schools', newSchoolPayload(['director' => ['email' => mb_strtoupper((string) $other->email)]]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['director.email']);
+
+    expect(owner()->table('schools')->where('slug', 'les-flamboyants')->count())->toBe(0);
+});
+
 it('refuse un slug déjà pris, même par une école que le super-admin ne « voit » pas en RLS', function (): void {
     makeSchool([], ['slug' => 'les-flamboyants']);
     Sanctum::actingAs(superAdmin());
