@@ -16,7 +16,7 @@ import { formatDay } from '@/lib/format'
 import { toast } from '@/lib/toast'
 
 import { useAbsencesToJustify, useJustifyAbsence, useMyChildren } from '../api'
-import { JUSTIFY_REASONS, type JustifyReason } from '../demo'
+import { isDay, JUSTIFY_REASONS, type JustifyReason } from '../demo'
 
 /** Justification d'absence : un formulaire, puis retour à l'accueil (3 écrans au plus). */
 export function JustifyPage({
@@ -37,7 +37,8 @@ export function JustifyPage({
   const [to, setTo] = useState(date ?? today)
   const [reason, setReason] = useState<JustifyReason>('illness')
   const [comment, setComment] = useState('')
-  const invalid = to < from
+  // Dates vides ou incomplètes refusées avant tout envoi
+  const invalid = !isDay(from) || !isDay(to) || to < from
 
   return (
     <div className="grid gap-5">

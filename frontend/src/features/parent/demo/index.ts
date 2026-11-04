@@ -1,9 +1,12 @@
 import { balanceOf, recordPayment, type Balance } from '@/features/billing/demo'
 import { classResults } from '@/features/grades/demo'
 import { reply } from '@/features/messaging/demo'
+import { HOLIDAYS } from '@/lib/demo/dataset'
+import { schoolDays } from '@/lib/demo/dates'
 import { studentDetail, type StudentDetail } from '@/features/students/demo'
 import { classroomOf, fullName } from '@/lib/demo/lookup'
 import type {
+  DemoAnnouncement,
   DemoClassroom,
   DemoConversation,
   DemoDaycareLog,
@@ -103,11 +106,11 @@ export function justifyAbsence(
   const student = school.students.find((candidate) => candidate.id === input.studentId)
   if (student === undefined || !isChildOf(student, input.phone))
     throw new Error('Enfant introuvable')
-  if (input.to < input.from) throw new Error('Période invalide')
-  let count = 0
-  for (let date = input.from; date <= input.to; date = nextDay(date)) {
-    const day = new Date(`${date}T12:00:00Z`).getUTCDay()
-    if (day === 0 || day === 6) continue
+  if (!isDay(input.from) || !isDay(input.to) || input.to < input.from)
+    throw new Error('Période invalide')
+  // Jours de classe uniquement (ni week-end ni vacances), calculés avant toute écriture
+  const days = schoolDays(input.from, input.to, HOLIDAYS)
+  for (const date of days) {
     const entry = school.attendance.find((a) => a.studentId === student.id && a.date === date)
     if (entry === undefined)
       school.attendance.push({ studentId: student.id, date, status: 'excused', justified: true })
@@ -115,15 +118,15 @@ export function justifyAbsence(
       entry.status = entry.status === 'late' ? 'late' : 'excused'
       entry.justified = true
     }
-    count += 1
   }
-  return count
+  return days.length
 }
 
-function nextDay(date: string): string {
-  const value = new Date(`${date}T12:00:00Z`)
-  value.setUTCDate(value.getUTCDate() + 1)
-  return value.toISOString().slice(0, 10)
+/** Date AAAA-MM-JJ valide. */
+export function isDay(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T12:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 }
 
 /** Absences de l'enfant à justifier (non justifiées), les plus récentes d'abord. */
@@ -140,6 +143,22 @@ export function absencesToJustify(
         : []
     })
     .sort((a, b) => b.date.localeCompare(a.date))
+}
+
+/** Annonces qui concernent un des enfants : toute l'école, leur cycle ou leur classe. */
+export function relevantAnnouncements(
+  announcements: readonly DemoAnnouncement[],
+  children: readonly Pick<ChildCard, 'classroom'>[],
+): DemoAnnouncement[] {
+  return announcements.filter(
+    (announcement) =>
+      announcement.audience === 'all' ||
+      children.some(
+        (child) =>
+          announcement.audience === child.classroom.cycle ||
+          announcement.audience === `class:${child.classroom.id}`,
+      ),
+  )
 }
 
 export const MOBILE_OPERATORS: PaymentMethod[] = ['orange_money', 'mtn_momo', 'moov_money', 'wave']
