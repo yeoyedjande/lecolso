@@ -7,7 +7,9 @@ namespace App\Providers;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Academic\Policies\CyclePolicy;
 use App\Domains\Identity\Auth\RlsUserProvider;
+use App\Domains\Identity\Models\SchoolRole;
 use App\Domains\Identity\Models\User;
+use App\Domains\Identity\Policies\SchoolRolePolicy;
 use App\Domains\Identity\Policies\UserPolicy;
 use App\Domains\Messaging\Contracts\SmsSender;
 use App\Domains\Messaging\Sms\FakeSmsSender;
@@ -53,6 +55,7 @@ final class IdentityServiceProvider extends ServiceProvider
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Cycle::class, CyclePolicy::class);
+        Gate::policy(SchoolRole::class, SchoolRolePolicy::class);
 
         // Connexion : 5 tentatives par minute pour un même identifiant ET 20 par minute pour une même adresse IP
         RateLimiter::for('login', static function (Request $request): array {

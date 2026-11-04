@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
+use App\Domains\Identity\Models\SchoolRole;
 use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\School;
 use App\Support\Tenancy\Platform;
@@ -119,10 +120,23 @@ function login(User $user, string $password = 'password', bool $remember = false
 function actingAsRole(Role|string $role, School $school, ?Cycle $cycle = null): User
 {
     $user = makeUser();
-    assignRole($user, $school, $role instanceof Role ? $role : Role::from($role), $cycle);
+    assignRole($user, $school, $role, $cycle);
     login($user)->assertOk();
 
     return $user;
+}
+
+/**
+ * Rôle personnalisé créé dans une école (sa clé d'affectation est son identifiant).
+ *
+ * @param  list<string>  $permissions
+ */
+function customRole(School $school, array $permissions, string $name = 'Surveillant général'): SchoolRole
+{
+    return inSchool($school, static fn (): SchoolRole => SchoolRole::factory()->createOne([
+        'name' => $name,
+        'permissions' => $permissions,
+    ]));
 }
 
 /** Cycle d'une école à partir de son code de catalogue (lu dans le contexte de l'école). */
@@ -131,8 +145,8 @@ function cycleOf(School $school, string $code): Cycle
     return inSchool($school, static fn (): Cycle => Cycle::query()->where('code', $code)->firstOrFail());
 }
 
-/** Affecte un rôle à un utilisateur dans une école (toute l'école, ou un cycle). */
-function assignRole(User $user, School $school, Role $role = Role::Director, ?Cycle $cycle = null): RoleAssignment
+/** Affecte un rôle à un utilisateur dans une école (toute l'école, ou un cycle) : rôle système ou clé d'un rôle personnalisé. */
+function assignRole(User $user, School $school, Role|string $role = Role::Director, ?Cycle $cycle = null): RoleAssignment
 {
     return inSchool($school, static fn (): RoleAssignment => RoleAssignment::factory()->createOne([
         'user_id' => $user->id,

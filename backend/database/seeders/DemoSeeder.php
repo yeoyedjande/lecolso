@@ -8,6 +8,7 @@ use App\Domains\Academic\Actions\ProvisionCycles;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
+use App\Domains\Identity\Models\SchoolRole;
 use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Enums\SchoolType;
 use App\Domains\Tenancy\Models\School;
@@ -69,6 +70,19 @@ final class DemoSeeder extends Seeder
         ]],
     ];
 
+    /**
+     * Rôles personnalisés de démonstration (école => nom, description, permissions), non attribués.
+     *
+     * @var array<string, list<array{name: string, description: string, permissions: list<string>}>>
+     */
+    public const array CUSTOM_ROLES = [
+        'les-lauriers' => [[
+            'name' => 'Surveillant général',
+            'description' => 'Présences, retards et suivi des élèves',
+            'permissions' => ['students.view', 'attendance.view', 'attendance.manage', 'messaging.send'],
+        ]],
+    ];
+
     public function run(Application $app, ProvisionCycles $provisionCycles): void
     {
         if ($app->environment('production')) {
@@ -80,6 +94,12 @@ final class DemoSeeder extends Seeder
             foreach (self::SCHOOLS as $slug => $definition) {
                 $schools[$slug] = $this->school($slug, $definition['name']);
                 $provisionCycles->handle($schools[$slug], $definition['cycles']);
+            }
+
+            foreach (self::CUSTOM_ROLES as $slug => $roles) {
+                foreach ($roles as $role) {
+                    $this->customRole($schools[$slug], $role['name'], $role['description'], $role['permissions']);
+                }
             }
 
             foreach (self::ACCOUNTS as $phone => $account) {
@@ -105,6 +125,25 @@ final class DemoSeeder extends Seeder
         ])->save();
 
         return $school;
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     */
+    private function customRole(School $school, string $name, string $description, array $permissions): void
+    {
+        $role = SchoolRole::query()
+            ->where('school_id', $school->id)
+            ->whereNull('system_key')
+            ->whereRaw('lower(name) = lower(?)', [$name])
+            ->first() ?? new SchoolRole;
+
+        $role->forceFill([
+            'school_id' => $school->id,
+            'name' => $name,
+            'description' => $description,
+            'permissions' => $permissions,
+        ])->save();
     }
 
     private function user(string $phone, string $name, string $email, bool $superAdmin): User

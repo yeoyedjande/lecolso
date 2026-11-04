@@ -56,7 +56,10 @@ it('crée les deux écoles, leurs cycles, un compte par rôle et leurs affectati
         ->and(ownerCount('users'))->toBe(count(DemoSeeder::ACCOUNTS))
         ->and(ownerCount('role_assignments'))->toBe(array_sum(array_map(static fn (array $account): int => count($account['roles']), DemoSeeder::ACCOUNTS)))
         ->and(DB::connection('pgsql_owner')->scalar('select count(*) from users where must_change_password'))->toBe(0)
-        ->and(DB::connection('pgsql_owner')->scalar('select phone from users where is_super_admin'))->toBe('+2250700000001');
+        ->and(DB::connection('pgsql_owner')->scalar('select phone from users where is_super_admin'))->toBe('+2250700000001')
+        // Rôle personnalisé de démonstration, une seule fois malgré deux exécutions
+        ->and(DB::connection('pgsql_owner')->scalar('select name from school_roles where system_key is null'))->toBe('Surveillant général')
+        ->and(ownerCount('school_roles'))->toBe(1);
 });
 
 it('permet à la directrice de la maternelle de se connecter et de ne voir que la maternelle', function (): void {

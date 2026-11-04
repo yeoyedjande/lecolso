@@ -48,3 +48,18 @@ it('ne divulgue ni le mot de passe ni le jeton de session', function (): void {
         ->and($json)->not->toContain('remember_token')
         ->and($json)->toContain($user->phone);
 });
+
+it('donne les permissions d’un rôle personnalisé, sous sa clé d’affectation', function (): void {
+    $school = makeSchool(['primary']);
+    $role = customRole($school, ['students.view', 'attendance.manage']);
+    $user = makeUser();
+    assignRole($user, $school, $role->id);
+    login($user)->assertOk();
+
+    $me = spa('GET', '/api/v1/me')->assertOk()
+        ->assertJsonPath('data.schools.0.roles', [['role' => $role->id, 'cycle_id' => null]]);
+
+    $permissions = $me->json('data.schools.0.permissions');
+    \assert(is_array($permissions));
+    expect(array_keys($permissions))->toBe(['students.view', 'attendance.manage']);
+});

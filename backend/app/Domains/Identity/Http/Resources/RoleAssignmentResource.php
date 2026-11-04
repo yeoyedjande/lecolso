@@ -21,7 +21,7 @@ final class RoleAssignmentResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'role' => $this->resource->role->value,
+            'role' => $this->resource->role,
             'cycle_id' => $this->resource->cycle_id,
         ];
     }
