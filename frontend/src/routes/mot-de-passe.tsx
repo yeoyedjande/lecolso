@@ -10,8 +10,8 @@ import { guard } from '@/features/auth/guard'
 import { toast } from '@/lib/toast'
 
 export const Route = createFileRoute('/mot-de-passe')({
-  beforeLoad: async ({ context, location }) => {
-    await guard(context.queryClient, 'password', location.href)
+  beforeLoad: async ({ context, location, preload }) => {
+    await guard(context.queryClient, 'password', location.href, null, preload)
   },
   component: PasswordPage,
 })

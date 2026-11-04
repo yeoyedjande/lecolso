@@ -126,6 +126,20 @@ describe('guard : profil en cache (navigation sans attente)', () => {
     expect(calls.count).toBe(1)
   })
 
+  it('préchargement (lien du menu visible) : profil ancien renvoyé, aucune revérification', async () => {
+    const calls = countMe(() => profile())
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(meQueryOptions.queryKey, profile(), {
+      updatedAt: Date.now() - 61_000,
+    })
+
+    const result = await guard(queryClient, 'gestion', '/les-lauriers/notes', 'les-lauriers', true)
+
+    expect(result.profile.id).toBe('user-1')
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(calls.count).toBe(0)
+  })
+
   it('profil invalidé (mot de passe changé) : /me est attendu, jamais l’ancien profil', async () => {
     const calls = countMe(() => profile({ must_change_password: false }))
     const queryClient = new QueryClient()
