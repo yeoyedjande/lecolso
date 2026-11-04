@@ -45,7 +45,13 @@ export function KpiCard({
           <Icon className="size-5" />
         </span>
       </div>
-      <p className="mt-3 font-display text-3xl font-bold tracking-tight">
+      <p
+        className={cn(
+          'mt-3 font-display font-bold tracking-tight whitespace-nowrap',
+          // Montants longs (FCFA) : taille réduite pour tenir dans la carte
+          format(value).length > 11 ? 'text-2xl' : 'text-3xl',
+        )}
+      >
         <AnimatedNumber value={value} format={format} />
       </p>
       {hint !== undefined && <div className="mt-1.5 text-[13px] text-muted-foreground">{hint}</div>}

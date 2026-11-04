@@ -65,6 +65,23 @@ src/
   de chaque route : session, mot de passe provisoire, établissement, espace. Menus dans `features/shell/nav.ts`, filtrés par
   les permissions de `/me`. Un écran pas encore livré tombe sur la route attrape-tout `$.tsx` de l'espace (« Bientôt disponible »).
 
+## Données de démonstration (modules sans backend)
+
+- Générateur déterministe dans `lib/demo/` (`dataset.ts` : élèves, tuteurs, frais, échéances, paiements, notes,
+  compétences, présences, garderie, messages, calendrier ; année 2026-2027) et magasin en mémoire par établissement
+  (`store.ts`, perdu au rechargement). Calculs métier purs et testés dans `features/<domaine>/demo/`
+  (soldes, impayés, moyennes pondérées, rangs, appel…).
+- Les écrans n'appellent que les hooks de `features/<domaine>/api.ts`, construits sur `useDemoQuery` / `useDemoMutation`
+  (`lib/demo/hooks.ts`, clé `['school', <id>, …]`). Quand un module backend existera, seul le `queryFn` du hook change.
+  `VITE_DEMO_MODULES=false` : ces hooks lèvent `ModuleUnavailableError` et `<QueryState>` affiche « Bientôt disponible ».
+- Restent branchés sur la vraie API : authentification, `/me`, établissements, **cycles et leurs paramètres**
+  (`features/cycles/api.ts`) et la réinitialisation de mot de passe d'un utilisateur réel.
+- Le comportement des écrans pédagogiques vient des paramètres du cycle (`usePedagogyClasses`) : notes pour
+  `assessment_mode = weighted_average`, compétences pour `competency`, appel pour `attendance_mode = roll_call`,
+  garderie pour `check_in_out`, bulletin ou livret selon `report_document`.
+- Graphiques : Recharts, couleurs de `components/charts/chartTheme.ts` et `CYCLE_CHART` (palette validée), toujours avec
+  un tableau équivalent pour les lecteurs d'écran.
+
 ## Mobile et hors connexion
 
 - Parcours parent : 3 écrans maximum pour toute action (voir notes, payer, justifier une absence). Cibles tactiles ≥ 44 px.

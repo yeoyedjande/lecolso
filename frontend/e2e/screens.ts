@@ -10,9 +10,12 @@ export interface Screen {
   school?: string
   /** Écran du back-office : vérifié aussi en mode sombre. */
   dark?: boolean
-  /** Texte attendu avant l'analyse ou la capture (page chargée). */
-  ready: string
+  /** Texte attendu avant l'analyse ou la capture (données chargées). */
+  ready: string | RegExp
 }
+
+/** Date fixe des tests : les données de démonstration en dépendent. */
+export const DEMO_NOW = new Date('2026-11-04T09:30:00Z')
 
 const LAURIERS = '0195f000-0000-7000-8000-000000000001'
 
@@ -36,16 +39,43 @@ export const SCREENS: Screen[] = [
     session: ACCOUNTS.director,
     school: LAURIERS,
     dark: true,
-    ready: 'Bonjour, Yao',
+    ready: 'Encaissements par mois',
   },
-  {
-    name: 'gestion-bientot',
-    path: '/gestion/eleves',
+  ...(
+    [
+      ['gestion-eleves', '/gestion/eleves', /^\d+ élèves$/],
+      ['gestion-fiche-eleve', '/gestion/eleves/lau-el-0001', 'Matricule'],
+      ['gestion-inscription', '/gestion/inscriptions', 'Étape 1 sur 4'],
+      ['gestion-import', '/gestion/import', 'Colonnes attendues (première ligne du fichier)'],
+      ['gestion-classes', '/gestion/classes', 'Enseignant(e) titulaire'],
+      [
+        'gestion-encaissement',
+        '/gestion/encaissements?eleve=lau-el-0001',
+        'Reste à payer sur l’année',
+      ],
+      ['gestion-recu', '/gestion/recus/pay-lau-00001', /Arrêté le présent reçu/],
+      ['gestion-impayes', '/gestion/impayes', 'Total en retard'],
+      ['gestion-caisse', '/gestion/caisse', 'Par moyen de paiement'],
+      ['gestion-echeanciers', '/gestion/echeanciers', 'Recouvrement'],
+      ['gestion-frais', '/gestion/frais', 'Optionnel'],
+      ['gestion-notes', '/gestion/notes', 'Évaluation 1'],
+      ['gestion-competences', '/gestion/competences', 'Langage oral'],
+      ['gestion-bulletins', '/gestion/bulletins', /Complet|Notes manquantes/],
+      ['gestion-presences', '/gestion/presences', /présent\(s\)/],
+      ['gestion-garderie', '/gestion/garderie', /enfant\(s\) présent\(s\)/],
+      ['gestion-messages', '/gestion/messages', 'Retard du matin'],
+      ['gestion-calendrier', '/gestion/calendrier', 'À venir ce mois-ci'],
+      ['gestion-parametres', '/gestion/parametres', 'Nom de l’établissement'],
+      ['gestion-profil', '/gestion/profil', 'Établissements et rôles'],
+    ] as const
+  ).map(([name, path, ready]): Screen => ({
+    name,
+    path,
+    ready,
     session: ACCOUNTS.director,
     school: LAURIERS,
     dark: true,
-    ready: 'Bientôt disponible',
-  },
+  })),
   {
     name: 'enseignant-accueil',
     path: '/enseignant',
@@ -80,6 +110,7 @@ export async function openScreen(
 ): Promise<void> {
   await mockApi(page, screen.session !== undefined ? { session: screen.session } : {})
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.clock.setFixedTime(DEMO_NOW)
   await page.addInitScript(
     ({ school, theme }) => {
       if (school !== null) window.localStorage.setItem('gestion-ecole.school-id', school)

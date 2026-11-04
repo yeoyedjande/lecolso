@@ -4,7 +4,11 @@ import { cn } from '@/lib/utils'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
-    <div className="relative w-full overflow-x-auto rounded-2xl border bg-card">
+    // Zone défilante atteignable au clavier (tableaux larges sur téléphone)
+    <div
+      tabIndex={0}
+      className="relative w-full overflow-x-auto rounded-[inherit] focus-visible:outline-2 focus-visible:outline-ring"
+    >
       <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   )

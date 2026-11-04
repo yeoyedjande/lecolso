@@ -26,6 +26,67 @@ const SCHOOLS = {
 
 const CYCLE_PRIMARY = '0195f000-0000-7000-8000-0000000000c3'
 
+/** Cycles du catalogue (backend/config/cycles.php), mêmes paramètres par défaut. */
+const CYCLES = [
+  {
+    id: '0195f000-0000-7000-8000-0000000000c1',
+    code: 'daycare',
+    name: 'Garderie',
+    position: 1,
+    is_active: true,
+    settings: {
+      term_type: 'free_period',
+      assessment_mode: 'observation',
+      attendance_mode: 'check_in_out',
+      billing_period: 'monthly',
+      report_document: 'none',
+      daily_log: 'required',
+    },
+    levels: [{ id: 'l1', code: 'CRECHE', name: 'Crèche', position: 1 }],
+  },
+  {
+    id: '0195f000-0000-7000-8000-0000000000c2',
+    code: 'kindergarten',
+    name: 'Maternelle',
+    position: 2,
+    is_active: true,
+    settings: {
+      term_type: 'free_period',
+      assessment_mode: 'competency',
+      attendance_mode: 'roll_call',
+      billing_period: 'quarterly',
+      report_document: 'skills_booklet',
+      daily_log: 'optional',
+    },
+    levels: [
+      { id: 'l2', code: 'PS', name: 'Petite section', position: 1 },
+      { id: 'l3', code: 'MS', name: 'Moyenne section', position: 2 },
+      { id: 'l4', code: 'GS', name: 'Grande section', position: 3 },
+    ],
+  },
+  {
+    id: CYCLE_PRIMARY,
+    code: 'primary',
+    name: 'Primaire',
+    position: 3,
+    is_active: true,
+    settings: {
+      term_type: 'trimester',
+      assessment_mode: 'weighted_average',
+      attendance_mode: 'roll_call',
+      billing_period: 'quarterly',
+      report_document: 'report_card',
+      daily_log: 'none',
+    },
+    levels: ['CP1', 'CP2', 'CE1', 'CE2', 'CM1', 'CM2'].map((code, index) => ({
+      id: `l${String(index + 5)}`,
+      code,
+      name: code,
+      position: index + 1,
+    })),
+  },
+]
+
 const PERMISSIONS: Record<string, Role[]> = {
   'school.settings.view': ['promoter', 'director', 'secretary'],
   'school.settings.manage': ['promoter', 'director'],
@@ -72,6 +133,15 @@ export const ACCOUNTS = {
     name: 'Yao Directeur',
     email: 'directeur@demo.lecolso.ci',
     roles: [{ school: 'lauriers', role: 'director' }],
+  },
+  /** Directrice limitée à la maternelle (affectation avec cycle). */
+  kindergartenDirector: {
+    phone: '+2250700000004',
+    name: 'Aminata Directrice maternelle',
+    email: 'directrice.maternelle@demo.lecolso.ci',
+    roles: [
+      { school: 'lauriers', role: 'director', cycle: '0195f000-0000-7000-8000-0000000000c2' },
+    ],
   },
   accountant: {
     phone: '+2250700000006',
@@ -172,6 +242,11 @@ export async function mockApi(
     calls.set(key, (calls.get(key) ?? 0) + 1)
 
     switch (key) {
+      case 'GET /cycles': {
+        // Petits Génies : garderie et maternelle seulement
+        const genies = request.headers()['x-school-id'] === SCHOOLS.genies.id
+        return route.fulfill({ json: { data: genies ? CYCLES.slice(0, 2) : CYCLES } })
+      }
       case 'GET /health':
         return route.fulfill({ json: { status: 'ok', database: 'ok', redis: 'ok' } })
       case 'GET /me':
@@ -225,6 +300,13 @@ export async function mockApi(
         current = null
         return route.fulfill({ status: 204 })
       default:
+        if (request.method() === 'PATCH' && path.startsWith('/cycles/')) {
+          const cycle = CYCLES.find((candidate) => path.endsWith(candidate.id))
+          const body = z.object({ name: z.optional(z.string()) }).parse(request.postDataJSON())
+          return cycle === undefined
+            ? route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            : route.fulfill({ json: { data: { ...cycle, name: body.name ?? cycle.name } } })
+        }
         return route.fulfill({ status: 404, json: { message: 'Not Found' } })
     }
   })

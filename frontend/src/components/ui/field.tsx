@@ -18,7 +18,7 @@ function Field({
   label: React.ReactNode
   hint?: React.ReactNode
   error?: string | undefined
-  className?: string
+  className?: string | undefined
   children: (control: {
     id: string
     'aria-invalid': boolean

@@ -1,6 +1,7 @@
 import {
   Baby,
   BookOpenCheck,
+  CalendarClock,
   CalendarDays,
   ClipboardCheck,
   FileSpreadsheet,
@@ -36,6 +37,7 @@ export type NavKey =
   | 'payments'
   | 'unpaid'
   | 'cashDesk'
+  | 'schedules'
   | 'fees'
   | 'grades'
   | 'skills'
@@ -82,7 +84,8 @@ export const BACK_OFFICE_NAV: NavSection[] = [
     items: [
       { key: 'payments', path: 'encaissements', icon: Wallet, permission: 'billing.manage' },
       { key: 'unpaid', path: 'impayes', icon: Receipt, permission: 'billing.view' },
-      { key: 'cashDesk', path: 'caisse', icon: WalletCards, permission: 'billing.manage' },
+      { key: 'cashDesk', path: 'caisse', icon: WalletCards, permission: 'billing.view' },
+      { key: 'schedules', path: 'echeanciers', icon: CalendarClock, permission: 'billing.view' },
       { key: 'fees', path: 'frais', icon: FileText, permission: 'billing.view' },
     ],
   },
