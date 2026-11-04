@@ -116,7 +116,8 @@ Ces valeurs sont dans `.railway/railway.ts` (communes à `api`, `worker`, `sched
   l'hôte et l'IP réelle (limites de débit) en dépendent. Les conteneurs ne sont joignables que par le proxy Railway.
 - `URL::forceScheme('https')` en staging et en production (`AppServiceProvider`).
 - Journaux sur stderr (`LOG_CHANNEL=stderr`, `LOG_LEVEL=info`), collectés par Railway.
-- Redis par `REDIS_URL` (sessions, cache, files).
+- Redis par `REDIS_URL` (sessions, cache, files). Préfixes figés (`REDIS_PREFIX`, `CACHE_PREFIX`, `HORIZON_PREFIX`) : ils ne
+  dépendent plus d'`APP_NAME`, dont un changement (nom affiché) aurait déconnecté tout le monde et orphelin les files.
 - Disque `s3` sur le bucket : `league/flysystem-aws-s3-v3`, visibilité `private`, accès par URL signée (`temporaryUrl`) uniquement.
 - Images : `.dockerignore` exclut `.env`, `vendor`, `node_modules`, tests et documentation du contexte de build.
 - `web` : `index.html` (servi pour toutes les routes), `sw.js` et le manifeste en `Cache-Control: no-cache` ;

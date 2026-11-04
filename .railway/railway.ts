@@ -58,6 +58,11 @@ export default defineRailway((ctx) => {
     DB_OWNER_PASSWORD: db.env.PGPASSWORD,
 
     REDIS_URL: cache.env.REDIS_URL,
+    // Préfixes Redis figés : sans eux, ils seraient dérivés d'APP_NAME, et changer le nom affiché (EKALEWA)
+    // rendrait illisibles les sessions, le cache et les files Horizon déjà en place (déconnexion de tous).
+    REDIS_PREFIX: "gestion-ecole-database-",
+    CACHE_PREFIX: "gestion-ecole-cache-",
+    HORIZON_PREFIX: "gestion_ecole_horizon:",
     QUEUE_CONNECTION: "redis",
     CACHE_STORE: "redis",
 
