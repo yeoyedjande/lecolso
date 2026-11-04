@@ -1,7 +1,7 @@
 {
     "openapi": "3.1.2",
     "info": {
-        "title": "Gestion Ecole",
+        "title": "EKALEWA",
         "version": "0.0.1",
         "description": "API de la plateforme EKALEWA. Les routes m\u00e9tier exigent un token Sanctum et l'en-t\u00eate X-School-Id."
     },
