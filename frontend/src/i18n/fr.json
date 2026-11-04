@@ -67,9 +67,7 @@
     },
     "demo": "Données de démonstration",
     "soon": {
-      "title": "Bientôt disponible",
-      "description": "Cet écran arrive très prochainement. Merci de votre patience !",
-      "action": "Retour à l’accueil"
+      "title": "Bientôt disponible"
     },
     "notFound": {
       "title": "Page introuvable",
@@ -289,11 +287,6 @@
     },
     "unreachableHelp": "Impossible de joindre le serveur. Vérifiez votre connexion internet puis réessayez.",
     "retry": "Réessayer"
-  },
-  "welcome": {
-    "greeting": "Bonjour, {{name}}",
-    "subtitle": "Bienvenue sur l’espace de {{school}}.",
-    "soon": "Votre tableau de bord arrive très bientôt."
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -965,5 +958,156 @@
     "appearance": "Apparence du back-office",
     "dark": "Mode sombre",
     "darkHint": "Plus reposant le soir. Les espaces parent et enseignant restent en clair."
+  },
+  "parent": {
+    "home": {
+      "greeting": "Bonjour, {{name}}",
+      "subtitle": "Voici les nouvelles de vos enfants.",
+      "children": "Mes enfants",
+      "noChild": "Aucun enfant n’est rattaché à votre compte dans cet établissement. Contactez le secrétariat.",
+      "balance": "Reste à payer",
+      "overdue": "dont {{amount}} en retard",
+      "upToDate": "À jour",
+      "average": "Moyenne",
+      "absences": "{{count}} absence(s)",
+      "unjustified": "{{count}} à justifier",
+      "daycareIn": "Arrivé(e) à {{time}}",
+      "daycareOut": "Parti(e) à {{time}}",
+      "daycareNone": "Pas encore arrivé(e)",
+      "open": "Voir la fiche de {{name}}",
+      "quick": "Raccourcis",
+      "pay": "Payer",
+      "justify": "Justifier une absence",
+      "messages": "Écrire à l’école",
+      "news": "Annonces de l’école"
+    },
+    "child": {
+      "back": "Retour",
+      "tabs": {
+        "grades": "Notes",
+        "skills": "Compétences",
+        "reports": "Bulletins",
+        "absences": "Absences",
+        "daycare": "Journal"
+      },
+      "average": "Moyenne générale",
+      "rank": "Rang : {{rank}} sur {{count}}",
+      "noGrades": "Pas encore de notes ce trimestre.",
+      "report": "{{type}} — {{term}}",
+      "reportOpen": "Voir le document",
+      "reportClose": "Fermer le document",
+      "noReport": "Pas de bulletin ni de livret pour ce cycle.",
+      "absences": "Absences depuis la rentrée",
+      "noAbsence": "Aucune absence depuis la rentrée. Bravo !",
+      "justify": "Justifier",
+      "justified": "Justifiée",
+      "toJustify": "À justifier",
+      "noLog": "Rien de noté aujourd’hui pour l’instant.",
+      "today": "Aujourd’hui"
+    },
+    "payments": {
+      "title": "Paiements",
+      "subtitle": "Solde de chaque enfant et paiement par Mobile Money.",
+      "remaining": "Reste à payer",
+      "overdue": "En retard",
+      "next": "Prochaine échéance le {{date}} : {{amount}}",
+      "pay": "Payer par Mobile Money",
+      "history": "Historique",
+      "noPayment": "Aucun paiement pour l’instant.",
+      "receipt": "Reçu {{number}}",
+      "flow": {
+        "title": "Payer par Mobile Money",
+        "child": "Pour",
+        "amount": "Montant (FCFA)",
+        "operator": "Opérateur",
+        "wallet": "Numéro Mobile Money",
+        "walletHint": "Le numéro qui recevra la demande de validation.",
+        "submit": "Payer {{amount}}",
+        "pending": "Validez le paiement sur votre téléphone…",
+        "pendingHint": "Composez votre code secret Mobile Money quand la demande s’affiche.",
+        "success": "Paiement réussi",
+        "successDescription": "{{amount}} pour {{child}}. Reçu {{number}}.",
+        "seeReceipt": "Voir le reçu",
+        "done": "Terminé",
+        "errors": {
+          "amount": "Saisissez un montant entier supérieur à zéro.",
+          "wallet": "Saisissez un numéro ivoirien à 10 chiffres."
+        },
+        "simulated": "Paiement simulé : aucun argent n’est prélevé en démonstration."
+      }
+    },
+    "justify": {
+      "title": "Justifier une absence",
+      "subtitle": "Prévenez l’école d’une absence passée ou à venir.",
+      "child": "Enfant",
+      "from": "Du",
+      "to": "Au",
+      "reason": "Motif",
+      "reasons": {
+        "illness": "Maladie",
+        "medical": "Rendez-vous médical",
+        "family": "Raison familiale",
+        "other": "Autre"
+      },
+      "comment": "Précisions (facultatif)",
+      "submit": "Envoyer la justification",
+      "success": "Merci ! {{count}} jour(s) justifié(s).",
+      "pending": "Absences à justifier",
+      "useDate": "Justifier le {{date}}",
+      "errors": {
+        "dates": "La date de fin doit suivre la date de début."
+      }
+    },
+    "messages": {
+      "title": "Messages",
+      "subtitle": "Vos échanges avec l’école.",
+      "about": "À propos de {{child}}",
+      "empty": "Aucun message pour l’instant."
+    },
+    "profile": {
+      "title": "Mon profil"
+    }
+  },
+  "teacher": {
+    "home": {
+      "greeting": "Bonjour, {{name}}",
+      "subtitle": "Vos classes aujourd’hui.",
+      "noClass": "Aucune classe ne vous est attribuée dans cet établissement.",
+      "students": "{{count}} élève(s)",
+      "rollCallDone": "Appel fait · {{count}} absent(s)",
+      "rollCallTodo": "Appel à faire",
+      "rollCall": "Faire l’appel",
+      "grades": "Notes",
+      "journal": "Journal",
+      "messages": "Écrire aux parents"
+    },
+    "rollCall": {
+      "title": "Appel",
+      "subtitle": "Tout le monde est présent par défaut : touchez les absents, puis enregistrez.",
+      "classroom": "Classe"
+    },
+    "grades": {
+      "title": "Saisie des notes",
+      "assessment": "Évaluation",
+      "hint": "Note sur 20 (ex. 12,5). Enregistrée en quittant le champ.",
+      "noAssessment": "Aucune évaluation pour cette matière.",
+      "noClass": "Aucune de vos classes n’est évaluée par notes."
+    },
+    "journal": {
+      "title": "Journal de la journée",
+      "subtitle": "Repas, sieste, change et humeur des enfants.",
+      "noClass": "Aucune de vos classes ne tient de journal quotidien (paramètre du cycle)."
+    },
+    "messages": {
+      "title": "Messages aux parents",
+      "new": "Nouveau message",
+      "student": "Élève",
+      "subject": "Objet",
+      "body": "Message",
+      "send": "Envoyer",
+      "sent": "Message envoyé à {{name}}",
+      "empty": "Aucun échange avec les parents pour l’instant.",
+      "to": "À {{name}}"
+    }
   }
 }

@@ -22,6 +22,8 @@ export interface DemoClassroom {
   cycle: CycleCode
   capacity: number
   teacher: string
+  /** Téléphone de l'enseignant titulaire (lien avec un compte, espace enseignant). */
+  teacherPhone: string | null
   room: string
 }
 
@@ -170,6 +172,7 @@ export interface DemoConversation {
   id: string
   studentId: string
   guardianName: string
+  guardianPhone: string
   subject: string
   unread: number
   messages: DemoMessage[]

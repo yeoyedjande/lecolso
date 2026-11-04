@@ -20,6 +20,11 @@ import { Route as MotDePasseRouteImport } from './routes/mot-de-passe'
 import { Route as ParentRouteRouteImport } from './routes/parent/route'
 import { Route as EnseignantIndexRouteImport } from './routes/enseignant/index'
 import { Route as EnseignantSplatRouteImport } from './routes/enseignant/$'
+import { Route as EnseignantAppelRouteImport } from './routes/enseignant/appel'
+import { Route as EnseignantJournalRouteImport } from './routes/enseignant/journal'
+import { Route as EnseignantMessagesRouteImport } from './routes/enseignant/messages'
+import { Route as EnseignantNotesRouteImport } from './routes/enseignant/notes'
+import { Route as EnseignantProfilRouteImport } from './routes/enseignant/profil'
 import { Route as GestionIndexRouteImport } from './routes/gestion/index'
 import { Route as GestionSplatRouteImport } from './routes/gestion/$'
 import { Route as GestionBulletinsRouteImport } from './routes/gestion/bulletins'
@@ -41,9 +46,15 @@ import { Route as GestionPresencesRouteImport } from './routes/gestion/presences
 import { Route as GestionProfilRouteImport } from './routes/gestion/profil'
 import { Route as ParentIndexRouteImport } from './routes/parent/index'
 import { Route as ParentSplatRouteImport } from './routes/parent/$'
+import { Route as ParentJustifierRouteImport } from './routes/parent/justifier'
+import { Route as ParentMessagesRouteImport } from './routes/parent/messages'
+import { Route as ParentPaiementsRouteImport } from './routes/parent/paiements'
+import { Route as ParentProfilRouteImport } from './routes/parent/profil'
 import { Route as GestionElevesIndexRouteImport } from './routes/gestion/eleves/index'
 import { Route as GestionElevesStudentIdRouteImport } from './routes/gestion/eleves/$studentId'
 import { Route as GestionRecusPaymentIdRouteImport } from './routes/gestion/recus/$paymentId'
+import { Route as ParentEnfantsStudentIdRouteImport } from './routes/parent/enfants/$studentId'
+import { Route as ParentRecusPaymentIdRouteImport } from './routes/parent/recus/$paymentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -98,6 +109,31 @@ const EnseignantIndexRoute = EnseignantIndexRouteImport.update({
 const EnseignantSplatRoute = EnseignantSplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => EnseignantRouteRoute,
+} as any)
+const EnseignantAppelRoute = EnseignantAppelRouteImport.update({
+  id: '/appel',
+  path: '/appel',
+  getParentRoute: () => EnseignantRouteRoute,
+} as any)
+const EnseignantJournalRoute = EnseignantJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => EnseignantRouteRoute,
+} as any)
+const EnseignantMessagesRoute = EnseignantMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => EnseignantRouteRoute,
+} as any)
+const EnseignantNotesRoute = EnseignantNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => EnseignantRouteRoute,
+} as any)
+const EnseignantProfilRoute = EnseignantProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
   getParentRoute: () => EnseignantRouteRoute,
 } as any)
 const GestionIndexRoute = GestionIndexRouteImport.update({
@@ -205,6 +241,26 @@ const ParentSplatRoute = ParentSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => ParentRouteRoute,
 } as any)
+const ParentJustifierRoute = ParentJustifierRouteImport.update({
+  id: '/justifier',
+  path: '/justifier',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
+const ParentMessagesRoute = ParentMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
+const ParentPaiementsRoute = ParentPaiementsRouteImport.update({
+  id: '/paiements',
+  path: '/paiements',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
+const ParentProfilRoute = ParentProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
 const GestionElevesIndexRoute = GestionElevesIndexRouteImport.update({
   id: '/eleves/',
   path: '/eleves/',
@@ -220,6 +276,16 @@ const GestionRecusPaymentIdRoute = GestionRecusPaymentIdRouteImport.update({
   path: '/recus/$paymentId',
   getParentRoute: () => GestionRouteRoute,
 } as any)
+const ParentEnfantsStudentIdRoute = ParentEnfantsStudentIdRouteImport.update({
+  id: '/enfants/$studentId',
+  path: '/enfants/$studentId',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
+const ParentRecusPaymentIdRoute = ParentRecusPaymentIdRouteImport.update({
+  id: '/recus/$paymentId',
+  path: '/recus/$paymentId',
+  getParentRoute: () => ParentRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -232,6 +298,11 @@ export interface FileRoutesByFullPath {
   '/etat': typeof EtatRoute
   '/mot-de-passe': typeof MotDePasseRoute
   '/enseignant/$': typeof EnseignantSplatRoute
+  '/enseignant/appel': typeof EnseignantAppelRoute
+  '/enseignant/journal': typeof EnseignantJournalRoute
+  '/enseignant/messages': typeof EnseignantMessagesRoute
+  '/enseignant/notes': typeof EnseignantNotesRoute
+  '/enseignant/profil': typeof EnseignantProfilRoute
   '/gestion/$': typeof GestionSplatRoute
   '/gestion/bulletins': typeof GestionBulletinsRoute
   '/gestion/caisse': typeof GestionCaisseRoute
@@ -251,11 +322,17 @@ export interface FileRoutesByFullPath {
   '/gestion/presences': typeof GestionPresencesRoute
   '/gestion/profil': typeof GestionProfilRoute
   '/parent/$': typeof ParentSplatRoute
+  '/parent/justifier': typeof ParentJustifierRoute
+  '/parent/messages': typeof ParentMessagesRoute
+  '/parent/paiements': typeof ParentPaiementsRoute
+  '/parent/profil': typeof ParentProfilRoute
   '/enseignant/': typeof EnseignantIndexRoute
   '/gestion/': typeof GestionIndexRoute
   '/parent/': typeof ParentIndexRoute
   '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
   '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
+  '/parent/enfants/$studentId': typeof ParentEnfantsStudentIdRoute
+  '/parent/recus/$paymentId': typeof ParentRecusPaymentIdRoute
   '/gestion/eleves/': typeof GestionElevesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -266,6 +343,11 @@ export interface FileRoutesByTo {
   '/etat': typeof EtatRoute
   '/mot-de-passe': typeof MotDePasseRoute
   '/enseignant/$': typeof EnseignantSplatRoute
+  '/enseignant/appel': typeof EnseignantAppelRoute
+  '/enseignant/journal': typeof EnseignantJournalRoute
+  '/enseignant/messages': typeof EnseignantMessagesRoute
+  '/enseignant/notes': typeof EnseignantNotesRoute
+  '/enseignant/profil': typeof EnseignantProfilRoute
   '/gestion/$': typeof GestionSplatRoute
   '/gestion/bulletins': typeof GestionBulletinsRoute
   '/gestion/caisse': typeof GestionCaisseRoute
@@ -285,11 +367,17 @@ export interface FileRoutesByTo {
   '/gestion/presences': typeof GestionPresencesRoute
   '/gestion/profil': typeof GestionProfilRoute
   '/parent/$': typeof ParentSplatRoute
+  '/parent/justifier': typeof ParentJustifierRoute
+  '/parent/messages': typeof ParentMessagesRoute
+  '/parent/paiements': typeof ParentPaiementsRoute
+  '/parent/profil': typeof ParentProfilRoute
   '/enseignant': typeof EnseignantIndexRoute
   '/gestion': typeof GestionIndexRoute
   '/parent': typeof ParentIndexRoute
   '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
   '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
+  '/parent/enfants/$studentId': typeof ParentEnfantsStudentIdRoute
+  '/parent/recus/$paymentId': typeof ParentRecusPaymentIdRoute
   '/gestion/eleves': typeof GestionElevesIndexRoute
 }
 export interface FileRoutesById {
@@ -304,6 +392,11 @@ export interface FileRoutesById {
   '/etat': typeof EtatRoute
   '/mot-de-passe': typeof MotDePasseRoute
   '/enseignant/$': typeof EnseignantSplatRoute
+  '/enseignant/appel': typeof EnseignantAppelRoute
+  '/enseignant/journal': typeof EnseignantJournalRoute
+  '/enseignant/messages': typeof EnseignantMessagesRoute
+  '/enseignant/notes': typeof EnseignantNotesRoute
+  '/enseignant/profil': typeof EnseignantProfilRoute
   '/gestion/$': typeof GestionSplatRoute
   '/gestion/bulletins': typeof GestionBulletinsRoute
   '/gestion/caisse': typeof GestionCaisseRoute
@@ -323,11 +416,17 @@ export interface FileRoutesById {
   '/gestion/presences': typeof GestionPresencesRoute
   '/gestion/profil': typeof GestionProfilRoute
   '/parent/$': typeof ParentSplatRoute
+  '/parent/justifier': typeof ParentJustifierRoute
+  '/parent/messages': typeof ParentMessagesRoute
+  '/parent/paiements': typeof ParentPaiementsRoute
+  '/parent/profil': typeof ParentProfilRoute
   '/enseignant/': typeof EnseignantIndexRoute
   '/gestion/': typeof GestionIndexRoute
   '/parent/': typeof ParentIndexRoute
   '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
   '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
+  '/parent/enfants/$studentId': typeof ParentEnfantsStudentIdRoute
+  '/parent/recus/$paymentId': typeof ParentRecusPaymentIdRoute
   '/gestion/eleves/': typeof GestionElevesIndexRoute
 }
 export interface FileRouteTypes {
@@ -343,6 +442,11 @@ export interface FileRouteTypes {
     | '/etat'
     | '/mot-de-passe'
     | '/enseignant/$'
+    | '/enseignant/appel'
+    | '/enseignant/journal'
+    | '/enseignant/messages'
+    | '/enseignant/notes'
+    | '/enseignant/profil'
     | '/gestion/$'
     | '/gestion/bulletins'
     | '/gestion/caisse'
@@ -362,11 +466,17 @@ export interface FileRouteTypes {
     | '/gestion/presences'
     | '/gestion/profil'
     | '/parent/$'
+    | '/parent/justifier'
+    | '/parent/messages'
+    | '/parent/paiements'
+    | '/parent/profil'
     | '/enseignant/'
     | '/gestion/'
     | '/parent/'
     | '/gestion/eleves/$studentId'
     | '/gestion/recus/$paymentId'
+    | '/parent/enfants/$studentId'
+    | '/parent/recus/$paymentId'
     | '/gestion/eleves/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -377,6 +487,11 @@ export interface FileRouteTypes {
     | '/etat'
     | '/mot-de-passe'
     | '/enseignant/$'
+    | '/enseignant/appel'
+    | '/enseignant/journal'
+    | '/enseignant/messages'
+    | '/enseignant/notes'
+    | '/enseignant/profil'
     | '/gestion/$'
     | '/gestion/bulletins'
     | '/gestion/caisse'
@@ -396,11 +511,17 @@ export interface FileRouteTypes {
     | '/gestion/presences'
     | '/gestion/profil'
     | '/parent/$'
+    | '/parent/justifier'
+    | '/parent/messages'
+    | '/parent/paiements'
+    | '/parent/profil'
     | '/enseignant'
     | '/gestion'
     | '/parent'
     | '/gestion/eleves/$studentId'
     | '/gestion/recus/$paymentId'
+    | '/parent/enfants/$studentId'
+    | '/parent/recus/$paymentId'
     | '/gestion/eleves'
   id:
     | '__root__'
@@ -414,6 +535,11 @@ export interface FileRouteTypes {
     | '/etat'
     | '/mot-de-passe'
     | '/enseignant/$'
+    | '/enseignant/appel'
+    | '/enseignant/journal'
+    | '/enseignant/messages'
+    | '/enseignant/notes'
+    | '/enseignant/profil'
     | '/gestion/$'
     | '/gestion/bulletins'
     | '/gestion/caisse'
@@ -433,11 +559,17 @@ export interface FileRouteTypes {
     | '/gestion/presences'
     | '/gestion/profil'
     | '/parent/$'
+    | '/parent/justifier'
+    | '/parent/messages'
+    | '/parent/paiements'
+    | '/parent/profil'
     | '/enseignant/'
     | '/gestion/'
     | '/parent/'
     | '/gestion/eleves/$studentId'
     | '/gestion/recus/$paymentId'
+    | '/parent/enfants/$studentId'
+    | '/parent/recus/$paymentId'
     | '/gestion/eleves/'
   fileRoutesById: FileRoutesById
 }
@@ -530,6 +662,41 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/enseignant/$'
       preLoaderRoute: typeof EnseignantSplatRouteImport
+      parentRoute: typeof EnseignantRouteRoute
+    }
+    '/enseignant/appel': {
+      id: '/enseignant/appel'
+      path: '/appel'
+      fullPath: '/enseignant/appel'
+      preLoaderRoute: typeof EnseignantAppelRouteImport
+      parentRoute: typeof EnseignantRouteRoute
+    }
+    '/enseignant/journal': {
+      id: '/enseignant/journal'
+      path: '/journal'
+      fullPath: '/enseignant/journal'
+      preLoaderRoute: typeof EnseignantJournalRouteImport
+      parentRoute: typeof EnseignantRouteRoute
+    }
+    '/enseignant/messages': {
+      id: '/enseignant/messages'
+      path: '/messages'
+      fullPath: '/enseignant/messages'
+      preLoaderRoute: typeof EnseignantMessagesRouteImport
+      parentRoute: typeof EnseignantRouteRoute
+    }
+    '/enseignant/notes': {
+      id: '/enseignant/notes'
+      path: '/notes'
+      fullPath: '/enseignant/notes'
+      preLoaderRoute: typeof EnseignantNotesRouteImport
+      parentRoute: typeof EnseignantRouteRoute
+    }
+    '/enseignant/profil': {
+      id: '/enseignant/profil'
+      path: '/profil'
+      fullPath: '/enseignant/profil'
+      preLoaderRoute: typeof EnseignantProfilRouteImport
       parentRoute: typeof EnseignantRouteRoute
     }
     '/gestion/': {
@@ -679,6 +846,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentSplatRouteImport
       parentRoute: typeof ParentRouteRoute
     }
+    '/parent/justifier': {
+      id: '/parent/justifier'
+      path: '/justifier'
+      fullPath: '/parent/justifier'
+      preLoaderRoute: typeof ParentJustifierRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
+    '/parent/messages': {
+      id: '/parent/messages'
+      path: '/messages'
+      fullPath: '/parent/messages'
+      preLoaderRoute: typeof ParentMessagesRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
+    '/parent/paiements': {
+      id: '/parent/paiements'
+      path: '/paiements'
+      fullPath: '/parent/paiements'
+      preLoaderRoute: typeof ParentPaiementsRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
+    '/parent/profil': {
+      id: '/parent/profil'
+      path: '/profil'
+      fullPath: '/parent/profil'
+      preLoaderRoute: typeof ParentProfilRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
     '/gestion/eleves/': {
       id: '/gestion/eleves/'
       path: '/eleves'
@@ -700,16 +895,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GestionRecusPaymentIdRouteImport
       parentRoute: typeof GestionRouteRoute
     }
+    '/parent/enfants/$studentId': {
+      id: '/parent/enfants/$studentId'
+      path: '/enfants/$studentId'
+      fullPath: '/parent/enfants/$studentId'
+      preLoaderRoute: typeof ParentEnfantsStudentIdRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
+    '/parent/recus/$paymentId': {
+      id: '/parent/recus/$paymentId'
+      path: '/recus/$paymentId'
+      fullPath: '/parent/recus/$paymentId'
+      preLoaderRoute: typeof ParentRecusPaymentIdRouteImport
+      parentRoute: typeof ParentRouteRoute
+    }
   }
 }
 
 interface EnseignantRouteRouteChildren {
   EnseignantSplatRoute: typeof EnseignantSplatRoute
+  EnseignantAppelRoute: typeof EnseignantAppelRoute
+  EnseignantJournalRoute: typeof EnseignantJournalRoute
+  EnseignantMessagesRoute: typeof EnseignantMessagesRoute
+  EnseignantNotesRoute: typeof EnseignantNotesRoute
+  EnseignantProfilRoute: typeof EnseignantProfilRoute
   EnseignantIndexRoute: typeof EnseignantIndexRoute
 }
 
 const EnseignantRouteRouteChildren: EnseignantRouteRouteChildren = {
   EnseignantSplatRoute: EnseignantSplatRoute,
+  EnseignantAppelRoute: EnseignantAppelRoute,
+  EnseignantJournalRoute: EnseignantJournalRoute,
+  EnseignantMessagesRoute: EnseignantMessagesRoute,
+  EnseignantNotesRoute: EnseignantNotesRoute,
+  EnseignantProfilRoute: EnseignantProfilRoute,
   EnseignantIndexRoute: EnseignantIndexRoute,
 }
 
@@ -773,12 +992,24 @@ const GestionRouteRouteWithChildren = GestionRouteRoute._addFileChildren(
 
 interface ParentRouteRouteChildren {
   ParentSplatRoute: typeof ParentSplatRoute
+  ParentJustifierRoute: typeof ParentJustifierRoute
+  ParentMessagesRoute: typeof ParentMessagesRoute
+  ParentPaiementsRoute: typeof ParentPaiementsRoute
+  ParentProfilRoute: typeof ParentProfilRoute
   ParentIndexRoute: typeof ParentIndexRoute
+  ParentEnfantsStudentIdRoute: typeof ParentEnfantsStudentIdRoute
+  ParentRecusPaymentIdRoute: typeof ParentRecusPaymentIdRoute
 }
 
 const ParentRouteRouteChildren: ParentRouteRouteChildren = {
   ParentSplatRoute: ParentSplatRoute,
+  ParentJustifierRoute: ParentJustifierRoute,
+  ParentMessagesRoute: ParentMessagesRoute,
+  ParentPaiementsRoute: ParentPaiementsRoute,
+  ParentProfilRoute: ParentProfilRoute,
   ParentIndexRoute: ParentIndexRoute,
+  ParentEnfantsStudentIdRoute: ParentEnfantsStudentIdRoute,
+  ParentRecusPaymentIdRoute: ParentRecusPaymentIdRoute,
 }
 
 const ParentRouteRouteWithChildren = ParentRouteRoute._addFileChildren(

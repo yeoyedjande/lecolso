@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { SpaceHome } from '@/features/shell/SpaceHome'
+import { TeacherHome } from '@/features/teacher/components/TeacherHome'
 
 export const Route = createFileRoute('/enseignant/')({
-  component: SpaceHome,
+  component: TeacherHome,
 })

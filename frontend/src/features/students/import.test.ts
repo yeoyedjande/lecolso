@@ -12,6 +12,7 @@ const classrooms: DemoClassroom[] = [
     cycle: 'primary',
     capacity: 30,
     teacher: 'Mme Aya Koné',
+    teacherPhone: null,
     room: 'Salle 1',
   },
 ]

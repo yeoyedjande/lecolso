@@ -297,6 +297,63 @@ function weightedPick<T>(random: Random, items: readonly [T, number][]): T {
   return last[0]
 }
 
+/**
+ * Rattache les comptes du seeder de démonstration aux données : « Kouadio Parent » (+2250700000008) devient le
+ * parent payeur de quelques enfants, « Fatou Enseignante » (+2250700000007) la titulaire de deux classes de primaire.
+ * Aucun tirage aléatoire : le reste des données est inchangé.
+ */
+export const DEMO_PARENT = { name: 'Kouadio Parent', phone: '+2250700000008' } as const
+export const DEMO_TEACHER = { name: 'Fatou Enseignante', phone: '+2250700000007' } as const
+
+const LINKS: Record<string, { children: string[]; teacherOf: string[] }> = {
+  'les-lauriers': {
+    children: ['lau-ce1-a', 'lau-creche-a'],
+    teacherOf: ['lau-ce1-a', 'lau-cm1-a'],
+  },
+  'petits-genies': { children: ['pge-ps-a'], teacherOf: [] },
+}
+
+function linkDemoAccounts(
+  slug: string,
+  classrooms: DemoClassroom[],
+  students: DemoStudent[],
+): void {
+  const links = LINKS[slug]
+  if (links === undefined) return
+  for (const classroomId of links.children) {
+    const child = students.find((student) => student.classroomId === classroomId)
+    if (child === undefined) continue
+    const mother = child.guardians.find((guardian) => guardian.relation === 'Mère')
+    child.lastName = 'Kouadio'
+    child.guardians = [
+      {
+        id: `${child.id}-g1`,
+        name: DEMO_PARENT.name,
+        relation: 'Père',
+        phone: DEMO_PARENT.phone,
+        profession: 'Comptable',
+        isPayer: true,
+      },
+      ...(mother === undefined
+        ? []
+        : [
+            {
+              ...mother,
+              id: `${child.id}-g2`,
+              name: `${mother.name.split(' ')[0] ?? 'Adjoua'} Kouadio`,
+              isPayer: false,
+            },
+          ]),
+    ]
+  }
+  for (const classroom of classrooms) {
+    if (links.teacherOf.includes(classroom.id)) {
+      classroom.teacher = `Mme ${DEMO_TEACHER.name}`
+      classroom.teacherPhone = DEMO_TEACHER.phone
+    }
+  }
+}
+
 /** Génère les données d'une école (déterministes pour un slug et une date du jour). */
 export function generateSchool(slug: string, now: Date = new Date()): DemoSchool {
   const template = TEMPLATES[slug] ?? TEMPLATES['les-lauriers']
@@ -325,6 +382,7 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
         cycle: level.cycle,
         capacity: level.cycle === 'daycare' ? 14 : level.cycle === 'kindergarten' ? 24 : 30,
         teacher: teacherName(random),
+        teacherPhone: null,
         room: `Salle ${String(classrooms.length + 1)}`,
       }
       classrooms.push(classroom)
@@ -358,6 +416,8 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
       }
     }
   }
+
+  linkDemoAccounts(slug, classrooms, students)
 
   // Échéances et paiements : la plupart à jour, certains en retard (impayés réalistes)
   const installments: DemoInstallment[] = []
@@ -610,6 +670,7 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
       id: `conv-${String(index + 1)}`,
       studentId: student.id,
       guardianName: guardian.name,
+      guardianPhone: guardian.phone,
       subject,
       unread: index < 3 ? random.int(1, 2) : 0,
       messages: [
@@ -636,6 +697,39 @@ export function generateSchool(slug: string, now: Date = new Date()): DemoSchool
       ],
     })
   }
+
+  // Une conversation pour chaque enfant du parent de démonstration
+  students
+    .filter((student) => student.guardians.some((guardian) => guardian.phone === DEMO_PARENT.phone))
+    .forEach((student, index) => {
+      conversations.unshift({
+        id: `conv-parent-${String(index + 1)}`,
+        studentId: student.id,
+        guardianName: DEMO_PARENT.name,
+        guardianPhone: DEMO_PARENT.phone,
+        subject: index === 0 ? 'Devoirs de la semaine' : 'Sieste et repas',
+        unread: 0,
+        messages: [
+          {
+            id: `conv-parent-${String(index + 1)}-1`,
+            from: 'school',
+            author: index === 0 ? `Mme ${DEMO_TEACHER.name}` : 'Garderie',
+            body:
+              index === 0
+                ? `Bonjour M. Kouadio, ${student.firstName} a bien progressé en lecture cette semaine. Pensez à réviser la table de 3.`
+                : `Bonjour, ${student.firstName} a bien mangé et a fait une belle sieste aujourd’hui.`,
+            sentAt: at(addDays(today, -1), '16:10'),
+          },
+          {
+            id: `conv-parent-${String(index + 1)}-2`,
+            from: 'guardian',
+            author: DEMO_PARENT.name,
+            body: 'Merci beaucoup pour ces nouvelles, bonne soirée !',
+            sentAt: at(addDays(today, -1), '18:42'),
+          },
+        ],
+      })
+    })
 
   const announcements: DemoAnnouncement[] = [
     {
