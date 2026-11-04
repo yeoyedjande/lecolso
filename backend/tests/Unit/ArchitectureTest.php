@@ -34,6 +34,7 @@ it('n’utilise Platform que dans les Actions super-admin', function (): void {
     // Tout usage hors de son espace de noms passe par cet import
     expect(appFilesContaining('use App\\Support\\Tenancy\\Platform;', [
         // Routes /api/v1/platform/* (middleware EnsureSuperAdmin)
+        'Domains/Tenancy/Actions/CreateSchool.php',
         'Domains/Tenancy/Actions/ListAllSchools.php',
     ]))->toBe([]);
 

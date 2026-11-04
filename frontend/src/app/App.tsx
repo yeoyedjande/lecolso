@@ -8,8 +8,11 @@ import { session } from '@/lib/api/session'
 import { createQueryClient } from './query-client'
 import { createAppRouter } from './router'
 
-/** Écrans accessibles sans session : un 401 n'y provoque pas de redirection. */
-const PUBLIC_PATHS = new Set(['/connexion', '/etat', '/design'])
+/**
+ * Écrans accessibles sans session : un 401 n'y provoque pas de redirection.
+ * `/` n'affiche rien : sa route décide elle-même (page publique sur <slug>.<domaine>, sinon connexion).
+ */
+const PUBLIC_PATHS = new Set(['/', '/connexion', '/etat', '/design'])
 
 export function App() {
   const [queryClient] = useState(createQueryClient)
@@ -21,7 +24,7 @@ export function App() {
       session.onUnauthorized(() => {
         queryClient.removeQueries({ queryKey: meQueryOptions.queryKey })
         const { pathname, href } = router.state.location
-        if (!PUBLIC_PATHS.has(pathname)) {
+        if (!PUBLIC_PATHS.has(pathname) && !pathname.startsWith('/ecole/')) {
           void router.navigate({ to: '/connexion', search: { redirect: href } })
         }
       }),

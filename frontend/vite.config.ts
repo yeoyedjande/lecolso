@@ -33,7 +33,17 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           background_color: '#FBF8F3',
           theme_color: '#1B2559',
-          icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+          icons: [
+            { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+            { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            {
+              src: '/icons/maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
         },
         injectManifest: {
           globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],

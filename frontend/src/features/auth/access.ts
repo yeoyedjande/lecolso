@@ -52,10 +52,12 @@ export function slugFromHost(hostname: string, tenantDomain: string | null): str
 }
 
 /** Ce que l'écran demandé exige. */
-export type Requirement = 'password' | 'schools' | 'home' | Space
+/** `platform` : espace super-admin (/plateforme), hors établissement. */
+export type Requirement = 'password' | 'schools' | 'home' | 'platform' | Space
 
 /** `selectSchoolId` : établissement choisi automatiquement, à mémoriser avant de continuer. */
-export type RedirectTarget = '/mot-de-passe' | '/etablissements' | (typeof SPACE_PATHS)[Space]
+export type RedirectTarget =
+  '/mot-de-passe' | '/etablissements' | '/plateforme' | (typeof SPACE_PATHS)[Space]
 
 export type Decision =
   | { kind: 'redirect'; to: RedirectTarget; selectSchoolId?: string }
@@ -78,6 +80,13 @@ export function decideAccess(input: {
   if (requirement === 'password') return { kind: 'allow', membership: null }
   if (profile.must_change_password) return { kind: 'redirect', to: '/mot-de-passe' }
   if (requirement === 'schools') return { kind: 'allow', membership: null }
+  if (requirement === 'platform') {
+    if (profile.is_super_admin) return { kind: 'allow', membership: null }
+    return decideAccess({ ...input, requirement: 'home' })
+  }
+  // Super-admin sans affectation dans une école : son espace est la plateforme
+  if (profile.is_super_admin && profile.schools.length === 0)
+    return { kind: 'redirect', to: '/plateforme' }
 
   let membership = findMembership(profile, input.schoolId)
   const select: { selectSchoolId?: string } = {}

@@ -86,6 +86,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/schools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tous les établissements (super-admin)
+         * @description Réservé aux super-admins (404 pour les autres). Lecture hors RLS par la connexion séparée app_platform.
+         *     Pagination par curseur, 50 écoles par page, triées par nom.
+         */
+        get: operations["platform.schools.index"];
+        put?: never;
+        /**
+         * Créer une école (super-admin)
+         * @description Ouvre les cycles choisis (catalogue) et rattache le directeur. Si le directeur n'a pas encore de compte,
+         *     il est créé avec un mot de passe provisoire, renvoyé une seule fois et à changer à la première connexion.
+         *     Réservé aux super-admins (404 pour les autres).
+         */
+        post: operations["platform.schools.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cycles": {
         parameters: {
             query?: never;
@@ -148,27 +175,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/platform/schools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Tous les établissements (super-admin)
-         * @description Réservé aux super-admins (404 pour les autres). Lecture hors RLS par la connexion séparée app_platform.
-         *     Pagination par curseur, 50 écoles par page, triées par nom.
-         */
-        get: operations["platform.schools.index"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/users/{user}/password-reset": {
         parameters: {
             query?: never;
@@ -190,6 +196,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/schools/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Page publique d'une école
+         * @description Sans authentification : nom, ville, type et cycles ouverts (avec leurs niveaux). Aucune donnée personnelle.
+         */
+        get: operations["public.schools.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -199,6 +225,21 @@ export interface components {
             current_password: string;
             password: string;
             password_confirmation: string;
+        };
+        /** CreateSchoolRequest */
+        CreateSchoolRequest: {
+            name: string;
+            /** @description Sous-domaine <slug>.<domaine> : minuscules, chiffres et tirets */
+            slug: string;
+            city?: string | null;
+            type?: components["schemas"]["SchoolType"];
+            cycles: ("daycare" | "kindergarten" | "primary")[];
+            director: {
+                name: string;
+                phone: string;
+                /** Format: email */
+                email?: string | null;
+            };
         };
         /** CycleResource */
         CycleResource: {
@@ -259,6 +300,18 @@ export interface components {
             can_be_remembered: boolean;
             schools: components["schemas"]["SchoolMembershipResource"][];
         };
+        /** PublicSchoolResource */
+        PublicSchoolResource: {
+            name: string;
+            slug: string;
+            city: string | null;
+            type: string;
+            cycles: {
+                code: string;
+                name: string;
+                levels: string[];
+            }[];
+        };
         /** RoleAssignmentResource */
         RoleAssignmentResource: {
             /** @enum {string} */
@@ -287,6 +340,12 @@ export interface components {
             currency: string;
             created_at: string | null;
         };
+        /**
+         * SchoolType
+         * @description Type d'établissement (ADR 0003) : seul preschool_primary est disponible en V1.
+         * @enum {string}
+         */
+        SchoolType: "preschool_primary" | "secondary" | "higher";
         /** UpdateCycleRequest */
         UpdateCycleRequest: {
             name?: string;
@@ -479,6 +538,101 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
         };
     };
+    "platform.schools.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Une page d’écoles, triées par nom. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "platform.schools.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolRequest"];
+            };
+        };
+        responses: {
+            /** @description École créée. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolResource"];
+                        director: {
+                            id: string;
+                            name: string;
+                            phone: string;
+                            provisional_password: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "cycles.index": {
         parameters: {
             query?: never;
@@ -564,56 +718,6 @@ export interface operations {
             };
         };
     };
-    "platform.schools.index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Une page d’écoles, triées par nom. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["SchoolResource"][];
-                        links: {
-                            first: string | null;
-                            last: string | null;
-                            prev: string | null;
-                            next: string | null;
-                        };
-                        meta: {
-                            /** @description Base path for paginator generated URLs. */
-                            path: string | null;
-                            /** @description Number of items shown per page. */
-                            per_page: number;
-                            /** @description The "cursor" that points to the next set of items. */
-                            next_cursor: string | null;
-                            /** @description The "cursor" that points to the previous set of items. */
-                            prev_cursor: string | null;
-                        };
-                    };
-                };
-            };
-            401: components["responses"]["AuthenticationException"];
-            /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
     "users.password-reset": {
         parameters: {
             query?: never;
@@ -641,6 +745,41 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "public.schools.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `PublicSchoolResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PublicSchoolResource"];
+                    };
+                };
+            };
+            /** @description Aucune école avec ce slug. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
         };
     };
 }

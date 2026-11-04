@@ -18,6 +18,7 @@ import { Route as EtatRouteImport } from './routes/etat'
 import { Route as GestionRouteRouteImport } from './routes/gestion/route'
 import { Route as MotDePasseRouteImport } from './routes/mot-de-passe'
 import { Route as ParentRouteRouteImport } from './routes/parent/route'
+import { Route as PlateformeRouteRouteImport } from './routes/plateforme/route'
 import { Route as EnseignantIndexRouteImport } from './routes/enseignant/index'
 import { Route as EnseignantSplatRouteImport } from './routes/enseignant/$'
 import { Route as EnseignantAppelRouteImport } from './routes/enseignant/appel'
@@ -50,6 +51,11 @@ import { Route as ParentJustifierRouteImport } from './routes/parent/justifier'
 import { Route as ParentMessagesRouteImport } from './routes/parent/messages'
 import { Route as ParentPaiementsRouteImport } from './routes/parent/paiements'
 import { Route as ParentProfilRouteImport } from './routes/parent/profil'
+import { Route as PlateformeIndexRouteImport } from './routes/plateforme/index'
+import { Route as PlateformeSplatRouteImport } from './routes/plateforme/$'
+import { Route as PlateformeNouvelleRouteImport } from './routes/plateforme/nouvelle'
+import { Route as EcoleSlugIndexRouteImport } from './routes/ecole/$slug/index'
+import { Route as EcoleSlugPreinscriptionRouteImport } from './routes/ecole/$slug/preinscription'
 import { Route as GestionElevesIndexRouteImport } from './routes/gestion/eleves/index'
 import { Route as GestionElevesStudentIdRouteImport } from './routes/gestion/eleves/$studentId'
 import { Route as GestionRecusPaymentIdRouteImport } from './routes/gestion/recus/$paymentId'
@@ -99,6 +105,11 @@ const MotDePasseRoute = MotDePasseRouteImport.update({
 const ParentRouteRoute = ParentRouteRouteImport.update({
   id: '/parent',
   path: '/parent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlateformeRouteRoute = PlateformeRouteRouteImport.update({
+  id: '/plateforme',
+  path: '/plateforme',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnseignantIndexRoute = EnseignantIndexRouteImport.update({
@@ -261,6 +272,31 @@ const ParentProfilRoute = ParentProfilRouteImport.update({
   path: '/profil',
   getParentRoute: () => ParentRouteRoute,
 } as any)
+const PlateformeIndexRoute = PlateformeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlateformeRouteRoute,
+} as any)
+const PlateformeSplatRoute = PlateformeSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => PlateformeRouteRoute,
+} as any)
+const PlateformeNouvelleRoute = PlateformeNouvelleRouteImport.update({
+  id: '/nouvelle',
+  path: '/nouvelle',
+  getParentRoute: () => PlateformeRouteRoute,
+} as any)
+const EcoleSlugIndexRoute = EcoleSlugIndexRouteImport.update({
+  id: '/ecole/$slug/',
+  path: '/ecole/$slug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EcoleSlugPreinscriptionRoute = EcoleSlugPreinscriptionRouteImport.update({
+  id: '/ecole/$slug/preinscription',
+  path: '/ecole/$slug/preinscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GestionElevesIndexRoute = GestionElevesIndexRouteImport.update({
   id: '/eleves/',
   path: '/eleves/',
@@ -292,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/enseignant': typeof EnseignantRouteRouteWithChildren
   '/gestion': typeof GestionRouteRouteWithChildren
   '/parent': typeof ParentRouteRouteWithChildren
+  '/plateforme': typeof PlateformeRouteRouteWithChildren
   '/connexion': typeof ConnexionRoute
   '/design': typeof DesignRoute
   '/etablissements': typeof EtablissementsRoute
@@ -326,13 +363,18 @@ export interface FileRoutesByFullPath {
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/paiements': typeof ParentPaiementsRoute
   '/parent/profil': typeof ParentProfilRoute
+  '/plateforme/$': typeof PlateformeSplatRoute
+  '/plateforme/nouvelle': typeof PlateformeNouvelleRoute
   '/enseignant/': typeof EnseignantIndexRoute
   '/gestion/': typeof GestionIndexRoute
   '/parent/': typeof ParentIndexRoute
+  '/plateforme/': typeof PlateformeIndexRoute
+  '/ecole/$slug/preinscription': typeof EcoleSlugPreinscriptionRoute
   '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
   '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
   '/parent/enfants/$studentId': typeof ParentEnfantsStudentIdRoute
   '/parent/recus/$paymentId': typeof ParentRecusPaymentIdRoute
+  '/ecole/$slug/': typeof EcoleSlugIndexRoute
   '/gestion/eleves/': typeof GestionElevesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -371,13 +413,18 @@ export interface FileRoutesByTo {
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/paiements': typeof ParentPaiementsRoute
   '/parent/profil': typeof ParentProfilRoute
+  '/plateforme/$': typeof PlateformeSplatRoute
+  '/plateforme/nouvelle': typeof PlateformeNouvelleRoute
   '/enseignant': typeof EnseignantIndexRoute
   '/gestion': typeof GestionIndexRoute
   '/parent': typeof ParentIndexRoute
+  '/plateforme': typeof PlateformeIndexRoute
+  '/ecole/$slug/preinscription': typeof EcoleSlugPreinscriptionRoute
   '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
   '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
   '/parent/enfants/$studentId': typeof ParentEnfantsStudentIdRoute
   '/parent/recus/$paymentId': typeof ParentRecusPaymentIdRoute
+  '/ecole/$slug': typeof EcoleSlugIndexRoute
   '/gestion/eleves': typeof GestionElevesIndexRoute
 }
 export interface FileRoutesById {
@@ -386,6 +433,7 @@ export interface FileRoutesById {
   '/enseignant': typeof EnseignantRouteRouteWithChildren
   '/gestion': typeof GestionRouteRouteWithChildren
   '/parent': typeof ParentRouteRouteWithChildren
+  '/plateforme': typeof PlateformeRouteRouteWithChildren
   '/connexion': typeof ConnexionRoute
   '/design': typeof DesignRoute
   '/etablissements': typeof EtablissementsRoute
@@ -420,13 +468,18 @@ export interface FileRoutesById {
   '/parent/messages': typeof ParentMessagesRoute
   '/parent/paiements': typeof ParentPaiementsRoute
   '/parent/profil': typeof ParentProfilRoute
+  '/plateforme/$': typeof PlateformeSplatRoute
+  '/plateforme/nouvelle': typeof PlateformeNouvelleRoute
   '/enseignant/': typeof EnseignantIndexRoute
   '/gestion/': typeof GestionIndexRoute
   '/parent/': typeof ParentIndexRoute
+  '/plateforme/': typeof PlateformeIndexRoute
+  '/ecole/$slug/preinscription': typeof EcoleSlugPreinscriptionRoute
   '/gestion/eleves/$studentId': typeof GestionElevesStudentIdRoute
   '/gestion/recus/$paymentId': typeof GestionRecusPaymentIdRoute
   '/parent/enfants/$studentId': typeof ParentEnfantsStudentIdRoute
   '/parent/recus/$paymentId': typeof ParentRecusPaymentIdRoute
+  '/ecole/$slug/': typeof EcoleSlugIndexRoute
   '/gestion/eleves/': typeof GestionElevesIndexRoute
 }
 export interface FileRouteTypes {
@@ -436,6 +489,7 @@ export interface FileRouteTypes {
     | '/enseignant'
     | '/gestion'
     | '/parent'
+    | '/plateforme'
     | '/connexion'
     | '/design'
     | '/etablissements'
@@ -470,13 +524,18 @@ export interface FileRouteTypes {
     | '/parent/messages'
     | '/parent/paiements'
     | '/parent/profil'
+    | '/plateforme/$'
+    | '/plateforme/nouvelle'
     | '/enseignant/'
     | '/gestion/'
     | '/parent/'
+    | '/plateforme/'
+    | '/ecole/$slug/preinscription'
     | '/gestion/eleves/$studentId'
     | '/gestion/recus/$paymentId'
     | '/parent/enfants/$studentId'
     | '/parent/recus/$paymentId'
+    | '/ecole/$slug/'
     | '/gestion/eleves/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -515,13 +574,18 @@ export interface FileRouteTypes {
     | '/parent/messages'
     | '/parent/paiements'
     | '/parent/profil'
+    | '/plateforme/$'
+    | '/plateforme/nouvelle'
     | '/enseignant'
     | '/gestion'
     | '/parent'
+    | '/plateforme'
+    | '/ecole/$slug/preinscription'
     | '/gestion/eleves/$studentId'
     | '/gestion/recus/$paymentId'
     | '/parent/enfants/$studentId'
     | '/parent/recus/$paymentId'
+    | '/ecole/$slug'
     | '/gestion/eleves'
   id:
     | '__root__'
@@ -529,6 +593,7 @@ export interface FileRouteTypes {
     | '/enseignant'
     | '/gestion'
     | '/parent'
+    | '/plateforme'
     | '/connexion'
     | '/design'
     | '/etablissements'
@@ -563,13 +628,18 @@ export interface FileRouteTypes {
     | '/parent/messages'
     | '/parent/paiements'
     | '/parent/profil'
+    | '/plateforme/$'
+    | '/plateforme/nouvelle'
     | '/enseignant/'
     | '/gestion/'
     | '/parent/'
+    | '/plateforme/'
+    | '/ecole/$slug/preinscription'
     | '/gestion/eleves/$studentId'
     | '/gestion/recus/$paymentId'
     | '/parent/enfants/$studentId'
     | '/parent/recus/$paymentId'
+    | '/ecole/$slug/'
     | '/gestion/eleves/'
   fileRoutesById: FileRoutesById
 }
@@ -578,11 +648,14 @@ export interface RootRouteChildren {
   EnseignantRouteRoute: typeof EnseignantRouteRouteWithChildren
   GestionRouteRoute: typeof GestionRouteRouteWithChildren
   ParentRouteRoute: typeof ParentRouteRouteWithChildren
+  PlateformeRouteRoute: typeof PlateformeRouteRouteWithChildren
   ConnexionRoute: typeof ConnexionRoute
   DesignRoute: typeof DesignRoute
   EtablissementsRoute: typeof EtablissementsRoute
   EtatRoute: typeof EtatRoute
   MotDePasseRoute: typeof MotDePasseRoute
+  EcoleSlugPreinscriptionRoute: typeof EcoleSlugPreinscriptionRoute
+  EcoleSlugIndexRoute: typeof EcoleSlugIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -648,6 +721,13 @@ declare module '@tanstack/react-router' {
       path: '/parent'
       fullPath: '/parent'
       preLoaderRoute: typeof ParentRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plateforme': {
+      id: '/plateforme'
+      path: '/plateforme'
+      fullPath: '/plateforme'
+      preLoaderRoute: typeof PlateformeRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/enseignant/': {
@@ -874,6 +954,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentProfilRouteImport
       parentRoute: typeof ParentRouteRoute
     }
+    '/plateforme/': {
+      id: '/plateforme/'
+      path: '/'
+      fullPath: '/plateforme/'
+      preLoaderRoute: typeof PlateformeIndexRouteImport
+      parentRoute: typeof PlateformeRouteRoute
+    }
+    '/plateforme/$': {
+      id: '/plateforme/$'
+      path: '/$'
+      fullPath: '/plateforme/$'
+      preLoaderRoute: typeof PlateformeSplatRouteImport
+      parentRoute: typeof PlateformeRouteRoute
+    }
+    '/plateforme/nouvelle': {
+      id: '/plateforme/nouvelle'
+      path: '/nouvelle'
+      fullPath: '/plateforme/nouvelle'
+      preLoaderRoute: typeof PlateformeNouvelleRouteImport
+      parentRoute: typeof PlateformeRouteRoute
+    }
+    '/ecole/$slug/': {
+      id: '/ecole/$slug/'
+      path: '/ecole/$slug'
+      fullPath: '/ecole/$slug/'
+      preLoaderRoute: typeof EcoleSlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ecole/$slug/preinscription': {
+      id: '/ecole/$slug/preinscription'
+      path: '/ecole/$slug/preinscription'
+      fullPath: '/ecole/$slug/preinscription'
+      preLoaderRoute: typeof EcoleSlugPreinscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gestion/eleves/': {
       id: '/gestion/eleves/'
       path: '/eleves'
@@ -1016,16 +1131,35 @@ const ParentRouteRouteWithChildren = ParentRouteRoute._addFileChildren(
   ParentRouteRouteChildren,
 )
 
+interface PlateformeRouteRouteChildren {
+  PlateformeSplatRoute: typeof PlateformeSplatRoute
+  PlateformeNouvelleRoute: typeof PlateformeNouvelleRoute
+  PlateformeIndexRoute: typeof PlateformeIndexRoute
+}
+
+const PlateformeRouteRouteChildren: PlateformeRouteRouteChildren = {
+  PlateformeSplatRoute: PlateformeSplatRoute,
+  PlateformeNouvelleRoute: PlateformeNouvelleRoute,
+  PlateformeIndexRoute: PlateformeIndexRoute,
+}
+
+const PlateformeRouteRouteWithChildren = PlateformeRouteRoute._addFileChildren(
+  PlateformeRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EnseignantRouteRoute: EnseignantRouteRouteWithChildren,
   GestionRouteRoute: GestionRouteRouteWithChildren,
   ParentRouteRoute: ParentRouteRouteWithChildren,
+  PlateformeRouteRoute: PlateformeRouteRouteWithChildren,
   ConnexionRoute: ConnexionRoute,
   DesignRoute: DesignRoute,
   EtablissementsRoute: EtablissementsRoute,
   EtatRoute: EtatRoute,
   MotDePasseRoute: MotDePasseRoute,
+  EcoleSlugPreinscriptionRoute: EcoleSlugPreinscriptionRoute,
+  EcoleSlugIndexRoute: EcoleSlugIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

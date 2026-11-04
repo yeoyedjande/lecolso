@@ -131,7 +131,12 @@ Décisions à intégrer à cette étape (prises le 03/11/2026, voir `docs/decisi
 >   paiements et Mobile Money simulé avec reçu, messages, justification d'absence, profil. Enseignant : mes classes, appel en
 >   deux gestes, saisie des notes, journal, messages aux parents, profil. Tests : cloisonnement parent/enseignant (Vitest),
 >   parcours parent et appel enseignant (Playwright), axe sur les 12 écrans en 360 et 1280 px.
-> - [ ] **6d** — super-admin, page publique, pré-inscription, finitions (`feat/ui-platform-public`)
+> - [x] **6d** — super-admin, page publique, pré-inscription, finitions : fait sur `feat/ui-platform-public`.
+>   API : `POST /api/v1/platform/schools` (école, cycles et directeur avec mot de passe provisoire, une transaction
+>   `app_platform`) et `GET /api/v1/public/schools/{slug}` (fonction `SECURITY DEFINER`, données publiques seulement).
+>   Frontend : espace `/plateforme` (liste, création), page publique `/ecole/<slug>` (et `<slug>.<domaine>` sans session),
+>   pré-inscription (démonstration), icônes PWA, README. Tests : Pest (création, isolation, page publique sans fuite),
+>   Playwright (parcours super-admin, page publique et pré-inscription), axe sur tous les écrans.
 
 ```text
 Implémente dans le frontend :

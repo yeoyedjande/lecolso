@@ -5,6 +5,8 @@ Une ligne par décision, la plus récente en haut.
 
 | Date | Domaine | Question | Décision |
 | --- | --- | --- | --- |
+| 04/11/2026 | Plateforme | Création d'une école ? | Par le super-admin uniquement : école, cycles du catalogue et directeur en une transaction. Le directeur reçoit un mot de passe provisoire (affiché une seule fois) s'il n'a pas de compte ; sinon il garde le sien. Sous-domaines réservés : app, api, www, admin, staging, plateforme, mail, static |
+| 04/11/2026 | Public | Que montre la page publique d'une école ? | Nom, ville, type, cycles et niveaux (fonction SQL dédiée, aucune donnée personnelle ni identifiant). Tarifs et pré-inscription en démonstration tant que les modules frais et inscriptions n'ont pas d'API |
 | 04/11/2026 | Parents | Quels enfants voit un parent ? | Ceux dont il est tuteur, rapprochés par le téléphone du compte (E.164). Toute autre fiche, tout autre reçu ou message est introuvable. L'API appliquera la même règle (Policy + test d'isolation) |
 | 04/11/2026 | Parents | Justification d'absence ? | Le parent justifie une absence passée ou prévient d'une absence à venir (jours de classe seulement) ; l'absence devient « excusée ». Validation par l'école à prévoir avec le module présences |
 | 04/11/2026 | Paiements | Paiement Mobile Money ? | Orange Money, MTN MoMo, Moov Money, Wave. En démonstration, simulé (aucun prélèvement) ; en réel, le paiement ne sera validé qu'à la réception du webhook signé de l'opérateur, traité de façon idempotente |

@@ -199,7 +199,9 @@
     "payMobile": "Paiements",
     "profile": "Profil",
     "schools": "Écoles",
-    "schedules": "Échéanciers"
+    "schedules": "Échéanciers",
+    "platformSchools": "Écoles",
+    "platform": "Plateforme"
   },
   "design": {
     "title": "Design system",
@@ -1109,6 +1111,109 @@
       "sent": "Message envoyé à {{name}}",
       "empty": "Aucun échange avec les parents pour l’instant.",
       "to": "À {{name}}"
+    }
+  },
+  "platform": {
+    "space": "Plateforme Lecolso",
+    "schools": {
+      "title": "Écoles",
+      "description": "Tous les établissements de la plateforme.",
+      "create": "Créer une école",
+      "count": "{{count}} école(s)",
+      "more": "Seules les 50 premières écoles sont affichées.",
+      "name": "École",
+      "address": "Adresse",
+      "city": "Ville",
+      "type": "Type",
+      "createdAt": "Créée le",
+      "empty": "Aucune école pour l’instant.",
+      "types": {
+        "preschool_primary": "Préscolaire et primaire",
+        "secondary": "Secondaire",
+        "higher": "Supérieur"
+      },
+      "visit": "Ouvrir la page publique de {{name}}"
+    },
+    "create": {
+      "title": "Créer une école",
+      "description": "L’école, ses cycles et son directeur. Le directeur reçoit un mot de passe provisoire.",
+      "back": "Retour aux écoles",
+      "school": "Établissement",
+      "name": "Nom de l’établissement",
+      "slug": "Adresse de la page de l’école",
+      "slugHint": "Adresse : {{url}} — minuscules, chiffres et tirets.",
+      "city": "Ville",
+      "cycles": "Cycles ouverts",
+      "director": "Directeur ou directrice",
+      "directorName": "Nom complet",
+      "directorPhone": "Téléphone",
+      "directorPhoneHint": "Il servira d’identifiant de connexion.",
+      "directorEmail": "E-mail (facultatif)",
+      "submit": "Créer l’école",
+      "submitting": "Création…",
+      "failed": "La création a échoué. Réessayez.",
+      "errors": {
+        "cycles": "Choisissez au moins un cycle.",
+        "required": "Ce champ est obligatoire.",
+        "slug": "Minuscules, chiffres et tirets uniquement (3 caractères au moins).",
+        "phone": "Saisissez un numéro ivoirien à 10 chiffres."
+      },
+      "doneTitle": "{{name}} est créée",
+      "doneDescription": "Transmettez ces informations au directeur. Le mot de passe provisoire ne sera plus affiché.",
+      "login": "Identifiant",
+      "password": "Mot de passe provisoire",
+      "existingAccount": "{{name}} avait déjà un compte : il se connecte avec son mot de passe habituel.",
+      "publicPage": "Page publique",
+      "another": "Créer une autre école",
+      "list": "Voir les écoles"
+    }
+  },
+  "publicSchool": {
+    "login": "Se connecter",
+    "hero": "Bienvenue à {{name}}",
+    "heroCity": "Établissement privé à {{city}}",
+    "heroText": "Une école où chaque enfant grandit en confiance : suivi personnalisé, familles informées au quotidien.",
+    "preRegister": "Pré-inscrire mon enfant",
+    "cycles": "Nos cycles",
+    "levels": "Niveaux : {{levels}}",
+    "fees": "Tarifs indicatifs {{year}}",
+    "feesHint": "Montants annuels. Cantine, transport et garderie du soir en option.",
+    "tuition": "Scolarité",
+    "registration": "Inscription",
+    "why": "Pourquoi nous choisir",
+    "points": {
+      "follow": "Notes, absences et paiements suivis depuis votre téléphone",
+      "safe": "Arrivées et départs enregistrés, enfants en sécurité",
+      "pay": "Paiement par Mobile Money, reçu immédiat"
+    },
+    "notFound": "Cette école n’existe pas ou n’a pas encore de page.",
+    "footer": "Page de l’école propulsée par Lecolso",
+    "pre": {
+      "title": "Pré-inscription",
+      "description": "Remplissez ce formulaire : l’école vous rappelle pour finaliser l’inscription.",
+      "child": "L’enfant",
+      "firstName": "Prénom(s)",
+      "lastName": "Nom",
+      "birthDate": "Date de naissance",
+      "level": "Niveau souhaité",
+      "chooseLevel": "Choisir un niveau",
+      "guardian": "Le parent",
+      "guardianName": "Nom complet",
+      "phone": "Téléphone",
+      "email": "E-mail (facultatif)",
+      "message": "Message (facultatif)",
+      "consent": "J’accepte que l’école me contacte au sujet de cette demande.",
+      "submit": "Envoyer la demande",
+      "doneTitle": "Demande envoyée !",
+      "doneDescription": "Référence {{reference}}. L’école vous appellera au {{phone}} dans les prochains jours.",
+      "back": "Retour à la page de l’école",
+      "errors": {
+        "required": "Ce champ est obligatoire.",
+        "birthDate": "Saisissez une date de naissance valide.",
+        "phone": "Saisissez un numéro ivoirien à 10 chiffres.",
+        "email": "Adresse e-mail invalide.",
+        "consent": "Votre accord est nécessaire pour être recontacté."
+      }
     }
   }
 }
