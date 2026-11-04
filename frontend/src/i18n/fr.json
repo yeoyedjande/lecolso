@@ -150,7 +150,8 @@
     "secretary": "Secrétariat",
     "accountant": "Comptabilité",
     "teacher": "Enseignant",
-    "guardian": "Parent"
+    "guardian": "Parent",
+    "custom": "Rôle personnalisé"
   },
   "cycles": {
     "daycare": "Garderie",
@@ -201,7 +202,8 @@
     "schools": "Écoles",
     "schedules": "Échéanciers",
     "platformSchools": "Écoles",
-    "platform": "Plateforme"
+    "platform": "Plateforme",
+    "roles": "Rôles et permissions"
   },
   "design": {
     "title": "Design system",
@@ -1215,5 +1217,100 @@
         "consent": "Votre accord est nécessaire pour être recontacté."
       }
     }
+  },
+  "permissions": {
+    "school.settings.view": "Voir les paramètres de l’école",
+    "school.settings.manage": "Modifier les paramètres de l’école et des cycles",
+    "students.view": "Voir les élèves",
+    "students.manage": "Inscrire et modifier les élèves",
+    "billing.view": "Voir les frais, paiements et impayés",
+    "billing.manage": "Encaisser et gérer les frais",
+    "billing.pay": "Payer en ligne (parents)",
+    "grades.view": "Voir les notes et bulletins",
+    "grades.manage": "Saisir les notes et compétences",
+    "grades.validate": "Valider les bulletins",
+    "attendance.view": "Voir les présences",
+    "attendance.manage": "Faire l’appel et gérer les présences",
+    "attendance.justify": "Justifier une absence (parents)",
+    "messaging.send": "Envoyer des messages",
+    "subscription.view": "Voir l’abonnement EKALEWA",
+    "subscription.pay": "Payer l’abonnement EKALEWA",
+    "users.reset_password": "Réinitialiser le mot de passe d’un utilisateur",
+    "users.view": "Voir les utilisateurs",
+    "users.manage": "Créer, modifier et désactiver des utilisateurs",
+    "roles.manage": "Créer et modifier les rôles"
+  },
+  "permissionGroups": {
+    "school": "Établissement",
+    "students": "Élèves",
+    "billing": "Finances",
+    "grades": "Notes et bulletins",
+    "attendance": "Présences",
+    "messaging": "Messagerie",
+    "users": "Utilisateurs",
+    "roles": "Rôles",
+    "subscription": "Abonnement",
+    "other": "Autres"
+  },
+  "rolesAdmin": {
+    "title": "Rôles et permissions",
+    "description": "Ce que chaque rôle peut faire dans l’établissement. Créez vos propres rôles et choisissez leurs permissions.",
+    "create": "Nouveau rôle",
+    "system": "Rôle système",
+    "custom": "Rôle personnalisé",
+    "locked": "Verrouillé",
+    "lockedHint": "Rôle lié à la sécurité ou à un espace dédié : dupliquez-le pour créer une variante.",
+    "users": "{{count}} utilisateur",
+    "users_other": "{{count}} utilisateurs",
+    "usersNone": "Aucun utilisateur",
+    "permissionsCount": "{{count}} permission",
+    "permissionsCount_other": "{{count}} permissions",
+    "edit": "Modifier",
+    "view": "Voir les permissions",
+    "duplicate": "Dupliquer",
+    "delete": "Supprimer",
+    "copyOf": "{{name}} (copie)",
+    "systemDescriptions": {
+      "promoter": "Fondateur ou propriétaire : vue d’ensemble, finances et abonnement de toutes ses écoles.",
+      "director": "Direction de l’établissement ou d’un cycle : pilotage, pédagogie, utilisateurs et rôles.",
+      "secretary": "Accueil et scolarité : inscriptions, élèves, présences.",
+      "accountant": "Finances : encaissements, frais, relances.",
+      "teacher": "Espace enseignant : ses classes, l’appel et les notes.",
+      "guardian": "Espace parent : ses enfants, leurs notes, présences et paiements."
+    },
+    "editor": {
+      "createTitle": "Nouveau rôle",
+      "editTitle": "Modifier « {{name}} »",
+      "viewTitle": "Permissions : {{name}}",
+      "description": "Cochez ce que ce rôle peut faire. Une affectation peut ensuite le limiter à un cycle.",
+      "systemEditDescription": "Rôle système : seules ses permissions peuvent être ajustées pour votre établissement.",
+      "name": "Nom du rôle",
+      "namePlaceholder": "Ex. Surveillant général",
+      "roleDescription": "Description",
+      "roleDescriptionPlaceholder": "Ex. Présences, retards et suivi des élèves",
+      "optional": "Facultatif",
+      "permissions": "Permissions",
+      "selectedCount": "{{count}} sur {{total}}",
+      "all": "Tout cocher",
+      "none": "Tout décocher",
+      "notHeld": "Vous ne détenez pas cette permission : vous ne pouvez pas l’accorder.",
+      "save": "Enregistrer le rôle",
+      "created": "Rôle « {{name}} » créé",
+      "saved": "Rôle « {{name}} » enregistré",
+      "failed": "Enregistrement impossible. Réessayez.",
+      "errors": {
+        "nameMin": "Le nom doit compter au moins 2 caractères.",
+        "nameMax": "60 caractères au maximum.",
+        "descriptionMax": "255 caractères au maximum."
+      }
+    },
+    "deleteDialog": {
+      "title": "Supprimer « {{name}} » ?",
+      "description": "Le rôle disparaîtra de l’établissement. Cette action est définitive.",
+      "confirm": "Supprimer le rôle",
+      "done": "Rôle « {{name}} » supprimé",
+      "inUse": "Ce rôle est encore attribué. Retirez-le d’abord aux utilisateurs concernés."
+    },
+    "usersLabel": "Utilisateurs"
   }
 }

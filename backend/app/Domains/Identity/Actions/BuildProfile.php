@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Identity\Actions;
 
 use App\Domains\Identity\Authorization\Authorizer;
+use App\Domains\Identity\Authorization\RoleCatalog;
+use App\Domains\Identity\Data\MembershipRole;
 use App\Domains\Identity\Data\Profile;
 use App\Domains\Identity\Data\SchoolMembership;
 use App\Domains\Identity\Models\RoleAssignment;
@@ -17,7 +19,10 @@ use App\Domains\Tenancy\Models\School;
  */
 final readonly class BuildProfile
 {
-    public function __construct(private Authorizer $authorizer) {}
+    public function __construct(
+        private Authorizer $authorizer,
+        private RoleCatalog $catalog,
+    ) {}
 
     public function handle(User $user): Profile
     {
@@ -30,9 +35,17 @@ final readonly class BuildProfile
 
         $memberships = [];
         foreach ($schools as $school) {
+            $roles = $this->catalog->rolesOf($school);
             $memberships[] = new SchoolMembership(
                 school: $school,
-                assignments: array_values($assignments->get($school->id)?->all() ?? []),
+                assignments: array_values(array_map(
+                    static fn (RoleAssignment $assignment): MembershipRole => new MembershipRole(
+                        role: $assignment->role,
+                        roleName: ($roles[$assignment->role] ?? null)?->name,
+                        cycleId: $assignment->cycle_id,
+                    ),
+                    $assignments->get($school->id)?->all() ?? [],
+                )),
                 permissions: $this->authorizer->permissionsFor($user, $school),
             );
         }

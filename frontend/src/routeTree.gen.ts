@@ -43,6 +43,7 @@ import { Route as SchoolGestionNotesRouteImport } from './routes/$school/_gestio
 import { Route as SchoolGestionParametresRouteImport } from './routes/$school/_gestion/parametres'
 import { Route as SchoolGestionPresencesRouteImport } from './routes/$school/_gestion/presences'
 import { Route as SchoolGestionProfilRouteImport } from './routes/$school/_gestion/profil'
+import { Route as SchoolGestionRolesRouteImport } from './routes/$school/_gestion/roles'
 import { Route as SchoolGestionTableauDeBordRouteImport } from './routes/$school/_gestion/tableau-de-bord'
 import { Route as SchoolEnseignantIndexRouteImport } from './routes/$school/enseignant/index'
 import { Route as SchoolEnseignantSplatRouteImport } from './routes/$school/enseignant/$'
@@ -237,6 +238,11 @@ const SchoolGestionProfilRoute = SchoolGestionProfilRouteImport.update({
   path: '/profil',
   getParentRoute: () => SchoolGestionRouteRoute,
 } as any)
+const SchoolGestionRolesRoute = SchoolGestionRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => SchoolGestionRouteRoute,
+} as any)
 const SchoolGestionTableauDeBordRoute =
   SchoolGestionTableauDeBordRouteImport.update({
     id: '/tableau-de-bord',
@@ -375,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/$school/parametres': typeof SchoolGestionParametresRoute
   '/$school/presences': typeof SchoolGestionPresencesRoute
   '/$school/profil': typeof SchoolGestionProfilRoute
+  '/$school/roles': typeof SchoolGestionRolesRoute
   '/$school/tableau-de-bord': typeof SchoolGestionTableauDeBordRoute
   '/$school/enseignant/$': typeof SchoolEnseignantSplatRoute
   '/$school/enseignant/appel': typeof SchoolEnseignantAppelRoute
@@ -426,6 +433,7 @@ export interface FileRoutesByTo {
   '/$school/parametres': typeof SchoolGestionParametresRoute
   '/$school/presences': typeof SchoolGestionPresencesRoute
   '/$school/profil': typeof SchoolGestionProfilRoute
+  '/$school/roles': typeof SchoolGestionRolesRoute
   '/$school/tableau-de-bord': typeof SchoolGestionTableauDeBordRoute
   '/$school/enseignant/$': typeof SchoolEnseignantSplatRoute
   '/$school/enseignant/appel': typeof SchoolEnseignantAppelRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/$school/_gestion/parametres': typeof SchoolGestionParametresRoute
   '/$school/_gestion/presences': typeof SchoolGestionPresencesRoute
   '/$school/_gestion/profil': typeof SchoolGestionProfilRoute
+  '/$school/_gestion/roles': typeof SchoolGestionRolesRoute
   '/$school/_gestion/tableau-de-bord': typeof SchoolGestionTableauDeBordRoute
   '/$school/enseignant/$': typeof SchoolEnseignantSplatRoute
   '/$school/enseignant/appel': typeof SchoolEnseignantAppelRoute
@@ -539,6 +548,7 @@ export interface FileRouteTypes {
     | '/$school/parametres'
     | '/$school/presences'
     | '/$school/profil'
+    | '/$school/roles'
     | '/$school/tableau-de-bord'
     | '/$school/enseignant/$'
     | '/$school/enseignant/appel'
@@ -590,6 +600,7 @@ export interface FileRouteTypes {
     | '/$school/parametres'
     | '/$school/presences'
     | '/$school/profil'
+    | '/$school/roles'
     | '/$school/tableau-de-bord'
     | '/$school/enseignant/$'
     | '/$school/enseignant/appel'
@@ -645,6 +656,7 @@ export interface FileRouteTypes {
     | '/$school/_gestion/parametres'
     | '/$school/_gestion/presences'
     | '/$school/_gestion/profil'
+    | '/$school/_gestion/roles'
     | '/$school/_gestion/tableau-de-bord'
     | '/$school/enseignant/$'
     | '/$school/enseignant/appel'
@@ -922,6 +934,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SchoolGestionProfilRouteImport
       parentRoute: typeof SchoolGestionRouteRoute
     }
+    '/$school/_gestion/roles': {
+      id: '/$school/_gestion/roles'
+      path: '/roles'
+      fullPath: '/$school/roles'
+      preLoaderRoute: typeof SchoolGestionRolesRouteImport
+      parentRoute: typeof SchoolGestionRouteRoute
+    }
     '/$school/_gestion/tableau-de-bord': {
       id: '/$school/_gestion/tableau-de-bord'
       path: '/tableau-de-bord'
@@ -1093,6 +1112,7 @@ interface SchoolGestionRouteRouteChildren {
   SchoolGestionParametresRoute: typeof SchoolGestionParametresRoute
   SchoolGestionPresencesRoute: typeof SchoolGestionPresencesRoute
   SchoolGestionProfilRoute: typeof SchoolGestionProfilRoute
+  SchoolGestionRolesRoute: typeof SchoolGestionRolesRoute
   SchoolGestionTableauDeBordRoute: typeof SchoolGestionTableauDeBordRoute
   SchoolGestionElevesStudentIdRoute: typeof SchoolGestionElevesStudentIdRoute
   SchoolGestionRecusPaymentIdRoute: typeof SchoolGestionRecusPaymentIdRoute
@@ -1118,6 +1138,7 @@ const SchoolGestionRouteRouteChildren: SchoolGestionRouteRouteChildren = {
   SchoolGestionParametresRoute: SchoolGestionParametresRoute,
   SchoolGestionPresencesRoute: SchoolGestionPresencesRoute,
   SchoolGestionProfilRoute: SchoolGestionProfilRoute,
+  SchoolGestionRolesRoute: SchoolGestionRolesRoute,
   SchoolGestionTableauDeBordRoute: SchoolGestionTableauDeBordRoute,
   SchoolGestionElevesStudentIdRoute: SchoolGestionElevesStudentIdRoute,
   SchoolGestionRecusPaymentIdRoute: SchoolGestionRecusPaymentIdRoute,

@@ -13,6 +13,7 @@ import {
   Receipt,
   School,
   Settings,
+  ShieldCheck,
   Sparkles,
   UserPlus,
   UserRound,
@@ -47,6 +48,7 @@ export type NavKey =
   | 'messages'
   | 'calendar'
   | 'settings'
+  | 'roles'
   | 'home'
   | 'myClasses'
   | 'rollCall'
@@ -110,6 +112,7 @@ export const BACK_OFFICE_NAV: NavSection[] = [
     key: 'admin',
     items: [
       { key: 'settings', path: 'parametres', icon: Settings, permission: 'school.settings.view' },
+      { key: 'roles', path: 'roles', icon: ShieldCheck, permission: 'roles.manage' },
     ],
   },
 ]

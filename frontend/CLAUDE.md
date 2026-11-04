@@ -31,7 +31,7 @@ src/
 - Données serveur : TanStack Query uniquement (`useQuery` / `useMutation` dans `features/<domaine>/api.ts`), pas d'état global pour elles.
 - Client HTTP : une seule instance `openapi-fetch` dans `lib/api/client.ts` (cookie de session, voir « Authentification »).
   Son middleware ajoute `X-School-Id` et le jeton CSRF, efface les données locales sur un 401 (`UnauthorizedError`)
-  et lève `ValidationError` (messages par champ) sur un 422.
+  et lève `ValidationError` (messages par champ) sur un 422 et `ConflictError` (`code` métier) sur un 409.
   Seuls les hooks de `features/<domaine>/api.ts` importent `api` ; les composants n'importent jamais `openapi-fetch`
   (ESLint `no-restricted-imports`).
 - Formulaires : react-hook-form + zod ; les messages d'erreur 422 du backend sont affichés sur les champs correspondants.
@@ -90,7 +90,12 @@ src/
   (`lib/demo/hooks.ts`, clé `['school', <id>, …]`). Quand un module backend existera, seul le `queryFn` du hook change.
   `VITE_DEMO_MODULES=false` : ces hooks lèvent `ModuleUnavailableError` et `<QueryState>` affiche « Bientôt disponible ».
 - Restent branchés sur la vraie API : authentification, `/me`, établissements, **cycles et leurs paramètres**
-  (`features/cycles/api.ts`) et la réinitialisation de mot de passe d'un utilisateur réel.
+  (`features/cycles/api.ts`), **rôles et permissions** (`features/roles`, écran `/{slug}/roles`) et la réinitialisation
+  de mot de passe d'un utilisateur réel.
+- Rôles : clé système (`director`…) ou identifiant d'un rôle personnalisé de l'école (ADR 0006). Libellé par
+  `useRoleLabel()` (`features/auth/roles.ts` : traduction `roles.<clé>`, ou `role_name` de `/me`), jamais une traduction
+  directe de la clé (un rôle personnalisé n'a pas de traduction). Un rôle personnalisé ouvre le back-office. Libellés des permissions : `permissions.<clé>` ; modules :
+  `permissionGroups.<module>`. Éditeur : on ne coche que ce que l'on détient sur toute l'école (`canGrant`, même règle que l'API).
 - Le comportement des écrans pédagogiques vient des paramètres du cycle (`usePedagogyClasses`) : notes pour
   `assessment_mode = weighted_average`, compétences pour `competency`, appel pour `attendance_mode = roll_call`,
   garderie pour `check_in_out`, bulletin ou livret selon `report_document`.

@@ -26,3 +26,20 @@ export const validationErrorBodySchema = z.object({
   message: z.string(),
   errors: z.record(z.string(), z.array(z.string())),
 })
+
+/** 409 : conflit métier ; `code` stable fourni par l'API (`role_in_use`, `role_locked`…). */
+export class ConflictError extends Error {
+  override readonly name = 'ConflictError'
+
+  readonly code: string
+
+  constructor(code: string, message: string) {
+    super(message)
+    this.code = code
+  }
+}
+
+export const conflictErrorBodySchema = z.object({
+  message: z.string(),
+  code: z.string(),
+})

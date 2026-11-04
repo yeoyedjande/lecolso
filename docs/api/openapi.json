@@ -585,6 +585,227 @@
                 }
             }
         },
+        "/roles": {
+            "get": {
+                "operationId": "roles.index",
+                "description": "R\u00f4les syst\u00e8me (dans l'ordre : promoteur, direction, secr\u00e9tariat, comptabilit\u00e9, enseignant, parent) puis r\u00f4les\npersonnalis\u00e9s par nom, avec leurs permissions et le nombre d'affectations. Qui g\u00e8re les r\u00f4les ou voit les\nutilisateurs.",
+                "summary": "R\u00f4les de l'\u00e9cole",
+                "tags": [
+                    "SchoolRole"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `SchoolRoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SchoolRoleResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "roles.store",
+                "description": "Permission roles.manage sur toute l'\u00e9cole. On ne peut accorder que des permissions que l'on d\u00e9tient sur\ntoute l'\u00e9cole (422 sinon), jamais une permission r\u00e9serv\u00e9e aux parents.",
+                "summary": "Cr\u00e9er un r\u00f4le personnalis\u00e9",
+                "tags": [
+                    "SchoolRole"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreSchoolRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`SchoolRoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolRoleResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/roles/{role}": {
+            "patch": {
+                "operationId": "roles.update",
+                "description": "R\u00f4le personnalis\u00e9 : nom, description, permissions. R\u00f4le syst\u00e8me modifiable (secr\u00e9tariat, comptabilit\u00e9) :\npermissions seulement. Autre r\u00f4le syst\u00e8me : 409 `role_locked`. 404 si le r\u00f4le n'existe pas dans l'\u00e9cole.",
+                "summary": "Modifier un r\u00f4le",
+                "tags": [
+                    "SchoolRole"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSchoolRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`SchoolRoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolRoleResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "roles.destroy",
+                "description": "409 `role_in_use` s'il est encore attribu\u00e9, 409 `role_locked` pour un r\u00f4le syst\u00e8me, 404 s'il n'existe pas\ndans l'\u00e9cole.",
+                "summary": "Supprimer un r\u00f4le personnalis\u00e9",
+                "tags": [
+                    "SchoolRole"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/permissions": {
+            "get": {
+                "operationId": "permissions.index",
+                "description": "Toutes les permissions, group\u00e9es par module, pour l'\u00e9cran des r\u00f4les.",
+                "summary": "Catalogue des permissions",
+                "tags": [
+                    "SchoolRole"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PermissionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PermissionResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/public/schools/{slug}": {
             "get": {
                 "operationId": "public.schools.show",
@@ -916,6 +1137,26 @@
                 ],
                 "title": "LoginRequest"
             },
+            "PermissionResource": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "group": {
+                        "type": "string"
+                    },
+                    "staff_assignable": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "key",
+                    "group",
+                    "staff_assignable"
+                ],
+                "title": "PermissionResource"
+            },
             "ProfileResource": {
                 "type": "object",
                 "properties": {
@@ -1020,15 +1261,12 @@
                 "type": "object",
                 "properties": {
                     "role": {
-                        "type": "string",
-                        "enum": [
-                            "super_admin",
-                            "promoter",
-                            "director",
-                            "secretary",
-                            "accountant",
-                            "teacher",
-                            "guardian"
+                        "type": "string"
+                    },
+                    "role_name": {
+                        "type": [
+                            "string",
+                            "null"
                         ]
                     },
                     "cycle_id": {
@@ -1040,6 +1278,7 @@
                 },
                 "required": [
                     "role",
+                    "role_name",
                     "cycle_id"
                 ],
                 "title": "RoleAssignmentResource"
@@ -1138,6 +1377,51 @@
                 ],
                 "title": "SchoolResource"
             },
+            "SchoolRoleResource": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_system": {
+                        "type": "boolean"
+                    },
+                    "is_editable": {
+                        "type": "boolean"
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "assignments_count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "key",
+                    "name",
+                    "description",
+                    "is_system",
+                    "is_editable",
+                    "permissions",
+                    "assignments_count"
+                ],
+                "title": "SchoolRoleResource"
+            },
             "SchoolType": {
                 "type": "string",
                 "description": "Type d'\u00e9tablissement (ADR 0003) : seul preschool_primary est disponible en V1.\n",
@@ -1147,6 +1431,37 @@
                     "higher"
                 ],
                 "title": "SchoolType"
+            },
+            "StoreSchoolRoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 60
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "description": "Cl\u00e9s de GET /permissions ; valid\u00e9es par ValidateRolePermissions (catalogue, parents, \u00e9l\u00e9vation)",
+                        "items": {
+                            "type": "string"
+                        },
+                        "maxItems": 100,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "name",
+                    "permissions"
+                ],
+                "title": "StoreSchoolRoleRequest"
             },
             "UpdateCycleRequest": {
                 "type": "object",
@@ -1181,6 +1496,32 @@
                     }
                 },
                 "title": "UpdateCycleRequest"
+            },
+            "UpdateSchoolRoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 60
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "maxItems": 100,
+                        "uniqueItems": true
+                    }
+                },
+                "title": "UpdateSchoolRoleRequest"
             }
         },
         "responses": {

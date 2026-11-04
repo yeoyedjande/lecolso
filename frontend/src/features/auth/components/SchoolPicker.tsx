@@ -1,17 +1,12 @@
 import { Check, ChevronRight } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 
 import { Reveal } from '@/components/motion/Reveal'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-import type { Membership, Role } from '../access'
-
-/** Rôles distincts de l'utilisateur dans un établissement. */
-function rolesOf(membership: Membership): Role[] {
-  return [...new Set(membership.roles.map((assignment) => assignment.role))]
-}
+import type { Membership } from '../access'
+import { distinctRoles, useRoleLabel } from '../roles'
 
 /** Cartes des établissements de l'utilisateur ; l'établissement courant est signalé. */
 export function SchoolPicker({
@@ -23,7 +18,7 @@ export function SchoolPicker({
   currentId: string | null
   onPick: (school: Membership) => void
 }) {
-  const { t } = useTranslation()
+  const roleLabel = useRoleLabel()
 
   return (
     <ul className="grid gap-3">
@@ -48,9 +43,9 @@ export function SchoolPicker({
                 <span className="grid min-w-0 flex-1 gap-2">
                   <span className="truncate font-display text-lg font-semibold">{school.name}</span>
                   <span className="flex flex-wrap gap-1.5">
-                    {rolesOf(school).map((role) => (
-                      <Badge key={role} variant="secondary">
-                        {t(`roles.${role}`)}
+                    {distinctRoles(school).map((role) => (
+                      <Badge key={role.role} variant="secondary">
+                        {roleLabel(role)}
                       </Badge>
                     ))}
                   </span>

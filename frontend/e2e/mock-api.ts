@@ -87,6 +87,7 @@ const CYCLES = [
   },
 ]
 
+/** Même catalogue et même ordre que backend/config/permissions.php (permissions par défaut des rôles système). */
 const PERMISSIONS: Record<string, Role[]> = {
   'school.settings.view': ['promoter', 'director', 'secretary'],
   'school.settings.manage': ['promoter', 'director'],
@@ -97,11 +98,38 @@ const PERMISSIONS: Record<string, Role[]> = {
   'billing.pay': ['guardian'],
   'grades.view': ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
   'grades.manage': ['director', 'teacher'],
+  'grades.validate': ['director'],
   'attendance.view': ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
   'attendance.manage': ['director', 'secretary', 'teacher'],
   'attendance.justify': ['guardian'],
   'messaging.send': ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],
+  'subscription.view': ['promoter', 'director'],
+  'subscription.pay': ['promoter'],
   'users.reset_password': ['director', 'secretary'],
+  'users.view': ['promoter', 'director'],
+  'users.manage': ['promoter', 'director'],
+  'roles.manage': ['promoter', 'director'],
+}
+
+const SYSTEM_ROLE_KEYS: Role[] = [
+  'promoter',
+  'director',
+  'secretary',
+  'accountant',
+  'teacher',
+  'guardian',
+]
+const EDITABLE_SYSTEM_ROLES: Role[] = ['secretary', 'accountant']
+const GUARDIAN_ONLY = ['billing.pay', 'attendance.justify']
+
+interface MockRole {
+  key: string
+  name: string | null
+  description: string | null
+  is_system: boolean
+  is_editable: boolean
+  permissions: string[]
+  assignments_count: number
 }
 
 interface Assignment {
@@ -201,6 +229,7 @@ function profileOf(account: Account, mustChangePassword: boolean) {
     schools: [...bySchool].map(([key, assignments]) => {
       const roles = assignments.map((assignment) => ({
         role: assignment.role,
+        role_name: null,
         cycle_id: assignment.cycle ?? null,
       }))
       const permissions: Record<string, string[] | null> = {}
@@ -266,6 +295,77 @@ export async function mockApi(
     created_at: `2026-0${String(index + 7)}-01T08:00:00+00:00`,
   }))
   const origin = new URL(E2E_API_URL).origin
+  // Rôles personnalisés et ajustements des rôles système, par école (comme la table school_roles)
+  const customRoles = new Map<string, MockRole[]>()
+  const overrides = new Map<string, Map<string, string[]>>()
+  let roleCounter = 0
+  const schoolKeyOf = (schoolId: string) =>
+    (['lauriers', 'genies'] satisfies (keyof typeof SCHOOLS)[]).find(
+      (key) => SCHOOLS[key].id === schoolId,
+    )
+  const rolesOf = (schoolId: string): MockRole[] => {
+    const schoolKey = schoolKeyOf(schoolId)
+    const accounts: Account[] = Object.values(ACCOUNTS)
+    const count = (role: string) =>
+      accounts.reduce(
+        (sum, account) =>
+          sum +
+          account.roles.filter(
+            (assignment) => assignment.school === schoolKey && assignment.role === role,
+          ).length,
+        0,
+      )
+    const system = SYSTEM_ROLE_KEYS.map((key) => ({
+      key,
+      name: null,
+      description: null,
+      is_system: true,
+      is_editable: EDITABLE_SYSTEM_ROLES.includes(key),
+      permissions:
+        overrides.get(schoolId)?.get(key) ??
+        Object.keys(PERMISSIONS).filter((permission) => PERMISSIONS[permission]?.includes(key)),
+      assignments_count: count(key),
+    }))
+    return [...system, ...(customRoles.get(schoolId) ?? [])]
+  }
+  /** Permissions de l'utilisateur connecté sur toute l'école (règle d'élévation de l'API). */
+  const heldSchoolWide = (schoolId: string): string[] => {
+    const schoolKey = schoolKeyOf(schoolId)
+    const roles = (current?.roles ?? []).filter(
+      (assignment) => assignment.school === schoolKey && assignment.cycle === undefined,
+    )
+    return Object.keys(PERMISSIONS).filter((permission) =>
+      roles.some((assignment) => PERMISSIONS[permission]?.includes(assignment.role)),
+    )
+  }
+  const roleBody = z.object({
+    name: z.optional(z.string()),
+    description: z.optional(z.nullable(z.string())),
+    permissions: z.optional(z.array(z.string())),
+  })
+  const permissionErrors = (
+    schoolId: string,
+    permissions: string[],
+    currentPermissions: string[],
+  ) => {
+    const unknown = permissions.findIndex(
+      (permission) => !(permission in PERMISSIONS) || GUARDIAN_ONLY.includes(permission),
+    )
+    if (unknown !== -1) return { [`permissions.${String(unknown)}`]: ['Permission refusée.'] }
+    const held = heldSchoolWide(schoolId)
+    const notHeld = permissions.filter(
+      (permission) => !currentPermissions.includes(permission) && !held.includes(permission),
+    )
+    return notHeld.length === 0
+      ? null
+      : {
+          permissions: [
+            `Vous ne pouvez accorder que des permissions que vous détenez vous-même sur toute l’école : ${notHeld.join(', ')}.`,
+          ],
+        }
+  }
+  const ordered = (permissions: string[]) =>
+    Object.keys(PERMISSIONS).filter((permission) => permissions.includes(permission))
 
   await page.route(`${origin}/sanctum/csrf-cookie`, (route) => route.fulfill({ status: 204 }))
 
@@ -407,7 +507,112 @@ export async function mockApi(
           },
         })
       }
+      case 'GET /permissions':
+        return route.fulfill({
+          json: {
+            data: Object.keys(PERMISSIONS).map((key) => ({
+              key,
+              group: key.split('.')[0],
+              staff_assignable: !GUARDIAN_ONLY.includes(key),
+            })),
+          },
+        })
+      case 'GET /roles':
+        return route.fulfill({ json: { data: rolesOf(schoolHeader ?? '') } })
+      case 'POST /roles': {
+        const schoolId = schoolHeader ?? ''
+        const body = roleBody.parse(request.postDataJSON())
+        const name = (body.name ?? '').trim()
+        const list = customRoles.get(schoolId) ?? []
+        if (list.some((role) => role.name?.toLowerCase() === name.toLowerCase())) {
+          return route.fulfill({
+            status: 422,
+            json: {
+              message: 'Un rôle porte déjà ce nom dans l’école.',
+              errors: { name: ['Un rôle porte déjà ce nom dans l’école.'] },
+            },
+          })
+        }
+        const errors = permissionErrors(schoolId, body.permissions ?? [], [])
+        if (errors !== null)
+          return route.fulfill({ status: 422, json: { message: 'Permissions refusées.', errors } })
+        roleCounter += 1
+        const role: MockRole = {
+          key: `0195f000-0000-7000-8000-00000000c0${String(roleCounter).padStart(2, '0')}`,
+          name,
+          description: body.description ?? null,
+          is_system: false,
+          is_editable: true,
+          permissions: ordered(body.permissions ?? []),
+          assignments_count: 0,
+        }
+        customRoles.set(schoolId, [...list, role])
+        return route.fulfill({ status: 201, json: { data: role } })
+      }
       default:
+        if (
+          path.startsWith('/roles/') &&
+          (request.method() === 'PATCH' || request.method() === 'DELETE')
+        ) {
+          const schoolId = schoolHeader ?? ''
+          const key = path.slice('/roles/'.length)
+          const role = rolesOf(schoolId).find((candidate) => candidate.key === key)
+          if (role === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (request.method() === 'DELETE') {
+            if (role.is_system)
+              return route.fulfill({
+                status: 409,
+                json: {
+                  message: 'Un rôle système ne peut pas être supprimé.',
+                  code: 'role_locked',
+                },
+              })
+            customRoles.set(
+              schoolId,
+              (customRoles.get(schoolId) ?? []).filter((candidate) => candidate.key !== key),
+            )
+            return route.fulfill({ status: 204 })
+          }
+          if (!role.is_editable)
+            return route.fulfill({
+              status: 409,
+              json: { message: 'Ce rôle système ne peut pas être modifié.', code: 'role_locked' },
+            })
+          const body = roleBody.parse(request.postDataJSON())
+          if (body.permissions !== undefined) {
+            const errors = permissionErrors(schoolId, body.permissions, role.permissions)
+            if (errors !== null)
+              return route.fulfill({
+                status: 422,
+                json: { message: 'Permissions refusées.', errors },
+              })
+          }
+          const updated: MockRole = {
+            ...role,
+            name: role.is_system ? null : (body.name?.trim() ?? role.name),
+            description: role.is_system
+              ? null
+              : body.description === undefined
+                ? role.description
+                : body.description,
+            permissions:
+              body.permissions === undefined ? role.permissions : ordered(body.permissions),
+          }
+          if (role.is_system) {
+            const map = overrides.get(schoolId) ?? new Map<string, string[]>()
+            map.set(key, updated.permissions)
+            overrides.set(schoolId, map)
+          } else {
+            customRoles.set(
+              schoolId,
+              (customRoles.get(schoolId) ?? []).map((candidate) =>
+                candidate.key === key ? updated : candidate,
+              ),
+            )
+          }
+          return route.fulfill({ json: { data: updated } })
+        }
         if (request.method() === 'GET' && path.startsWith('/public/schools/')) {
           const slug = path.slice('/public/schools/'.length)
           const school = Object.values(SCHOOLS).find((candidate) => candidate.slug === slug)

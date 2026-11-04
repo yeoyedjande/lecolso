@@ -54,6 +54,10 @@ it('ne nomme la connexion super-admin que dans Platform', function (): void {
 });
 
 it('n’utilise withoutGlobalScope(s) qu’à l’endroit justifié', function (): void {
-    // Seule exception : RoleAssignment::ofUser() (ses propres affectations dans toutes ses écoles, garanties par la RLS)
-    expect(appFilesContaining('withoutGlobalScope', ['Domains/Identity/Models/RoleAssignment.php']))->toBe([]);
+    // Exceptions : RoleAssignment::ofUser() (ses propres affectations dans toutes ses écoles) et SchoolRole::ofSchool()
+    // (rôles des écoles où l'on a une affectation), garanties par la RLS
+    expect(appFilesContaining('withoutGlobalScope', [
+        'Domains/Identity/Models/RoleAssignment.php',
+        'Domains/Identity/Models/SchoolRole.php',
+    ]))->toBe([]);
 });

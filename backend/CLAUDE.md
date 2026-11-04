@@ -97,12 +97,17 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   pilote `rls`) pose `app.user_id` avant de charger un utilisateur ; la recherche par identifiant passe par la fonction
   SQL `SECURITY DEFINER` `auth_user_id(login)`, qui ne renvoie qu'un identifiant. `ClearTenantContext` remet le contexte
   à zéro en fin de requête.
-- **Droits** : `config/permissions.php` (matrice du cahier) + `Authorizer::allows($user, $permission, $school, $cycle)`,
+- **Droits** : `config/permissions.php` (catalogue des permissions et permissions par défaut des rôles système)
+  + rôles de l'école (`RoleCatalog::rolesOf`, ADR 0006 : rôles système, ajustés pour ceux de `config/roles.php`, et rôles
+  personnalisés de `school_roles`) + `Authorizer::allows($user, $permission, $school, $cycle)`,
   appelé par les Policies (`Gate::policy` dans `IdentityServiceProvider`). Une affectation limitée à un cycle ne couvre pas
-  les ressources de toute l'école. Paramètres de route (`{cycle}`, `{user}`) liés après `ResolveSchool` (priorité des
-  middlewares), donc sous la RLS de l'école courante : modèle d'une autre école = 404.
-- `RoleAssignment::ofUser($user)` : seule exception autorisée au scope « école courante » (affectations de l'utilisateur
-  dans toutes ses écoles, garanties par la RLS).
+  les ressources de toute l'école. `role_assignments.role` : clé système ou UUID d'un rôle personnalisé de l'école.
+  Nouvelle permission : une ligne dans `config/permissions.php` et son libellé `permissions.<clé>` dans `frontend/src/i18n/fr.json`.
+  Conflit métier : lever `App\Support\Http\BusinessConflict($code, $message)` (409 `{ message, code }`).
+  Paramètres de route (`{cycle}`, `{user}`) liés après `ResolveSchool` (priorité des middlewares), donc sous la RLS
+  de l'école courante : modèle d'une autre école = 404.
+- `RoleAssignment::ofUser($user)` et `SchoolRole::ofSchool($schoolId)` : seules exceptions autorisées au scope
+  « école courante » (affectations de l'utilisateur, rôles de ses écoles : lecture garantie par la RLS).
 - SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
   journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
 
@@ -149,7 +154,8 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   migrations seulement) et `pgsql_platform` (rôle `app_platform`, via `Platform::run()` uniquement).
   `tests/TestCase.php` surcharge `migrateFreshUsing()` pour migrer avec `--database=pgsql_owner` ; les requêtes des tests passent par `pgsql`.
 - Helpers (`tests/Pest.php`) : `makeSchool(['kindergarten'])` (`null` = tous les cycles), `inSchool($school, fn)`,
-  `assignRole($user, $school, Role::Director, $cycle)`, `makeUser()`, `superAdmin()`, `cycleOf($school, 'primary')`,
+  `assignRole($user, $school, Role::Director, $cycle)` (ou la clé d'un rôle personnalisé), `customRole($school, ['students.view'])`,
+  `makeUser()`, `superAdmin()`, `cycleOf($school, 'primary')`,
   `rows($sql)`, `distinctColumn(…)` ; `School::factory()->withCycles()`, `User::factory()->withProvisionalPassword()`.
 - Requêtes HTTP authentifiées : `actingAsRole(Role::Director, $school, cycle: $maternelle)` (vraie connexion par session),
   `login($user)`, puis `spa('GET', '/api/v1/cycles', [], $school)`. `Tests\Support\SpaClient` se comporte comme le navigateur

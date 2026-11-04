@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Domains\Identity\Authorization;
 
 use App\Domains\Academic\Models\Cycle;
+use App\Domains\Identity\Data\EffectiveRole;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\School;
-use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Support\Collection;
-use InvalidArgumentException;
 
 /**
- * Droits d'un utilisateur dans une école, selon ses affectations (rôle + cycle) et config/permissions.php.
- * Appelé par les Policies, jamais par les contrôleurs.
+ * Droits d'un utilisateur dans une école, selon ses affectations (rôle + cycle) et les rôles effectifs de l'école
+ * (RoleCatalog : rôles système, éventuellement ajustés, et rôles personnalisés).
+ * Appelé par les Policies, jamais par les contrôleurs. Une affectation à un rôle inconnu ne donne rien.
  *
  * Règle des cycles : une affectation sans cycle couvre toute l'école ; une affectation limitée à un cycle
  * ne couvre que les ressources de ce cycle. Une ressource de toute l'école ($cycle null) exige donc
@@ -22,15 +22,22 @@ use InvalidArgumentException;
  */
 final readonly class Authorizer
 {
-    public function __construct(private Config $config) {}
+    public function __construct(private RoleCatalog $catalog) {}
 
     public function allows(User $user, string $permission, School|string $school, Cycle|string|null $cycle = null): bool
     {
-        $roles = $this->rolesFor($permission);
+        $this->catalog->assertKnownPermission($permission);
+        $assignments = $this->assignments($user, $school);
+
+        if ($assignments->isEmpty()) {
+            return false;
+        }
+
+        $roles = $this->catalog->rolesOf($school);
         $cycleId = $cycle instanceof Cycle ? $cycle->id : $cycle;
 
-        return $this->assignments($user, $school)->contains(
-            static fn (RoleAssignment $assignment): bool => in_array($assignment->role->value, $roles, true)
+        return $assignments->contains(
+            static fn (RoleAssignment $assignment): bool => self::grants($roles, $assignment, $permission)
                 && ($assignment->cycle_id === null || ($cycleId !== null && $assignment->cycle_id === $cycleId)),
         );
     }
@@ -43,11 +50,17 @@ final readonly class Authorizer
     public function permissionsFor(User $user, School|string $school): array
     {
         $assignments = $this->assignments($user, $school);
+
+        if ($assignments->isEmpty()) {
+            return [];
+        }
+
+        $roles = $this->catalog->rolesOf($school);
         $permissions = [];
 
-        foreach ($this->matrix() as $permission => $roles) {
+        foreach ($this->catalog->permissions() as $permission) {
             $granting = $assignments->filter(
-                static fn (RoleAssignment $assignment): bool => in_array($assignment->role->value, $roles, true),
+                static fn (RoleAssignment $assignment): bool => self::grants($roles, $assignment, $permission),
             );
 
             if ($granting->isEmpty()) {
@@ -79,6 +92,14 @@ final readonly class Authorizer
     }
 
     /**
+     * @param  array<string, EffectiveRole>  $roles
+     */
+    private static function grants(array $roles, RoleAssignment $assignment, string $permission): bool
+    {
+        return ($roles[$assignment->role] ?? null)?->grants($permission) === true;
+    }
+
+    /**
      * Cycles distincts et triés d'un ensemble d'affectations limitées à un cycle.
      *
      * @param  Collection<int, RoleAssignment>  $assignments
@@ -105,25 +126,5 @@ final readonly class Authorizer
         $schoolId = $school instanceof School ? $school->id : $school;
 
         return RoleAssignment::ofUser($user)->where('school_id', $schoolId)->get();
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function rolesFor(string $permission): array
-    {
-        return $this->matrix()[$permission]
-            ?? throw new InvalidArgumentException("Permission inconnue : {$permission} (config/permissions.php)");
-    }
-
-    /**
-     * @return array<string, list<string>>
-     */
-    private function matrix(): array
-    {
-        /** @var array<string, list<string>> $matrix */
-        $matrix = $this->config->array('permissions');
-
-        return $matrix;
     }
 }

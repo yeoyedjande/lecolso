@@ -4,7 +4,13 @@ import { env } from '@/lib/env'
 import { clearLocalData } from '@/lib/offline/wipe'
 
 import { XSRF_HEADER, ensureXsrfToken, readXsrfToken, refreshCsrfCookie } from './csrf'
-import { UnauthorizedError, ValidationError, validationErrorBodySchema } from './errors'
+import {
+  ConflictError,
+  conflictErrorBodySchema,
+  UnauthorizedError,
+  ValidationError,
+  validationErrorBodySchema,
+} from './errors'
 import type { paths } from './schema'
 import { session } from './session'
 
@@ -70,6 +76,13 @@ export const sessionMiddleware: Middleware = {
       const parsed = validationErrorBodySchema.safeParse(await response.clone().json())
       if (parsed.success) {
         throw new ValidationError(parsed.data.message, parsed.data.errors)
+      }
+    }
+
+    if (response.status === 409) {
+      const parsed = conflictErrorBodySchema.safeParse(await response.clone().json())
+      if (parsed.success) {
+        throw new ConflictError(parsed.data.code, parsed.data.message)
       }
     }
 
