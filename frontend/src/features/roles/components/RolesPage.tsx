@@ -100,18 +100,18 @@ export function RolesPage() {
                 <li key={role.key}>
                   <Card className="h-full">
                     <CardContent className="flex h-full flex-col gap-4 pt-6">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary">
-                            <ShieldCheck aria-hidden className="size-5" />
-                          </span>
-                          <h2 className="truncate font-display text-lg font-semibold">
+                      <div className="flex items-start gap-3">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary">
+                          <ShieldCheck aria-hidden className="size-5" />
+                        </span>
+                        <div className="grid min-w-0 justify-items-start gap-1">
+                          <h2 className="font-display text-lg leading-tight font-semibold break-words">
                             {label(role)}
                           </h2>
+                          <Badge variant={role.is_system ? 'secondary' : 'default'}>
+                            {role.is_system ? t('rolesAdmin.system') : t('rolesAdmin.custom')}
+                          </Badge>
                         </div>
-                        <Badge variant={role.is_system ? 'secondary' : 'default'}>
-                          {role.is_system ? t('rolesAdmin.system') : t('rolesAdmin.custom')}
-                        </Badge>
                       </div>
                       {description(role) !== null && (
                         <p className="text-sm text-muted-foreground">{description(role)}</p>
