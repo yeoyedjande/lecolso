@@ -34,6 +34,17 @@ test('plusieurs établissements : le lien profond désigne l’école, aucun cho
   await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
 })
 
+test('accueil sans session : connexion, pas d’écran d’erreur (régression staging)', async ({
+  page,
+}) => {
+  await mockApi(page)
+  await page.goto('/')
+
+  await expect(page).toHaveURL(/\/connexion/)
+  await expect(page.getByRole('heading', { name: 'Bon retour parmi nous', level: 1 })).toBeVisible()
+  await expect(page.getByText('Un problème est survenu')).toHaveCount(0)
+})
+
 test('identifiants refusés : message sur le champ, sans dire lequel est faux', async ({ page }) => {
   await mockApi(page)
   await page.goto('/connexion')
