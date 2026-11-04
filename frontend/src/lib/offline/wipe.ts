@@ -1,4 +1,4 @@
-import { STORAGE_PREFIX } from '@/lib/api/session'
+import { session, STORAGE_PREFIX } from '@/lib/api/session'
 
 import { db } from './db'
 
@@ -16,6 +16,8 @@ const APP_SHELL_CACHE_PREFIX = 'workbox-precache'
 export async function clearLocalData(): Promise<void> {
   await Promise.allSettled([clearDexie(), clearCaches()])
   clearLocalStorage()
+  // Établissement gardé en mémoire par l'onglet : oublié aussi
+  session.setSchoolId(null)
 }
 
 async function clearDexie(): Promise<void> {

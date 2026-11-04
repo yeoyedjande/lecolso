@@ -29,13 +29,24 @@ function write(key: string, value: string | null): void {
       window.localStorage.setItem(key, value)
     }
   } catch {
-    // Ignoré : l'établissement reste sélectionné pour l'onglet courant via les écouteurs
+    // Ignoré : l'établissement reste sélectionné pour l'onglet courant (tabSchoolId)
   }
 }
 
+/**
+ * Établissement de CET onglet, lu une fois dans localStorage au démarrage. Un autre onglet qui change d'école
+ * écrit dans localStorage sans modifier celui-ci : l'écran affiché et l'en-tête X-School-Id restent cohérents.
+ * localStorage ne sert qu'à retrouver le dernier choix à l'ouverture d'un nouvel onglet.
+ */
+let tabSchoolId: string | null | undefined
+
 export const session = {
-  getSchoolId: (): string | null => read(SCHOOL_KEY),
+  getSchoolId: (): string | null => {
+    tabSchoolId ??= read(SCHOOL_KEY)
+    return tabSchoolId
+  },
   setSchoolId: (schoolId: string | null): void => {
+    tabSchoolId = schoolId
     write(SCHOOL_KEY, schoolId)
     schoolListeners.forEach((listener) => {
       listener()
