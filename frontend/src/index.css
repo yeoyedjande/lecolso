@@ -244,3 +244,23 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Impression : seul le document (bulletin, livret) s'imprime quand un aperçu est ouvert */
+@media print {
+  body:has([data-print-document]) #root {
+    display: none;
+  }
+  [data-slot='dialog-overlay'] {
+    display: none;
+  }
+  [data-slot='dialog-content'] {
+    position: static !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

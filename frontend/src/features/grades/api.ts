@@ -1,7 +1,7 @@
 import { useDemoMutation, useDemoQuery } from '@/lib/demo/hooks'
 import type { SkillLevel } from '@/lib/demo/types'
 
-import { addAssessment, classResults, gradeGrid, saveGrade, setSkill, skillMatrix } from './demo'
+import { addAssessment, classResults, gradeGrid, reportCard, reportStatus, saveGrade, setSkill, skillMatrix } from './demo'
 
 export function useSubjects() {
   return useDemoQuery(['grades', 'subjects'], (school) => school.subjects)
@@ -40,4 +40,12 @@ export function useSetSkill() {
       setSkill(school, input.studentId, input.skillId, input.term, input.level)
     },
   )
+}
+
+export function useReportStatus(classroomId: string, term: number, kind: 'report_card' | 'skills_booklet') {
+  return useDemoQuery(['grades', 'reports', classroomId, term, kind], (school) => reportStatus(school, classroomId, term, kind))
+}
+
+export function useReportCard(studentId: string, term: number, kind: 'report_card' | 'skills_booklet') {
+  return useDemoQuery(['grades', 'report', studentId, term, kind], (school) => reportCard(school, studentId, term, kind))
 }

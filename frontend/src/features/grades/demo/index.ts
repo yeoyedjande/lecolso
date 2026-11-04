@@ -138,3 +138,59 @@ export function appreciation(value: number | null): string {
   if (value >= 10) return 'Travail passable, peut mieux faire'
   return 'Résultats insuffisants, des efforts sont attendus'
 }
+
+export interface ReportCardData {
+  kind: 'report_card' | 'skills_booklet'
+  student: DemoStudent
+  name: string
+  classroom: string
+  teacher: string
+  school: { name: string; address: string; year: string; motto: string }
+  absences: number
+  results: ClassResults['rows'][number] | null
+  subjects: ClassResults['subjects']
+  classSize: number
+  classAverage: number | null
+  skills: { domain: string; label: string; level: SkillLevel | null }[]
+}
+
+/** Données d'un bulletin (moyenne pondérée) ou d'un livret (compétences) pour une période. */
+export function reportCard(school: DemoSchool, studentId: string, term: number, kind: ReportCardData['kind']): ReportCardData | null {
+  const student = school.students.find((candidate) => candidate.id === studentId)
+  const classroom = school.classrooms.find((candidate) => candidate.id === student?.classroomId)
+  if (student === undefined || classroom === undefined) return null
+  const results = kind === 'report_card' ? classResults(school, classroom.id, term) : null
+  return {
+    kind,
+    student,
+    name: fullName(student),
+    classroom: classroom.name,
+    teacher: classroom.teacher,
+    school: { name: school.name, address: school.address, year: school.year, motto: school.motto },
+    absences: school.attendance.filter((a) => a.studentId === studentId && (a.status === 'absent' || a.status === 'excused')).length,
+    results: results?.rows.find((row) => row.student.id === studentId) ?? null,
+    subjects: results?.subjects ?? [],
+    classSize: studentsOf(school, classroom.id).length,
+    classAverage: results?.classAverage ?? null,
+    skills: school.skills.map((skill) => ({
+      domain: skill.domain,
+      label: skill.label,
+      level: school.skillEvaluations.find((e) => e.skillId === skill.id && e.studentId === studentId && e.term === term)?.level ?? null,
+    })),
+  }
+}
+
+/** État des documents d'une classe : complet si toutes les moyennes (ou compétences) sont renseignées. */
+export function reportStatus(school: DemoSchool, classroomId: string, term: number, kind: ReportCardData['kind']): { student: DemoStudent; name: string; complete: boolean }[] {
+  const results = kind === 'report_card' ? classResults(school, classroomId, term) : null
+  return studentsOf(school, classroomId).map((student) => ({
+    student,
+    name: fullName(student),
+    complete:
+      kind === 'report_card'
+        ? Object.values(results?.rows.find((row) => row.student.id === student.id)?.bySubject ?? {}).every((value) => value !== null)
+        : school.skills.every((skill) =>
+            school.skillEvaluations.some((e) => e.skillId === skill.id && e.studentId === student.id && e.term === term && e.level !== null),
+          ),
+  }))
+}
