@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { LogOut } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useLogout, useMe } from '@/features/auth/api'
 import { AuthShell } from '@/features/auth/components/AuthShell'
 import { SchoolPicker } from '@/features/auth/components/SchoolPicker'
+import { SPACE_HOME, spacesOf } from '@/features/auth/access'
 import { guard, safeRedirect } from '@/features/auth/guard'
 import { session } from '@/lib/api/session'
 import { z } from 'zod/mini'
@@ -33,10 +33,13 @@ function SchoolsPage() {
   const navigate = useNavigate()
   const router = useRouter()
   const search = Route.useSearch()
-  const queryClient = useQueryClient()
   const { data: profile } = useMe()
   const logout = useLogout()
-  const currentId = useSyncExternalStore(session.subscribeSchool, session.getSchoolId, () => null)
+  const currentId = useSyncExternalStore(
+    session.subscribeSchool,
+    session.getLastSchoolId,
+    () => null,
+  )
   const schools = profile?.schools ?? []
 
   return (
@@ -67,13 +70,17 @@ function SchoolsPage() {
             schools={schools}
             currentId={currentId}
             onPick={(school) => {
-              if (school.id !== session.getSchoolId()) {
-                // Données d'un autre établissement : retirées du cache (le profil, lui, est commun)
-                queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
-                session.setSchoolId(school.id)
+              // Lien profond vers cette école (chemin interne uniquement) : rouvert tel quel ;
+              // sinon accueil de son premier espace. Les données en cache sont rangées par école (UUID).
+              const back = safeRedirect(search.redirect)
+              if (back?.startsWith(`/${school.slug}/`) === true) {
+                router.history.push(back)
+                return
               }
-              // Retour à l'écran demandé (chemin interne uniquement), sinon accueil de l'espace
-              router.history.push(safeRedirect(search.redirect) ?? '/')
+              const first = spacesOf(school)[0]
+              if (first !== undefined) {
+                void navigate({ to: SPACE_HOME[first], params: { school: school.slug } })
+              }
             }}
           />
         )}

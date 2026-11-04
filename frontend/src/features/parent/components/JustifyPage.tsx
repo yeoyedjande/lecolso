@@ -101,7 +101,7 @@ export function JustifyPage({
                       })
                       .then((count) => {
                         toast(t('parent.justify.success', { count }), { tone: 'success' })
-                        void navigate({ to: '/parent' })
+                        void navigate({ from: '/$school', to: '/$school/parent' })
                       })
                   }}
                 >

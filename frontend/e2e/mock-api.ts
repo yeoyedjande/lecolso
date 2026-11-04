@@ -11,7 +11,7 @@ export const DEMO_PASSWORD = 'Demo2026!'
 
 type Role = 'promoter' | 'director' | 'secretary' | 'accountant' | 'teacher' | 'guardian'
 
-const SCHOOLS = {
+export const SCHOOLS = {
   lauriers: {
     id: '0195f000-0000-7000-8000-000000000001',
     name: 'Les Lauriers',
@@ -226,6 +226,8 @@ function normalize(login: string): string {
 export interface MockApi {
   /** Nombre d'appels reçus par route (« POST /auth/login »). */
   calls: Map<string, number>
+  /** En-têtes X-School-Id reçus, dans l'ordre (contrôle d'isolation entre écoles). */
+  schoolHeaders: string[]
 }
 
 /**
@@ -240,6 +242,7 @@ export async function mockApi(
   let mustChange = current?.mustChangePassword ?? false
   let failures = 0
   const calls = new Map<string, number>()
+  const schoolHeaders: string[] = []
   interface MockSchool {
     id: string
     organization_id: null
@@ -269,6 +272,15 @@ export async function mockApi(
     const path = new URL(request.url()).pathname.replace('/api/v1', '')
     const key = `${request.method()} ${path}`
     calls.set(key, (calls.get(key) ?? 0) + 1)
+
+    // Comme ResolveSchool : école sans affectation pour le compte connecté = 404 (rien à deviner)
+    const schoolHeader = request.headers()['x-school-id']
+    if (schoolHeader !== undefined) {
+      schoolHeaders.push(schoolHeader)
+      const member =
+        current?.roles.some((role) => SCHOOLS[role.school].id === schoolHeader) ?? false
+      if (!member) return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+    }
 
     switch (key) {
       case 'GET /cycles': {
@@ -416,5 +428,5 @@ export async function mockApi(
     }
   })
 
-  return { calls }
+  return { calls, schoolHeaders }
 }

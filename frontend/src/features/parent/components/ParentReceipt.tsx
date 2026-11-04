@@ -14,7 +14,7 @@ export function ParentReceipt({ paymentId }: { paymentId: string }) {
     <QueryState query={payments}>
       {(list) =>
         list.some((payment) => payment.id === paymentId) ? (
-          <ReceiptPage paymentId={paymentId} backTo="/parent/paiements" />
+          <ReceiptPage paymentId={paymentId} backTo="/$school/parent/paiements" />
         ) : (
           <EmptyState headingLevel={1} illustration="lost" title={t('billing.receipt.notFound')} />
         )

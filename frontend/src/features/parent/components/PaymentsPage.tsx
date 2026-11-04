@@ -85,7 +85,11 @@ function MobileMoneyFlow({
         </p>
         <div className="grid w-full gap-2">
           <Button asChild size="lg">
-            <Link to="/parent/recus/$paymentId" params={{ paymentId: payment.id }}>
+            <Link
+              from="/$school"
+              to="/$school/parent/recus/$paymentId"
+              params={{ paymentId: payment.id }}
+            >
               <Receipt aria-hidden />
               {t('parent.payments.flow.seeReceipt')}
             </Link>
@@ -339,7 +343,8 @@ export function PaymentsPage() {
                 {list.map((payment) => (
                   <li key={payment.id}>
                     <Link
-                      to="/parent/recus/$paymentId"
+                      from="/$school"
+                      to="/$school/parent/recus/$paymentId"
                       params={{ paymentId: payment.id }}
                       className="flex items-center gap-3 rounded-2xl border bg-card px-4 py-3"
                     >

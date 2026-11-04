@@ -29,27 +29,25 @@ function write(key: string, value: string | null): void {
       window.localStorage.setItem(key, value)
     }
   } catch {
-    // Ignoré : l'établissement reste sélectionné pour l'onglet courant (tabSchoolId)
+    // Ignoré : l'établissement reste actif pour l'onglet courant (activeSchoolId)
   }
 }
 
 /**
- * Établissement de CET onglet, lu une fois dans localStorage au démarrage. Un autre onglet qui change d'école
- * écrit dans localStorage sans modifier celui-ci : l'écran affiché et l'en-tête X-School-Id restent cohérents.
- * localStorage ne sert qu'à retrouver le dernier choix à l'ouverture d'un nouvel onglet.
+ * Établissement actif de CET onglet (routage par chemin, ADR 0005) : celui de l'URL `/{slug}/…`, posé par la garde
+ * des routes une fois l'appartenance vérifiée dans `/me`. Seul cet identifiant part dans X-School-Id : null tant
+ * qu'aucun écran d'établissement n'est ouvert dans l'onglet (aucune école devinée), et un autre onglet n'y touche pas.
+ * localStorage ne retient que la dernière école utilisée, pour l'accueil `/` d'un prochain onglet.
  */
-let tabSchoolId: string | null | undefined
+let activeSchoolId: string | null = null
 
 export const session = {
-  getSchoolId: (): string | null => {
-    // undefined = pas encore lu ; null = aucun établissement pour cet onglet (choix explicite, gardé tel quel)
-    if (tabSchoolId === undefined) {
-      tabSchoolId = read(SCHOOL_KEY)
-    }
-    return tabSchoolId
-  },
+  /** École active de l'onglet (en-tête X-School-Id). */
+  getSchoolId: (): string | null => activeSchoolId,
+  /** Dernière école utilisée, tous onglets confondus (accueil `/`, `/compte`) : jamais envoyée à l'API. */
+  getLastSchoolId: (): string | null => activeSchoolId ?? read(SCHOOL_KEY),
   setSchoolId: (schoolId: string | null): void => {
-    tabSchoolId = schoolId
+    activeSchoolId = schoolId
     write(SCHOOL_KEY, schoolId)
     schoolListeners.forEach((listener) => {
       listener()

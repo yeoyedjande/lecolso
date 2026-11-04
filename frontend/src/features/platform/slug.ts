@@ -1,4 +1,4 @@
-/** « École Les Flamboyants » → « ecole-les-flamboyants » (sous-domaine de la page de l'école). */
+/** « École Les Flamboyants » → « ecole-les-flamboyants » (adresse /{slug} de l’école sur l’application). */
 export function slugify(name: string): string {
   return name
     .normalize('NFD')

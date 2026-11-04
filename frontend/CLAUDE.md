@@ -39,9 +39,17 @@ src/
   ESLint l'impose (`i18next/no-literal-string` en mode `jsx-text-only`, en erreur) sur `src/**/*.tsx`, sauf tests,
   stories et `src/components/ui` (shadcn). Les clés sont typées depuis `src/i18n/fr.json` : une clé inconnue ne compile pas.
 - Montants : composant `<MoneyAmount value={15000} />` → « 15 000 FCFA ». Dates : JJ/MM/AAAA. Téléphones : `+225 07 00 00 00 00`.
-- L'URL de l'API vient uniquement de `import.meta.env.VITE_API_URL` (fixée au build sur Railway).
-- L'en-tête `X-School-Id` est ajouté par le client HTTP à partir de l'établissement sélectionné ; ne l'ajoute jamais ailleurs.
-  Sur `<slug>.<domaine>`, l'établissement est présélectionné à partir du slug ; sur `app.<domaine>`, l'utilisateur le choisit.
+- L'URL de l'API vient uniquement de `import.meta.env.VITE_API_URL` : `/api/v1` en staging et en production (même origine,
+  proxy Caddy), URL absolue en local.
+- **Routage par chemin (ADR 0005)** : chaque établissement est servi sur `/{slug}/…` (`routes/$school/`), jamais par
+  sous-domaine ni par nom d'hôte. Le slug n'est qu'une adresse : la garde retrouve l'école parmi celles de `/me`
+  (affectations réelles) ; sans affectation, ou slug inconnu, page introuvable (même réponse) et aucune requête.
+- L'en-tête `X-School-Id` (UUID, jamais le slug) est ajouté par le client HTTP à partir de l'école **active de l'onglet**
+  (`session.getSchoolId()`), posée par la garde ; ne l'ajoute jamais ailleurs. `session.getLastSchoolId()` (localStorage)
+  ne sert qu'à l'accueil `/` et à `/compte`.
+- Liens internes vers un écran d'école : `<Link from="/$school" to="/$school/eleves">` (le slug courant est repris) ;
+  vers une autre école : `params={{ school: slug }}`. Toute nouvelle route de premier niveau doit être réservée dans
+  `backend/config/tenancy.php` (test `features/auth/reservedSegments.test.ts`).
 - Fichiers (photos, PDF) : toujours via les URL signées renvoyées par l'API, jamais d'URL de bucket construite côté client.
 - Les écrans s'adaptent aux droits : masquer ce que l'utilisateur ne peut pas faire (permissions renvoyées par `/me`), le backend restant la vraie barrière.
 - Les écrans s'adaptent au cycle : le mode d'évaluation, de présence et de facturation vient des `settings` du cycle, jamais d'un test sur son nom.
@@ -60,9 +68,12 @@ src/
   quand `VITE_DEMO_MODULES=true`).
 - Page `/design` : vitrine des tokens et composants, en local et en staging (`VITE_APP_ENV`) ; en production, `vite.config.ts`
   remplace `DesignPage` par un module vide.
-- Espaces : `/gestion` (back-office, mode sombre possible), `/enseignant` et `/parent` (mobile, 360 px, toujours en clair).
+- Espaces d'un établissement : back-office sous `/{slug}/…` (`routes/$school/_gestion/`, accueil `/{slug}/tableau-de-bord`,
+  mode sombre possible), `/{slug}/enseignant` et `/{slug}/parent` (mobile, 360 px, toujours en clair) ; page publique `/{slug}`
+  et `/{slug}/preinscription` (sans session). Routes globales : `/connexion`, `/mot-de-passe`, `/etablissements`, `/compte`,
+  `/plateforme`, `/etat`, `/design`.
   Règles d'accès pures et testées dans `features/auth/access.ts` (`decideAccess`), appliquées par `guard()` dans le `beforeLoad`
-  de chaque route : session, mot de passe provisoire, établissement, espace. Menus dans `features/shell/nav.ts`, filtrés par
+  de chaque espace (avec le slug de l'URL) : session, mot de passe provisoire, appartenance à l'école, espace. Menus dans `features/shell/nav.ts`, filtrés par
   les permissions de `/me`. Un écran pas encore livré tombe sur la route attrape-tout `$.tsx` de l'espace (« Bientôt disponible »).
 
 ## Données de démonstration (modules sans backend)
@@ -81,9 +92,9 @@ src/
   garderie pour `check_in_out`, bulletin ou livret selon `report_document`.
 - Espaces parent et enseignant : rattachement par le téléphone du compte (`features/parent`, `features/teacher`) ; un parent
   ne lit que ses enfants, un enseignant que ses classes (tests de cloisonnement dans `parent.test.ts`).
-- Plateforme (`/plateforme`, super-admin, `features/platform`) et page publique (`/ecole/<slug>`, `features/public`) :
-  vraie API (`/platform/schools`, `/public/schools/{slug}`). Sur `<slug>.<domaine>` sans session, l'accueil mène à la page
-  publique. Tarifs publics et pré-inscription restent en démonstration.
+- Plateforme (`/plateforme`, super-admin, `features/platform`) et page publique (`/{slug}`, `features/public`) :
+  vraie API (`/platform/schools`, `/public/schools/{slug}` : résolution publique par slug, sans `/me` ni affectation).
+  Tarifs publics et pré-inscription restent en démonstration.
 - Graphiques : Recharts, couleurs de `components/charts/chartTheme.ts` et `CYCLE_CHART` (palette validée), toujours avec
   un tableau équivalent pour les lecteurs d'écran.
 
@@ -100,7 +111,7 @@ src/
   et les clés `localStorage` de l'application, à la déconnexion et sur tout 401.
 - Authentification : cookie de session httpOnly (Sanctum, mode SPA), `credentials: 'include'`, en-tête `X-XSRF-TOKEN`
   (cookie `XSRF-TOKEN` récupéré par `/sanctum/csrf-cookie` si absent, nouvel essai unique après un 419). Aucun jeton
-  côté JavaScript ; `localStorage` ne garde que l'établissement sélectionné. Hooks : `features/auth/api.ts`.
+  côté JavaScript ; `localStorage` ne garde que la dernière école utilisée. Hooks : `features/auth/api.ts`.
 
 ## Accessibilité et UX
 
@@ -111,7 +122,8 @@ src/
 
 - Vitest + Testing Library pour composants et hooks (`*.test.tsx` à côté du fichier). MSW pour simuler l'API.
 - Playwright (`e2e/`) pour les parcours critiques : connexion, inscription d'un élève, encaissement, saisie de notes, appel hors connexion.
-  API simulée par `e2e/mock-api.ts` (contrat OpenAPI, comptes du seeder de démo), en 360 et 1280 px.
+  API simulée par `e2e/mock-api.ts` (contrat OpenAPI, comptes du seeder de démo, 404 pour un `X-School-Id` sans affectation),
+  en 360 et 1280 px. Cloisonnement entre écoles par l'URL : `e2e/tenancy.spec.ts`.
 - Accessibilité : `e2e/a11y.spec.ts` passe axe (WCAG 2.1 A/AA) sur chaque écran de `e2e/screens.ts`, en clair et en sombre
   pour le back-office. Tout nouvel écran y est ajouté.
 - Captures : `npm run e2e:captures` → `captures/360/` et `captures/1280/` (non versionnées), à joindre à chaque pull request.

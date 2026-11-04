@@ -16,10 +16,10 @@ import { useReceipt } from '../api'
 /** Reçu imprimable (format A5 portrait à l'impression ; le menu et l'en-tête sont masqués). */
 export function ReceiptPage({
   paymentId,
-  backTo = '/gestion/caisse',
+  backTo = '/$school/caisse',
 }: {
   paymentId: string
-  backTo?: '/gestion/caisse' | '/parent/paiements'
+  backTo?: '/$school/caisse' | '/$school/parent/paiements'
 }) {
   const { t } = useTranslation()
   const query = useReceipt(paymentId)
@@ -28,7 +28,7 @@ export function ReceiptPage({
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Button asChild variant="ghost" size="sm">
-          <Link to={backTo}>
+          <Link from="/$school" to={backTo}>
             <ArrowLeft aria-hidden />
             {t('billing.receipt.back')}
           </Link>

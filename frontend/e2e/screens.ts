@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { ACCOUNTS, mockApi, type Account } from './mock-api.ts'
 
-/** Écrans de l'étape 6a, avec le compte connecté et l'établissement choisi pour les afficher. */
+/** Écrans de l'application (adresses par chemin /{slug}/…), avec le compte connecté et la dernière école utilisée. */
 export interface Screen {
   name: string
   path: string
@@ -35,7 +35,7 @@ export const SCREENS: Screen[] = [
   },
   {
     name: 'gestion-accueil',
-    path: '/gestion',
+    path: '/les-lauriers/tableau-de-bord',
     session: ACCOUNTS.director,
     school: LAURIERS,
     dark: true,
@@ -43,30 +43,30 @@ export const SCREENS: Screen[] = [
   },
   ...(
     [
-      ['gestion-eleves', '/gestion/eleves', /^\d+ élèves$/],
-      ['gestion-fiche-eleve', '/gestion/eleves/lau-el-0001', 'Matricule'],
-      ['gestion-inscription', '/gestion/inscriptions', 'Étape 1 sur 4'],
-      ['gestion-import', '/gestion/import', 'Colonnes attendues (première ligne du fichier)'],
-      ['gestion-classes', '/gestion/classes', 'Enseignant(e) titulaire'],
+      ['gestion-eleves', '/les-lauriers/eleves', /^\d+ élèves$/],
+      ['gestion-fiche-eleve', '/les-lauriers/eleves/lau-el-0001', 'Matricule'],
+      ['gestion-inscription', '/les-lauriers/inscriptions', 'Étape 1 sur 4'],
+      ['gestion-import', '/les-lauriers/import', 'Colonnes attendues (première ligne du fichier)'],
+      ['gestion-classes', '/les-lauriers/classes', 'Enseignant(e) titulaire'],
       [
         'gestion-encaissement',
-        '/gestion/encaissements?eleve=lau-el-0001',
+        '/les-lauriers/encaissements?eleve=lau-el-0001',
         'Reste à payer sur l’année',
       ],
-      ['gestion-recu', '/gestion/recus/pay-lau-00001', /Arrêté le présent reçu/],
-      ['gestion-impayes', '/gestion/impayes', 'Total en retard'],
-      ['gestion-caisse', '/gestion/caisse', 'Par moyen de paiement'],
-      ['gestion-echeanciers', '/gestion/echeanciers', 'Recouvrement'],
-      ['gestion-frais', '/gestion/frais', 'Optionnel'],
-      ['gestion-notes', '/gestion/notes', 'Évaluation 1'],
-      ['gestion-competences', '/gestion/competences', 'Langage oral'],
-      ['gestion-bulletins', '/gestion/bulletins', /Complet|Notes manquantes/],
-      ['gestion-presences', '/gestion/presences', /présent\(s\)/],
-      ['gestion-garderie', '/gestion/garderie', /enfant\(s\) présent\(s\)/],
-      ['gestion-messages', '/gestion/messages', 'Retard du matin'],
-      ['gestion-calendrier', '/gestion/calendrier', 'À venir ce mois-ci'],
-      ['gestion-parametres', '/gestion/parametres', 'Nom de l’établissement'],
-      ['gestion-profil', '/gestion/profil', 'Établissements et rôles'],
+      ['gestion-recu', '/les-lauriers/recus/pay-lau-00001', /Arrêté le présent reçu/],
+      ['gestion-impayes', '/les-lauriers/impayes', 'Total en retard'],
+      ['gestion-caisse', '/les-lauriers/caisse', 'Par moyen de paiement'],
+      ['gestion-echeanciers', '/les-lauriers/echeanciers', 'Recouvrement'],
+      ['gestion-frais', '/les-lauriers/frais', 'Optionnel'],
+      ['gestion-notes', '/les-lauriers/notes', 'Évaluation 1'],
+      ['gestion-competences', '/les-lauriers/competences', 'Langage oral'],
+      ['gestion-bulletins', '/les-lauriers/bulletins', /Complet|Notes manquantes/],
+      ['gestion-presences', '/les-lauriers/presences', /présent\(s\)/],
+      ['gestion-garderie', '/les-lauriers/garderie', /enfant\(s\) présent\(s\)/],
+      ['gestion-messages', '/les-lauriers/messages', 'Retard du matin'],
+      ['gestion-calendrier', '/les-lauriers/calendrier', 'À venir ce mois-ci'],
+      ['gestion-parametres', '/les-lauriers/parametres', 'Nom de l’établissement'],
+      ['gestion-profil', '/les-lauriers/profil', 'Établissements et rôles'],
     ] as const
   ).map(([name, path, ready]): Screen => ({
     name,
@@ -78,16 +78,16 @@ export const SCREENS: Screen[] = [
   })),
   ...(
     [
-      ['enseignant-accueil', '/enseignant', 'Faire l’appel'],
-      ['enseignant-appel', '/enseignant/appel', /présent\(s\)/],
-      ['enseignant-notes', '/enseignant/notes', 'Évaluation'],
+      ['enseignant-accueil', '/les-lauriers/enseignant', 'Faire l’appel'],
+      ['enseignant-appel', '/les-lauriers/enseignant/appel', /présent\(s\)/],
+      ['enseignant-notes', '/les-lauriers/enseignant/notes', 'Évaluation'],
       [
         'enseignant-journal',
-        '/enseignant/journal',
+        '/les-lauriers/enseignant/journal',
         'Aucune de vos classes ne tient de journal quotidien (paramètre du cycle).',
       ],
-      ['enseignant-messages', '/enseignant/messages', 'Nouveau message'],
-      ['enseignant-profil', '/enseignant/profil', 'Changer mon mot de passe'],
+      ['enseignant-messages', '/les-lauriers/enseignant/messages', 'Nouveau message'],
+      ['enseignant-profil', '/les-lauriers/enseignant/profil', 'Changer mon mot de passe'],
     ] as const
   ).map(([name, path, ready]): Screen => ({
     name,
@@ -98,12 +98,12 @@ export const SCREENS: Screen[] = [
   })),
   ...(
     [
-      ['parent-accueil', '/parent', 'Reste à payer'],
-      ['parent-enfant', '/parent/enfants/lau-el-0001', 'Journal'],
-      ['parent-paiements', '/parent/paiements', 'Payer par Mobile Money'],
-      ['parent-messages', '/parent/messages', 'Devoirs de la semaine'],
-      ['parent-justifier', '/parent/justifier', 'Envoyer la justification'],
-      ['parent-profil', '/parent/profil', 'Changer mon mot de passe'],
+      ['parent-accueil', '/les-lauriers/parent', 'Reste à payer'],
+      ['parent-enfant', '/les-lauriers/parent/enfants/lau-el-0001', 'Journal'],
+      ['parent-paiements', '/les-lauriers/parent/paiements', 'Payer par Mobile Money'],
+      ['parent-messages', '/les-lauriers/parent/messages', 'Devoirs de la semaine'],
+      ['parent-justifier', '/les-lauriers/parent/justifier', 'Envoyer la justification'],
+      ['parent-profil', '/les-lauriers/parent/profil', 'Changer mon mot de passe'],
     ] as const
   ).map(([name, path, ready]): Screen => ({
     name,
@@ -126,19 +126,32 @@ export const SCREENS: Screen[] = [
     dark: true,
     ready: 'Directeur ou directrice',
   },
-  { name: 'ecole-publique', path: '/ecole/les-lauriers', ready: 'Scolarité' },
+  { name: 'ecole-publique', path: '/les-lauriers', ready: 'Scolarité' },
   {
     name: 'ecole-preinscription',
-    path: '/ecole/les-lauriers/preinscription',
+    path: '/les-lauriers/preinscription',
     ready: 'Niveau souhaité',
   },
   {
     name: 'ecole-inconnue',
-    path: '/ecole/inconnue',
+    path: '/inconnue',
     ready: 'Cette école n’existe pas ou n’a pas encore de page.',
   },
   { name: 'design', path: '/design', dark: true, ready: 'Design system' },
-  { name: 'introuvable', path: '/nulle-part', ready: 'Page introuvable' },
+  {
+    name: 'introuvable',
+    path: '/les-lauriers/nulle-part',
+    session: ACCOUNTS.director,
+    school: LAURIERS,
+    ready: 'Page introuvable',
+  },
+  {
+    name: 'ecole-sans-affectation',
+    path: '/petits-genies/eleves',
+    session: ACCOUNTS.director,
+    school: LAURIERS,
+    ready: 'Page introuvable',
+  },
   { name: 'etat', path: '/etat', ready: 'API : OK' },
 ]
 

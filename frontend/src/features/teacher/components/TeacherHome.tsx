@@ -76,13 +76,21 @@ export function TeacherHome() {
                           variant={classroom.rollCallDone ? 'outline' : 'accent'}
                           size="lg"
                         >
-                          <Link to="/enseignant/appel" search={{ classe: classroom.id }}>
+                          <Link
+                            from="/$school"
+                            to="/$school/enseignant/appel"
+                            search={{ classe: classroom.id }}
+                          >
                             <ClipboardCheck aria-hidden />
                             {t('teacher.home.rollCall')}
                           </Link>
                         </Button>
                         <Button asChild variant="outline" size="lg">
-                          <Link to="/enseignant/notes" search={{ classe: classroom.id }}>
+                          <Link
+                            from="/$school"
+                            to="/$school/enseignant/notes"
+                            search={{ classe: classroom.id }}
+                          >
                             <GraduationCap aria-hidden />
                             {t('teacher.home.grades')}
                           </Link>
@@ -103,7 +111,7 @@ export function TeacherHome() {
           size="lg"
           className="h-auto min-h-12 py-2 text-center whitespace-normal"
         >
-          <Link to="/enseignant/journal">
+          <Link from="/$school" to="/$school/enseignant/journal">
             <NotebookPen aria-hidden />
             {t('teacher.home.journal')}
           </Link>
@@ -114,7 +122,7 @@ export function TeacherHome() {
           size="lg"
           className="h-auto min-h-12 py-2 text-center whitespace-normal"
         >
-          <Link to="/enseignant/messages">
+          <Link from="/$school" to="/$school/enseignant/messages">
             <MessageCircle aria-hidden />
             {t('teacher.home.messages')}
           </Link>

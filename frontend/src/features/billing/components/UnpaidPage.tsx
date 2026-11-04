@@ -160,7 +160,8 @@ export function UnpaidPage() {
                         </TableCell>
                         <TableCell>
                           <Link
-                            to="/gestion/eleves/$studentId"
+                            from="/$school"
+                            to="/$school/eleves/$studentId"
                             params={{ studentId: row.student.id }}
                             className="grid font-semibold hover:underline"
                           >
@@ -187,7 +188,11 @@ export function UnpaidPage() {
                         <TableCell className="text-right">
                           <Can permission="billing.manage">
                             <Button asChild variant="ghost" size="sm">
-                              <Link to="/gestion/encaissements" search={{ eleve: row.student.id }}>
+                              <Link
+                                from="/$school"
+                                to="/$school/encaissements"
+                                search={{ eleve: row.student.id }}
+                              >
                                 <Wallet aria-hidden />
                                 {t('students.detail.collect')}
                               </Link>

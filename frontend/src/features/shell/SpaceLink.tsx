@@ -4,7 +4,8 @@ import type { ReactNode } from 'react'
 import type { Space } from '@/features/auth/access'
 
 /**
- * Lien vers un écran d'un espace (`path` relatif, '' = accueil de l'espace). Les écrans pas encore livrés
+ * Lien vers un écran d'un espace de l'établissement courant (`path` relatif, '' = accueil de l'espace :
+ * tableau de bord, /parent ou /enseignant). Les écrans pas encore livrés
  * sont servis par la route attrape-tout de l'espace (« Bientôt disponible »).
  */
 export function SpaceLink({
@@ -32,12 +33,29 @@ export function SpaceLink({
     children,
   }
 
+  // Liens relatifs à l'établissement de l'URL (/{slug}/…) : le slug courant est repris tel quel
   if (path === '') {
-    const to = space === 'gestion' ? '/gestion' : space === 'enseignant' ? '/enseignant' : '/parent'
-    return <Link to={to} activeOptions={{ exact: true, includeSearch: false }} {...common} />
+    const to =
+      space === 'gestion'
+        ? '/$school/tableau-de-bord'
+        : space === 'enseignant'
+          ? '/$school/enseignant'
+          : '/$school/parent'
+    return (
+      <Link
+        from="/$school"
+        to={to}
+        activeOptions={{ exact: true, includeSearch: false }}
+        {...common}
+      />
+    )
   }
 
   const to =
-    space === 'gestion' ? '/gestion/$' : space === 'enseignant' ? '/enseignant/$' : '/parent/$'
-  return <Link to={to} params={{ _splat: path }} {...common} />
+    space === 'gestion'
+      ? '/$school/$'
+      : space === 'enseignant'
+        ? '/$school/enseignant/$'
+        : '/$school/parent/$'
+  return <Link from="/$school" to={to} params={{ _splat: path }} {...common} />
 }
