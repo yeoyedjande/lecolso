@@ -18,6 +18,7 @@ import { formatAverage, formatDateTime, formatMoney, formatTime } from '@/lib/fo
 import { cn } from '@/lib/utils'
 
 import { useMyChildren } from '../api'
+import { relevantAnnouncements } from '../demo'
 
 /** Accueil parent : une carte par enfant, raccourcis vers les actions fréquentes, annonces. */
 export function ParentHome() {
@@ -176,19 +177,21 @@ export function ParentHome() {
         <QueryState query={announcements}>
           {(list) => (
             <ul className="grid gap-2">
-              {list.slice(0, 3).map((announcement) => (
-                <li key={announcement.id}>
-                  <Card>
-                    <CardContent className="grid gap-1 p-4">
-                      <p className="font-semibold">{announcement.title}</p>
-                      <p className="text-sm">{announcement.body}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateTime(announcement.sentAt)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </li>
-              ))}
+              {relevantAnnouncements(list, children.data ?? [])
+                .slice(0, 3)
+                .map((announcement) => (
+                  <li key={announcement.id}>
+                    <Card>
+                      <CardContent className="grid gap-1 p-4">
+                        <p className="font-semibold">{announcement.title}</p>
+                        <p className="text-sm">{announcement.body}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDateTime(announcement.sentAt)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </li>
+                ))}
             </ul>
           )}
         </QueryState>
