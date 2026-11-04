@@ -165,10 +165,13 @@ export interface DaycareBoard {
   }[]
 }
 
-export function daycareBoard(school: DemoSchool, date: string): DaycareBoard {
-  const toddlers = school.students.filter(
-    (student) => classroomOf(school, student).cycle === 'daycare',
-  )
+/** Enfants des classes suivies en arrivées/départs (choisies d'après le paramètre attendance_mode du cycle). */
+export function daycareBoard(
+  school: DemoSchool,
+  date: string,
+  classroomIds: readonly string[],
+): DaycareBoard {
+  const toddlers = school.students.filter((student) => classroomIds.includes(student.classroomId))
   return {
     date,
     children: toddlers

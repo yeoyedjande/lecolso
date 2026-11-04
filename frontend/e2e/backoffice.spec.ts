@@ -90,6 +90,14 @@ test('saisie des notes au clavier : Entrée descend, note invalide signalée', a
   await expect(page.getByText('Enregistré')).toBeVisible()
 })
 
+test('promoteur (consultation des notes) : grille en lecture seule', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.promoter })
+  await page.goto('/gestion/notes')
+  const cell = page.getByRole('textbox', { name: /^Note de .*, Évaluation 1$/ }).first()
+  await expect(cell).toHaveAttribute('readonly', '')
+  await expect(page.getByRole('button', { name: 'Nouvelle évaluation' })).toHaveCount(0)
+})
+
 test('comptabilité : finances visibles, inscription et paramètres fermés', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.accountant })
   await page.goto('/gestion/eleves')

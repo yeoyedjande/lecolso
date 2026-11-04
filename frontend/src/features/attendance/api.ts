@@ -37,8 +37,10 @@ export function useAbsences(date?: string) {
   )
 }
 
-export function useDaycareBoard() {
-  return useDemoQuery(['attendance', 'daycare'], (school, today) => daycareBoard(school, today))
+export function useDaycareBoard(classroomIds: readonly string[]) {
+  return useDemoQuery(['attendance', 'daycare', classroomIds], (school, today) =>
+    daycareBoard(school, today, classroomIds),
+  )
 }
 
 export function useDaycareCheck() {

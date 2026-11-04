@@ -29,7 +29,7 @@ const MOVES: Record<string, [number, number]> = {
  * Grille de saisie au clavier : flèches pour se déplacer, Entrée pour descendre, enregistrement de chaque
  * cellule à la sortie. Une note invalide reste affichée en erreur et n'est pas enregistrée.
  */
-export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
+export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable: boolean }) {
   const { t } = useTranslation()
   const save = useSaveGrade()
   const table = useRef<HTMLTableElement>(null)
@@ -56,7 +56,13 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
     const key = `${studentId}|${assessmentId}`
     const value = parseGrade(texts[key] ?? '')
     const row = grid.rows.find((candidate) => candidate.student.id === studentId)
-    if (value === undefined || row === undefined || (row.values[assessmentId] ?? null) === value)
+    // Lecture seule sans grades.manage (le backend refusera aussi l'écriture)
+    if (
+      !editable ||
+      value === undefined ||
+      row === undefined ||
+      (row.values[assessmentId] ?? null) === value
+    )
       return
     save.mutate({ assessmentId, studentId, value })
   }
@@ -116,6 +122,7 @@ export function GradeGridEditor({ grid }: { grid: GradeGrid }) {
                           data-row={rowIndex}
                           data-col={colIndex}
                           inputMode="decimal"
+                          readOnly={!editable}
                           aria-label={t('grades.cell', {
                             student: row.name,
                             assessment: assessment.title,

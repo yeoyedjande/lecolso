@@ -74,9 +74,11 @@ export function unpaid(school: DemoSchool, today: string): UnpaidRow[] {
     if (balance.overdue <= 0) continue
     const payer = student.guardians.find((guardian) => guardian.isPayer) ?? student.guardians[0]
     const classroom = classroomOf(school, student)
-    const firstLate = school.installments
-      .filter((installment) => installment.studentId === student.id && installment.dueDate <= today)
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0]
+    // Plus ancienne échéance non couverte (paiements imputés dans l'ordre des échéances)
+    const firstLate =
+      balance.nextInstallment !== null && balance.nextInstallment.dueDate <= today
+        ? balance.nextInstallment
+        : undefined
     rows.push({
       student,
       classroom: classroom.name,

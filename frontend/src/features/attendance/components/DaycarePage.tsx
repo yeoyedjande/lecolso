@@ -69,7 +69,6 @@ export function DaycarePage() {
     'attendance.view',
     (settings) => settings.attendance_mode === 'check_in_out',
   )
-  const board = useDaycareBoard()
   const check = useDaycareCheck()
   const addLog = useAddDaycareLog()
   const [checking, setChecking] = useState<{ child: Child; direction: 'in' | 'out' } | null>(null)
@@ -78,7 +77,7 @@ export function DaycarePage() {
   const [time, setTime] = useState(nowTime())
   const [kind, setKind] = useState<DaycareLogKind>('meal')
   const [note, setNote] = useState('')
-  const classIds = new Set(classrooms.map((classroom) => classroom.id))
+  const board = useDaycareBoard(classrooms.map((classroom) => classroom.id))
 
   return (
     <div className="grid gap-6">
@@ -90,9 +89,7 @@ export function DaycarePage() {
       ) : (
         <QueryState query={board} skeleton={<CardsSkeleton count={3} />}>
           {(data) => {
-            const children = data.children.filter((child) =>
-              classIds.has(child.student.classroomId),
-            )
+            const children = data.children
             const present = children.filter(
               (child) => child.visit?.arrivedAt != null && child.visit.leftAt === null,
             ).length

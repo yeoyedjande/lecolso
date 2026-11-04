@@ -26,7 +26,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { can } from '@/features/auth/access'
 import { Can } from '@/features/auth/RequirePermission'
+import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { termCount } from '@/features/cycles/useCycleSettings'
 import { demoToday } from '@/lib/demo/dates'
 import { formatAverage, formatRank } from '@/lib/format'
@@ -110,6 +112,7 @@ function Results({ classroomId, term }: { classroomId: string; term: number }) {
 /** Notes : saisie en grille (classes évaluées par moyenne pondérée), moyennes et rangs. */
 export function GradesPage() {
   const { t } = useTranslation()
+  const school = useCurrentSchool()
   const { classrooms, settingsOf, loading } = usePedagogyClasses(
     'grades.view',
     (settings) => settings.assessment_mode === 'weighted_average',
@@ -191,6 +194,7 @@ export function GradesPage() {
                   <EmptyState title={t('grades.noAssessment')} />
                 ) : (
                   <GradeGridEditor
+                    editable={can(school, 'grades.manage')}
                     key={`${classroom.id}-${subject?.code ?? ''}-${String(term)}-${String(data.assessments.length)}`}
                     grid={data}
                   />
