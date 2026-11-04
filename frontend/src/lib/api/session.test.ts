@@ -36,6 +36,20 @@ describe('session : établissement par onglet', () => {
     expect((await openTab()).getSchoolId()).toBe('ecole-b')
   })
 
+  it('un onglet sans établissement ne reprend pas celui choisi ensuite dans un autre onglet', async () => {
+    const session = await openTab()
+    expect(session.getSchoolId()).toBeNull()
+
+    window.localStorage.setItem(KEY, 'ecole-b')
+    expect(session.getSchoolId()).toBeNull()
+
+    // Après un effacement explicite (déconnexion, 401) non plus
+    session.setSchoolId('ecole-a')
+    session.setSchoolId(null)
+    window.localStorage.setItem(KEY, 'ecole-b')
+    expect(session.getSchoolId()).toBeNull()
+  })
+
   it('prévient les écouteurs de l’onglet et retient le choix pour les prochains onglets', async () => {
     const session = await openTab()
     const listener = vi.fn()

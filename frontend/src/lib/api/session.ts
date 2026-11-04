@@ -42,7 +42,10 @@ let tabSchoolId: string | null | undefined
 
 export const session = {
   getSchoolId: (): string | null => {
-    tabSchoolId ??= read(SCHOOL_KEY)
+    // undefined = pas encore lu ; null = aucun établissement pour cet onglet (choix explicite, gardé tel quel)
+    if (tabSchoolId === undefined) {
+      tabSchoolId = read(SCHOOL_KEY)
+    }
     return tabSchoolId
   },
   setSchoolId: (schoolId: string | null): void => {
