@@ -54,7 +54,6 @@ export function ClassesPage() {
                         <Link
                           to="/gestion/eleves"
                           search={{ classe: classroom.id }}
-                          aria-label={t('classes.seeStudents', { name: classroom.name })}
                           className={cn(
                             'grid gap-4 rounded-2xl border-l-4 bg-card p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift',
                             CYCLE_CLASSES[classroom.cycle].border,

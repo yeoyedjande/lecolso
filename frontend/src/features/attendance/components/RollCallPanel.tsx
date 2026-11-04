@@ -17,11 +17,11 @@ import type { RollCall } from '../demo'
 const CHOICES: { status: 'present' | 'absent' | 'late'; tone: string }[] = [
   {
     status: 'present',
-    tone: 'data-[on=true]:bg-success data-[on=true]:text-white data-[on=true]:border-success',
+    tone: 'data-[on=true]:bg-[#15803d] data-[on=true]:text-white data-[on=true]:border-[#15803d]',
   },
   {
     status: 'absent',
-    tone: 'data-[on=true]:bg-destructive data-[on=true]:text-white data-[on=true]:border-destructive',
+    tone: 'data-[on=true]:bg-[#b91c1c] data-[on=true]:text-white data-[on=true]:border-[#b91c1c]',
   },
   {
     status: 'late',
@@ -98,7 +98,11 @@ export function RollCallPanel({
                 <CardContent className="flex flex-wrap items-center gap-3 p-3">
                   <Avatar name={row.name} size="sm" />
                   <span className="min-w-0 flex-1 truncate font-medium">{row.name}</span>
-                  <div role="group" aria-label={row.name} className="flex gap-1">
+                  <div
+                    role="group"
+                    aria-label={row.name}
+                    className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto"
+                  >
                     {CHOICES.map((choice) => (
                       <button
                         key={choice.status}

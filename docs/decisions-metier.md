@@ -5,6 +5,9 @@ Une ligne par décision, la plus récente en haut.
 
 | Date | Domaine | Question | Décision |
 | --- | --- | --- | --- |
+| 04/11/2026 | Interface | Quels écrans pédagogiques pour quelle classe ? | D'après les paramètres du cycle, jamais son nom : notes (moyenne pondérée), compétences, appel ou arrivées/départs, bulletin ou livret. Un établissement qui change un paramètre voit l'écran correspondant changer |
+| 04/11/2026 | Finances | Taux de recouvrement affiché ? | Part de l'échu effectivement réglée à ce jour ; les paiements d'avance ne gonflent pas le taux |
+| 04/11/2026 | Finances | Reçu de paiement ? | Numéro séquentiel par établissement et par année, montant en chiffres et en lettres, reste à payer après le paiement, caissier ; une erreur se corrige par une annulation (à venir avec le module paiements) |
 | 04/11/2026 | Interface | Quel espace pour quel rôle ? | Promoteur, direction, secrétariat, comptabilité : back-office `/gestion`. Enseignant seul : `/enseignant` (mobile). Parent seul : `/parent` (mobile). Plusieurs rôles : premier espace dans cet ordre, puis sélecteur d'espace dans l'en-tête. Le menu masque ce que les permissions de `/me` ne permettent pas ; l'API reste la vraie barrière |
 | 04/11/2026 | Interface | Le mode sombre ? | Back-office seulement ; espaces parent et enseignant toujours en clair |
 | 04/11/2026 | Connexion | La case « se souvenir de moi » ? | Toujours affichée, avec l'aide « uniquement sur un téléphone personnel » : le type de compte n'est connu qu'après la connexion, et l'API ignore la case pour le personnel (session de 8 h) |

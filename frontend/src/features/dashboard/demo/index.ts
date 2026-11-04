@@ -9,6 +9,7 @@ export interface DashboardSummary {
   byCycle: { cycle: CycleCode; students: number; classrooms: number }[]
   month: { collected: number; expected: number; overdue: number }
   collectionRate: number
+  monthPayments: number
   absentToday: number
   lateToday: number
   rollCallsMissing: number
@@ -49,7 +50,6 @@ export function dashboard(school: DemoSchool, today: string): DashboardSummary {
   const dueToDate = school.installments
     .filter((i) => i.dueDate <= today)
     .reduce((sum, i) => sum + i.amount, 0)
-  const paidTotal = school.payments.reduce((sum, p) => sum + p.amount, 0)
   const absences = absencesOn(school, today)
   return {
     today,
@@ -60,8 +60,9 @@ export function dashboard(school: DemoSchool, today: string): DashboardSummary {
       classrooms: school.classrooms.filter((c) => c.cycle === cycle).length,
     })),
     month: { collected, expected, overdue },
-    collectionRate:
-      dueToDate === 0 ? 100 : Math.min(100, Math.round((paidTotal / dueToDate) * 100)),
+    // Part de l'échu effectivement réglée (les paiements d'avance ne comptent pas)
+    collectionRate: dueToDate === 0 ? 100 : Math.round(((dueToDate - overdue) / dueToDate) * 100),
+    monthPayments: school.payments.filter((p) => p.paidAt.startsWith(month)).length,
     absentToday: absences.filter((a) => a.status === 'absent' || a.status === 'excused').length,
     lateToday: absences.filter((a) => a.status === 'late').length,
     rollCallsMissing: school.classrooms.filter(

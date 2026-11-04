@@ -1,4 +1,4 @@
-import { motion, MotionConfig, type HTMLMotionProps } from 'motion/react'
+import { motion, MotionConfig, useReducedMotion, type HTMLMotionProps } from 'motion/react'
 import type { ReactNode } from 'react'
 
 /** Animations désactivées automatiquement si prefers-reduced-motion. */
@@ -8,6 +8,9 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
 /** Apparition douce (cartes, sections), en cascade avec `index`. */
 export function Reveal({ index = 0, ...props }: HTMLMotionProps<'div'> & { index?: number }) {
+  // Mouvement réduit : affichage immédiat (motion conserverait sinon le fondu d'opacité)
+  const reduce = useReducedMotion() ?? false
+  if (reduce) return <motion.div {...props} />
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -20,6 +23,8 @@ export function Reveal({ index = 0, ...props }: HTMLMotionProps<'div'> & { index
 
 /** Transition d'entrée d'une page. */
 export function PageTransition(props: HTMLMotionProps<'div'>) {
+  const reduce = useReducedMotion() ?? false
+  if (reduce) return <motion.div {...props} />
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}

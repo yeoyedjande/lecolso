@@ -304,9 +304,9 @@
       "students": "Élèves inscrits",
       "studentsHint": "répartis dans {{count}} classes",
       "collected": "Encaissé ce mois",
-      "collectedHint": "{{amount}} d’échéances ce mois-ci",
+      "collectedHint": "{{count}} paiement(s) ce mois-ci",
       "overdue": "Impayés à ce jour",
-      "overdueHint": "Taux de recouvrement : {{rate}} %",
+      "overdueHint": "Taux de recouvrement de l’échu : {{rate}} %",
       "absences": "Absents aujourd’hui",
       "absencesHint": "{{late}} retard(s) · {{missing}} appel(s) à faire",
       "absencesHintDone": "{{late}} retard(s) · tous les appels sont faits"
@@ -716,7 +716,7 @@
     "title": "Compétences",
     "description": "Livret de compétences : un clic pour faire évoluer une compétence (Acquis, En cours, Non acquis).",
     "noClass": "Aucune classe n’est évaluée par compétences.",
-    "cell": "{{skill}} — {{student}} : {{level}}",
+    "cell": "{{short}} ({{level}}) — {{skill}}, {{student}}",
     "legend": "Légende",
     "progress": "{{done}} évaluations sur {{total}}"
   },

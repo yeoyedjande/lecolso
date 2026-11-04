@@ -57,8 +57,8 @@ const ACTIVITY_ICONS = {
 
 function compactMoney(value: number): string {
   if (value >= 1_000_000)
-    return `${(value / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M`
-  if (value >= 1000) return `${String(Math.round(value / 1000))} k`
+    return `${(value / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}\u00a0M`
+  if (value >= 1000) return `${String(Math.round(value / 1000))}\u00a0k`
   return String(value)
 }
 
@@ -92,9 +92,7 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                 format={formatMoney}
                 icon={Wallet}
                 tone="accent"
-                hint={t('dashboard.kpi.collectedHint', {
-                  amount: formatMoney(data.month.expected),
-                })}
+                hint={t('dashboard.kpi.collectedHint', { count: data.monthPayments })}
               />
             </Reveal>
             <Reveal index={2}>
@@ -139,7 +137,7 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-64" aria-hidden>
+                <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={data.monthly}
@@ -257,7 +255,7 @@ function Dashboard({ data }: { data: DashboardSummary }) {
               <CardDescription>{t('dashboard.attendance.description')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-56" aria-hidden>
+              <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={data.attendance}

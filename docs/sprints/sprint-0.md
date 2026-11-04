@@ -119,7 +119,13 @@ Décisions à intégrer à cette étape (prises le 03/11/2026, voir `docs/decisi
 >   mode sombre du back-office, « Bientôt disponible » pour les écrans à venir, manifeste PWA.
 >   Tests : Vitest (formulaires, gardes, contrastes AA), Playwright + axe sur chaque écran en 360 et 1280 px, budget JS vérifié en CI.
 >   La case « se souvenir de moi » est toujours affichée (le profil n'est connu qu'après la connexion) ; l'API l'ignore pour le personnel.
-> - [ ] **6b** — back-office du personnel (`feat/ui-backoffice`)
+> - [x] **6b** — back-office du personnel : fait sur `feat/ui-backoffice`. Tableau de bord (Recharts), élèves (liste, fiche
+>   à 7 onglets), inscription pas à pas, import Excel (`read-excel-file`, erreurs ligne par ligne), classes, encaissement
+>   au guichet et reçu imprimable (montant en lettres), impayés et relance, caisse du jour, échéanciers, grille de frais,
+>   notes (grille clavier, moyennes, rangs), compétences, bulletins et livrets (aperçu A4), présences (appel, historique),
+>   garderie, messages et annonces, calendrier, paramètres (cycles sur la vraie API), profil. Données de démonstration
+>   cohérentes entre écrans (`lib/demo`). Tests : Vitest (calculs, formulaires), Playwright (encaissement, appel, notes,
+>   droits par rôle et par cycle) et axe sur les 23 écrans du back-office, en 360 et 1280 px, clair et sombre.
 > - [ ] **6c** — espaces parent et enseignant (`feat/ui-mobile`)
 > - [ ] **6d** — super-admin, page publique, pré-inscription, finitions (`feat/ui-platform-public`)
 

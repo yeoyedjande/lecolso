@@ -124,7 +124,7 @@ export function BackOfficeLayout() {
 
       <aside
         className={cn(
-          'sticky top-0 hidden h-dvh shrink-0 flex-col overflow-y-auto bg-sidebar px-3 py-5 text-sidebar-foreground transition-[width] duration-300 lg:flex',
+          'sticky top-0 hidden h-dvh shrink-0 flex-col overflow-y-auto bg-sidebar print:hidden px-3 py-5 text-sidebar-foreground transition-[width] duration-300 lg:flex',
           collapsed ? 'w-20' : 'w-68',
         )}
       >
@@ -174,7 +174,7 @@ export function BackOfficeLayout() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 print:hidden items-center gap-2 border-b bg-background/85 px-3 backdrop-blur sm:px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -195,7 +195,7 @@ export function BackOfficeLayout() {
         <main
           id="contenu"
           tabIndex={-1}
-          className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-10 lg:py-8"
+          className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-10 lg:py-8 print:p-0"
         >
           <PageTransition key={location.pathname} className="mx-auto w-full max-w-7xl">
             <Outlet />

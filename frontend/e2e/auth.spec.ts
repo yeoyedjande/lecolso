@@ -18,7 +18,7 @@ test('sans session, un écran protégé mène à la connexion puis y revient', a
   await login(page, '07 00 00 00 03')
 
   await expect(page).toHaveURL(/\/gestion\/eleves$/)
-  await expect(page.getByRole('heading', { name: 'Bientôt disponible', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
 })
 
 test('plusieurs établissements : le lien profond survit au choix de l’établissement', async ({
@@ -33,7 +33,7 @@ test('plusieurs établissements : le lien profond survit au choix de l’établi
   await page.getByRole('button', { name: /Les Lauriers/ }).click()
 
   await expect(page).toHaveURL(/\/gestion\/eleves$/)
-  await expect(page.getByRole('heading', { name: 'Bientôt disponible', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
 })
 
 test('identifiants refusés : message sur le champ, sans dire lequel est faux', async ({ page }) => {
@@ -120,7 +120,7 @@ test('plusieurs établissements : choix puis espace de gestion', async ({ page }
   await page.getByRole('button', { name: /Petits Génies/ }).click()
 
   await expect(page).toHaveURL(/\/gestion$/)
-  await expect(page.getByRole('heading', { name: 'Bonjour, Konan', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tableau de bord', level: 1 })).toBeVisible()
   await expect(page.getByText('Petits Génies').first()).toBeVisible()
 })
 

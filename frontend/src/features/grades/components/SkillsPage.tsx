@@ -153,6 +153,8 @@ export function SkillsPage() {
                                       type="button"
                                       disabled={!editable}
                                       aria-label={t('skills.cell', {
+                                        short:
+                                          level === null ? '·' : t(`skillLevelsShort.${level}`),
                                         skill: skill.label,
                                         student: row.name,
                                         level: t(`skillLevels.${key}`),
