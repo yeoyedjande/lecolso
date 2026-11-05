@@ -49,6 +49,9 @@ function smsPreview(rows: UnpaidRow[]): { names: string; amount: number } {
 /**
  * Impayés (vraie API) : factures en retard, relance SMS groupée par payeur (au plus tous les 7 jours, envoi en file).
  */
+/** Factures par relance (SendPaymentReminders::MAX_INVOICES) : au-delà, filtrer par cycle. */
+const MAX_REMIND = 1000
+
 const CYCLE_KEYS = ['daycare', 'kindergarten', 'primary']
 type CycleKey = 'daycare' | 'kindergarten' | 'primary'
 
@@ -133,9 +136,14 @@ export function UnpaidPage() {
                     </option>
                   ))}
                 </NativeSelect>
+                {selected.size > MAX_REMIND && (
+                  <p className="text-sm text-destructive-ink" role="status">
+                    {t('billing.unpaid.tooMany', { max: MAX_REMIND })}
+                  </p>
+                )}
                 <Button
                   variant="accent"
-                  disabled={selected.size === 0}
+                  disabled={selected.size === 0 || selected.size > MAX_REMIND}
                   onClick={() => {
                     setConfirming(true)
                   }}

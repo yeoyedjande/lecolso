@@ -1793,8 +1793,8 @@ export interface components {
         /**
          * RemindRequest
          * @description Relance SMS des payeurs de factures en retard (billing.manage sur le cycle de chaque facture). `invoice_ids` : 1 à
-         *     200 factures ; une facture inconnue ou hors du périmètre est refusée comme inexistante (422), une facture vue mais
-         *     non relançable donne 403.
+         *     1 000 factures (toute une école en une demande, pour garder un SMS par payeur) ; une facture inconnue ou hors du
+         *     périmètre est refusée comme inexistante (422), une facture vue mais non relançable donne 403.
          */
         RemindRequest: {
             invoice_ids: string[];

@@ -724,7 +724,8 @@
       },
       "remindRule": "Un parent déjà relancé depuis moins de 7 jours ne reçoit pas de nouveau SMS.",
       "skippedRecent": "{{count}} parent(s) déjà relancé(s) depuis moins de 7 jours",
-      "skippedNoPhone": "{{count}} facture(s) sans parent joignable par téléphone"
+      "skippedNoPhone": "{{count}} facture(s) sans parent joignable par téléphone",
+      "tooMany": "{{max}} factures au plus par relance : filtrez par cycle."
     },
     "cash": {
       "title": "Caisse du jour",

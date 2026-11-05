@@ -8,6 +8,7 @@ use App\Domains\Billing\Data\ReminderOutcome;
 use App\Domains\Billing\Enums\ReminderStatus;
 use App\Domains\Billing\Jobs\SendPaymentReminderSms;
 use App\Domains\Billing\Models\Invoice;
+use App\Domains\Billing\Models\Payer;
 use App\Domains\Billing\Models\PaymentReminder;
 use App\Domains\Billing\Support\InvoiceTotals;
 use App\Domains\Identity\Models\User;
@@ -23,6 +24,9 @@ use Illuminate\Support\Facades\DB;
 final class SendPaymentReminders
 {
     public const int MIN_DAYS_BETWEEN = 7;
+
+    /** Factures par demande : toute une école en une fois (un SMS par payeur, regroupement intact). */
+    public const int MAX_INVOICES = 1000;
 
     /**
      * @param  Collection<int, Invoice>  $invoices  factures autorisées (billing.manage sur leur cycle)
@@ -52,11 +56,13 @@ final class SendPaymentReminders
 
                     continue;
                 }
+                // Verrou sur le payeur (ligne stable) : deux relances simultanées du même parent s'attendent, la
+                // seconde voit la première et respecte le délai de 7 jours
+                Payer::query()->whereKey($first->payer_id)->lockForUpdate()->first();
                 $alreadyReminded = PaymentReminder::query()
                     ->where('payer_id', $first->payer_id)
                     ->where('status', '<>', ReminderStatus::Failed)
                     ->where('created_at', '>', $now->copy()->subDays(self::MIN_DAYS_BETWEEN))
-                    ->lockForUpdate()
                     ->exists();
                 if ($alreadyReminded) {
                     $recent++;

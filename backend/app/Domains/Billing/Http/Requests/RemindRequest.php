@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Billing\Http\Requests;
 
+use App\Domains\Billing\Actions\SendPaymentReminders;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Support\BillingScope;
 use App\Domains\Identity\Models\User;
@@ -14,8 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Relance SMS des payeurs de factures en retard (billing.manage sur le cycle de chaque facture). `invoice_ids` : 1 à
- * 200 factures ; une facture inconnue ou hors du périmètre est refusée comme inexistante (422), une facture vue mais
- * non relançable donne 403.
+ * 1 000 factures (toute une école en une demande, pour garder un SMS par payeur) ; une facture inconnue ou hors du
+ * périmètre est refusée comme inexistante (422), une facture vue mais non relançable donne 403.
  */
 final class RemindRequest extends FormRequest
 {
@@ -32,7 +33,7 @@ final class RemindRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'invoice_ids' => ['required', 'array', 'min:1', 'max:200'],
+            'invoice_ids' => ['required', 'array', 'min:1', 'max:'.SendPaymentReminders::MAX_INVOICES],
             'invoice_ids.*' => ['required', 'uuid', 'distinct'],
         ];
     }

@@ -6567,7 +6567,7 @@
             },
             "RemindRequest": {
                 "type": "object",
-                "description": "Relance SMS des payeurs de factures en retard (billing.manage sur le cycle de chaque facture). `invoice_ids` : 1 \u00e0\n200 factures ; une facture inconnue ou hors du p\u00e9rim\u00e8tre est refus\u00e9e comme inexistante (422), une facture vue mais\nnon relan\u00e7able donne 403.",
+                "description": "Relance SMS des payeurs de factures en retard (billing.manage sur le cycle de chaque facture). `invoice_ids` : 1 \u00e0\n1 000 factures (toute une \u00e9cole en une demande, pour garder un SMS par payeur) ; une facture inconnue ou hors du\np\u00e9rim\u00e8tre est refus\u00e9e comme inexistante (422), une facture vue mais non relan\u00e7able donne 403.",
                 "properties": {
                     "invoice_ids": {
                         "type": "array",
@@ -6576,7 +6576,7 @@
                             "format": "uuid"
                         },
                         "minItems": 1,
-                        "maxItems": 200,
+                        "maxItems": 1000,
                         "uniqueItems": true
                     }
                 },
