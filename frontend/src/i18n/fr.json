@@ -467,6 +467,20 @@
         "leave": "Départ de {{name}} enregistré",
         "return": "Retour de {{name}} enregistré"
       }
+    },
+    "photo": {
+      "add": "Ajouter une photo",
+      "replace": "Changer",
+      "remove": "Retirer",
+      "addOf": "Ajouter une photo de {{name}}",
+      "replaceOf": "Changer la photo de {{name}}",
+      "removeOf": "Retirer la photo de {{name}}",
+      "choose": "Choisir une photo de {{name}}",
+      "saved": "Photo enregistrée",
+      "removed": "Photo retirée",
+      "type": "Format non accepté : choisissez une photo JPEG, PNG ou WebP.",
+      "tooBig": "Photo trop lourde : 5 Mo au plus.",
+      "failed": "Envoi de la photo impossible. Réessayez."
     }
   },
   "attendanceStatus": {

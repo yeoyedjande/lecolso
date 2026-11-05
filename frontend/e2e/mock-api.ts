@@ -762,6 +762,7 @@ export async function mockApi(
   // enfants du compte parent ; matricules « LAU-000001 »)
   interface MockGuardian {
     id: string
+    photo_url?: string | null
     name: string
     phone: string
     email: string | null
@@ -785,6 +786,7 @@ export async function mockApi(
   }
   interface MockStudent {
     id: string
+    photo_url?: string | null
     matricule: string
     first_name: string
     last_name: string
@@ -994,6 +996,7 @@ export async function mockApi(
       phone: guardian?.phone ?? '',
       email: guardian?.email ?? null,
       profession: guardian?.profession ?? null,
+      photo_url: guardian?.photo_url ?? null,
       ...link,
     }
   }
@@ -1013,6 +1016,7 @@ export async function mockApi(
       full_name: fullName(student),
       gender: student.gender,
       birth_date: student.birth_date,
+      photo_url: student.photo_url ?? null,
       enrollment:
         enrollment === undefined || resource === undefined
           ? null
@@ -1080,6 +1084,7 @@ export async function mockApi(
         .map((other) => ({
           id: other.id,
           full_name: fullName(other),
+          photo_url: other.photo_url ?? null,
           classroom_name: studentRow(schoolId, other).enrollment?.classroom_name ?? null,
         })),
       can_manage: manages(schoolId, student),
@@ -1818,6 +1823,23 @@ export async function mockApi(
             const students = studentsOf(schoolId)
             students.splice(students.indexOf(student), 1)
             return route.fulfill({ status: 204 })
+          }
+          // Photos : l'API réelle renverrait une URL signée de 10 minutes ; image de test (1 × 1, orange)
+          const photo =
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg=='
+          if (sub === 'photo') {
+            student.photo_url = request.method() === 'POST' ? photo : null
+            return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+          }
+          if (sub === 'guardians' && path.endsWith('/photo')) {
+            const guardian = guardiansOf(schoolId).find((candidate) => candidate.id === guardianId)
+            if (
+              guardian === undefined ||
+              !student.links.some((link) => link.guardian_id === guardianId)
+            )
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            guardian.photo_url = request.method() === 'POST' ? photo : null
+            return route.fulfill({ json: { data: studentFile(schoolId, student) } })
           }
           if (sub === 'guardians') {
             if (request.method() === 'POST') {

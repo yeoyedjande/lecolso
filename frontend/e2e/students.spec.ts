@@ -137,3 +137,51 @@ test('parents : ajouter un parent et lui confier le paiement', async ({ page }) 
   await expect(card.getByText('Payeur', { exact: true })).toBeVisible()
   await expect(card.getByText('+225 05 44 55 66 77')).toBeVisible()
 })
+
+/** PNG 1 × 1 valide (l'API réelle le redresse, le réduit et le convertit en WebP). */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==',
+  'base64',
+)
+
+test('photos facultatives de l’élève et d’un parent', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto(`/les-lauriers/eleves/${ANGE}`)
+  await expect(page.getByRole('heading', { name: 'KOUADIO Ange', level: 1 })).toBeVisible()
+
+  // Format refusé avant tout envoi
+  await page
+    .getByLabel('Choisir une photo de KOUADIO Ange')
+    .setInputFiles({ name: 'photo.gif', mimeType: 'image/gif', buffer: Buffer.from('GIF89a') })
+  await expect(page.getByRole('alert').filter({ hasText: 'Format non accepté' })).toBeVisible()
+
+  await page
+    .getByLabel('Choisir une photo de KOUADIO Ange')
+    .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: PNG })
+  await expect(page.getByText('Photo enregistrée').first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Retirer la photo de KOUADIO Ange' })).toBeVisible()
+  await expect(page.locator('section img').first()).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Parents' }).click()
+  await page
+    .getByLabel('Choisir une photo de Kouadio Parent')
+    .setInputFiles({ name: 'parent.png', mimeType: 'image/png', buffer: PNG })
+  await expect(
+    page.getByRole('button', { name: 'Retirer la photo de Kouadio Parent' }),
+  ).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Identité' }).click()
+  await page.getByRole('button', { name: 'Retirer la photo de KOUADIO Ange' }).click()
+  await expect(page.getByText('Photo retirée').first()).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Ajouter une photo de KOUADIO Ange' }),
+  ).toBeVisible()
+})
+
+test('comptabilité : voit les photos sans pouvoir les changer', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.accountant })
+  await page.goto(`/les-lauriers/eleves/${ANGE}`)
+
+  await expect(page.getByRole('heading', { name: 'KOUADIO Ange', level: 1 })).toBeVisible()
+  await expect(page.getByRole('button', { name: /photo de/ })).toHaveCount(0)
+})

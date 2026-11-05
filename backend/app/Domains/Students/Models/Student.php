@@ -31,6 +31,7 @@ use Illuminate\Support\Carbon;
  * @property BloodType|null $blood_type
  * @property string|null $allergies
  * @property string|null $medical_notes
+ * @property string|null $photo_path photo WebP du stockage privé (Support\PersonPhoto)
  * @property Carbon|null $created_at
  * @property Carbon|null $deleted_at
  * @property-read Collection<int, Enrollment> $enrollments

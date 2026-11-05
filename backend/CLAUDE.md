@@ -140,9 +140,13 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).
   Jamais d'URL de bucket envoyée au client : l'API sert le fichier par une **URL signée relative** (`signed:relative`,
   préfixée par `APP_URL`), courte, et sans identifiant d'école dans le chemin si elle apparaît sur une page publique.
-  Exemple : logo d'école (`Tenancy\Support\SchoolLogo`, route `files.school-logo`, 30 minutes).
+  Exemples : logo d'école (`Tenancy\Support\SchoolLogo`, route `files.school-logo`, 30 minutes, page publique) ;
+  photos d'élèves et de tuteurs (`Students\Support\PersonPhoto`, route `files.person-photo`, **10 minutes**, URL
+  mise seulement dans les réponses destinées à qui voit l'élève ; `Students\Actions\ManagePhotos`, fichier effacé
+  avec le dossier ou le tuteur).
 - Images envoyées par les utilisateurs : `Support\Images\WebpImage::fromBytes()` (GD, aucune dépendance) — JPEG, PNG
-  ou WebP seulement, réduction, réencodage WebP qui retire les métadonnées (EXIF, position GPS). Jamais de SVG.
+  ou WebP seulement, redressement selon l'orientation EXIF (photos de téléphone), réduction, réencodage WebP qui
+  retire les métadonnées (EXIF, position GPS). Jamais de SVG.
 - Tests multipart : `SpaClient::upload($uri, ['champ' => $fichier], $entêtes)`.
 
 ## Journal d'audit

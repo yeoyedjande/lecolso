@@ -43,6 +43,7 @@ import {
   type StudentGuardian,
 } from '../api'
 import { EnrollmentDialog, type EnrollmentAction } from './EnrollmentDialog'
+import { PhotoControl } from './PhotoControl'
 import { GuardianSheet, StudentEditSheet } from './StudentSheets'
 
 function Info({ label, children }: { label: ReactNode; children: ReactNode }) {
@@ -108,7 +109,14 @@ function Detail({ file }: { file: StudentFile }) {
     <div className="grid gap-6">
       <section className="relative overflow-hidden rounded-3xl border bg-card p-5 shadow-soft sm:p-6">
         <div className="flex flex-wrap items-center gap-4">
-          <Avatar name={file.full_name} size="lg" />
+          <PhotoControl
+            studentId={file.id}
+            guardianId={null}
+            name={file.full_name}
+            photoUrl={file.photo_url}
+            editable={file.can_manage}
+            size="xl"
+          />
           <div className="grid min-w-0 flex-1 gap-1">
             <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
               {file.full_name}
@@ -225,7 +233,7 @@ function Detail({ file }: { file: StudentFile }) {
                         params={{ studentId: sibling.id }}
                         className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium hover:bg-muted"
                       >
-                        <Avatar name={sibling.full_name} size="sm" />
+                        <Avatar name={sibling.full_name} photoUrl={sibling.photo_url} size="sm" />
                         {sibling.full_name}
                         {sibling.classroom_name !== null && (
                           <span className="text-muted-foreground">{sibling.classroom_name}</span>
@@ -257,7 +265,7 @@ function Detail({ file }: { file: StudentFile }) {
               <li key={guardian.id}>
                 <Card>
                   <CardContent className="flex items-start gap-4 pt-6">
-                    <Avatar name={guardian.name} />
+                    <Avatar name={guardian.name} photoUrl={guardian.photo_url} />
                     <div className="grid min-w-0 flex-1 gap-1">
                       <p className="flex flex-wrap items-center gap-2 font-semibold">
                         {guardian.name}
@@ -291,6 +299,14 @@ function Detail({ file }: { file: StudentFile }) {
                             <Pencil aria-hidden />
                             {t('students.detail.edit')}
                           </Button>
+                          <PhotoControl
+                            studentId={file.id}
+                            guardianId={guardian.id}
+                            name={guardian.name}
+                            photoUrl={guardian.photo_url}
+                            editable
+                            showAvatar={false}
+                          />
                           {file.guardians.length > 1 && (
                             <Button
                               variant="ghost"

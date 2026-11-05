@@ -47,7 +47,7 @@ function StudentLink({ row, className }: { row: StudentRow; className: string })
       params={{ studentId: row.id }}
       className={className}
     >
-      <Avatar name={row.full_name} size="sm" />
+      <Avatar name={row.full_name} photoUrl={row.photo_url} size="sm" />
       <span className="grid min-w-0">
         <span className="truncate">{row.full_name}</span>
         <span className="text-xs font-normal text-muted-foreground">{row.matricule}</span>
