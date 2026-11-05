@@ -109,8 +109,26 @@ it('valide l’inscription', function (Closure $payload, string $field): void {
         ['name' => 'Mariam', 'phone' => '0701020304', 'relation' => 'mother'],
         ['name' => 'Ibrahim', 'phone' => '07 01 02 03 04', 'relation' => 'father'],
     ]), 'guardians.1.phone'],
+    'même numéro, deux formats' => [static fn (Classroom $c): array => enrollmentPayload($c, [], [
+        ['name' => 'Mariam', 'phone' => '0701020304', 'relation' => 'mother'],
+        ['name' => 'Ibrahim', 'phone' => '+2250701020304', 'relation' => 'father'],
+    ]), 'guardians.1.phone'],
     'classe inconnue' => [static fn (Classroom $c): array => [...enrollmentPayload($c), 'classroom_id' => '0195f000-0000-7000-8000-00000000dead'], 'classroom_id'],
 ]);
+
+it('désigne le premier tuteur payeur et contact principal quand aucun ne l’est', function (): void {
+    $school = makeSchool(['primary']);
+    actingAsRole(Role::Director, $school);
+
+    spa('POST', '/api/v1/enrollments', enrollmentPayload(classroomOf($school, 'CE1'), [], [
+        ['name' => 'Mariam Koné', 'phone' => '0701020304', 'relation' => 'mother', 'is_payer' => false, 'is_primary_contact' => false],
+        ['name' => 'Ibrahim Koné', 'phone' => '0501020304', 'relation' => 'father', 'is_payer' => false],
+    ]), $school)->assertCreated()
+        ->assertJsonPath('data.guardians.0.is_payer', true)
+        ->assertJsonPath('data.guardians.0.is_primary_contact', true)
+        ->assertJsonPath('data.guardians.1.is_payer', false)
+        ->assertJsonPath('data.guardians.1.is_primary_contact', false);
+});
 
 it('refuse une classe complète ou une année clôturée', function (): void {
     $school = makeSchool(['primary']);

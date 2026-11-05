@@ -11,6 +11,7 @@ use App\Domains\Students\Enums\BloodType;
 use App\Domains\Students\Enums\Gender;
 use App\Domains\Students\Models\Student;
 use App\Domains\Students\Policies\StudentPolicy;
+use App\Support\Phone\Phone;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
@@ -84,8 +85,9 @@ final class EnrollStudentRequest extends FormRequest
 
                 $phones = [];
                 foreach ($guardians as $index => $guardian) {
-                    $phone = is_array($guardian) && is_string($guardian['phone'] ?? null) ? preg_replace('/\D+/', '', $guardian['phone']) : null;
-                    if ($phone !== null && $phone !== '' && in_array($phone, $phones, true)) {
+                    // Comparaison en E.164, comme à l'enregistrement : « 0701020304 » et « +2250701020304 » sont le même numéro
+                    $phone = is_array($guardian) && is_string($guardian['phone'] ?? null) ? Phone::normalize($guardian['phone']) : null;
+                    if ($phone !== null && in_array($phone, $phones, true)) {
                         $validator->errors()->add("guardians.{$index}.phone", 'Ce numéro est déjà celui d’un autre tuteur.');
                     }
                     $phones[] = $phone;
@@ -126,8 +128,13 @@ final class EnrollStudentRequest extends FormRequest
             enrolledOn: $this->filled('enrolled_on')
                 ? $this->string('enrolled_on')->toString()
                 : Carbon::now(self::displayTimezone())->toDateString(),
+            // Sans payeur ou sans contact principal désigné (absents ou tous à false), c'est le premier tuteur
             guardians: array_map(
-                static fn (int $index, array $guardian) => self::guardianInput($guardian, ! $hasPrimary && $index === 0, ! $hasPayer && $index === 0),
+                static fn (int $index, array $guardian) => self::guardianInput([
+                    ...$guardian,
+                    ...(! $hasPrimary && $index === 0 ? ['is_primary_contact' => true] : []),
+                    ...(! $hasPayer && $index === 0 ? ['is_payer' => true] : []),
+                ], false, false),
                 array_keys($guardians),
                 $guardians,
             ),
