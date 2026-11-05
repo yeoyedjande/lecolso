@@ -307,6 +307,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files/person-photos/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire la photo d'un élève ou d'un tuteur
+         * @description URL signée renvoyée par l'API (`photo_url`) à qui peut voir l'élève, valable 10 minutes ; sans signature valide :
+         *     403. Jamais mise en cache partagé ni transmise dans l'en-tête Referer.
+         */
+        get: operations["files.person-photo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{user}/password-reset": {
         parameters: {
             query?: never;
@@ -659,7 +680,8 @@ export interface paths {
         post?: never;
         /**
          * Supprimer le dossier d'un élève
-         * @description Suppression logique (saisie erronée) : le matricule n'est jamais réutilisé. Un départ se note sur l'inscription.
+         * @description Suppression logique (saisie erronée) : le matricule n'est jamais réutilisé, la photo est effacée. Un départ se
+         *     note sur l'inscription.
          */
         delete: operations["students.destroy"];
         options?: never;
@@ -710,6 +732,48 @@ export interface paths {
          * @description Ses informations (partagées par la fratrie) et son lien avec cet élève.
          */
         patch: operations["students.guardians.update"];
+        trace?: never;
+    };
+    "/students/{student}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter ou remplacer la photo de l'élève
+         * @description JPEG, PNG ou WebP, 5 Mo au plus ; redressée, réduite à 512 px et réencodée en WebP sans métadonnées.
+         */
+        post: operations["students.photo.store"];
+        /** Retirer la photo de l'élève */
+        delete: operations["students.photo.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{student}/guardians/{guardian}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter ou remplacer la photo d'un tuteur
+         * @description Le tuteur est partagé par la fratrie : la photo l'est aussi.
+         */
+        post: operations["students.guardians.photo.store"];
+        /** Retirer la photo d'un tuteur */
+        delete: operations["students.guardians.photo.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -884,6 +948,7 @@ export interface components {
             phone: string;
             email: string | null;
             profession: string | null;
+            photo_url: string;
             /** @enum {string} */
             relation: "father" | "mother" | "guardian" | "other";
             is_primary_contact: boolean;
@@ -1061,6 +1126,7 @@ export interface components {
         SiblingResource: {
             id: string;
             full_name: string;
+            photo_url: string;
             classroom_name: string | null;
         };
         /**
@@ -1110,6 +1176,7 @@ export interface components {
             birth_date: string;
             birth_place: string | null;
             address: string | null;
+            photo_url: string;
             medical: {
                 /** @enum {string|null} */
                 blood_type: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | null;
@@ -1133,6 +1200,7 @@ export interface components {
             /** @enum {string} */
             gender: "F" | "M";
             birth_date: string;
+            photo_url: string;
             enrollment: {
                 id: string;
                 /** @enum {string} */
@@ -1230,6 +1298,17 @@ export interface components {
             allergies?: string | null;
             medical_notes?: string | null;
         };
+        /**
+         * UploadGuardianPhotoRequest
+         * @description Photo d'un tuteur lié à l'élève de la route (partagée par la fratrie).
+         */
+        UploadGuardianPhotoRequest: {
+            /**
+             * Format: binary
+             * @description Maximum file size: 5120 kilobytes.
+             */
+            photo: string;
+        };
         /** UploadSchoolLogoRequest */
         UploadSchoolLogoRequest: {
             /**
@@ -1237,6 +1316,17 @@ export interface components {
              * @description Maximum file size: 2048 kilobytes.
              */
             logo: string;
+        };
+        /**
+         * UploadStudentPhotoRequest
+         * @description Photo de l'élève : gérer son dossier (students.manage sur son cycle) ; 404 hors du périmètre.
+         */
+        UploadStudentPhotoRequest: {
+            /**
+             * Format: binary
+             * @description Maximum file size: 5120 kilobytes.
+             */
+            photo: string;
         };
         /** UserAssignmentResource */
         UserAssignmentResource: {
@@ -1878,6 +1968,32 @@ export interface operations {
                     "application/json": components["schemas"]["HealthResource"];
                 };
             };
+        };
+    };
+    "files.person-photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, max-age=600";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Disposition"?: "inline";
+                    "Referrer-Policy"?: "no-referrer";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": string | null;
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
         };
     };
     "users.password-reset": {
@@ -2716,6 +2832,134 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateGuardianRequest"];
             };
         };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.photo.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadStudentPhotoRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.photo.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.photo.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+                /** @description The guardian ID */
+                guardian: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadGuardianPhotoRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.photo.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+                /** @description The guardian ID */
+                guardian: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description `StudentResource` */
             200: {

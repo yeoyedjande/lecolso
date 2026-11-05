@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Domains\Students\Http\Resources;
 
 use App\Domains\Students\Data\StudentFile;
+use App\Domains\Students\Support\PersonPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Dossier d'un élève. `medical` : null sans la permission students.medical.view (les champs ne sont pas envoyés),
+ * Dossier d'un élève. `photo_url` : URL signée de 10 minutes (null sans photo). `medical` : null sans la permission students.medical.view (les champs ne sont pas envoyés),
  * sinon groupe sanguin, allergies et notes (null si non renseignés). `enrollments` : la plus récente d'abord.
  *
  * @property-read StudentFile $resource
@@ -18,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class StudentResource extends JsonResource
 {
     /**
-     * @return array{id: string, matricule: string, first_name: string, last_name: string, full_name: string, gender: string, birth_date: string, birth_place: string|null, address: string|null, medical: array{blood_type: string|null, allergies: string|null, medical_notes: string|null}|null, guardians: AnonymousResourceCollection<GuardianLinkResource>, enrollments: AnonymousResourceCollection<EnrollmentResource>, siblings: AnonymousResourceCollection<SiblingResource>, can_manage: bool, can_view_medical: bool, created_at: string|null}
+     * @return array{id: string, matricule: string, first_name: string, last_name: string, full_name: string, gender: string, birth_date: string, birth_place: string|null, address: string|null, photo_url: string|null, medical: array{blood_type: string|null, allergies: string|null, medical_notes: string|null}|null, guardians: AnonymousResourceCollection<GuardianLinkResource>, enrollments: AnonymousResourceCollection<EnrollmentResource>, siblings: AnonymousResourceCollection<SiblingResource>, can_manage: bool, can_view_medical: bool, created_at: string|null}
      */
     public function toArray(Request $request): array
     {
@@ -35,6 +36,7 @@ final class StudentResource extends JsonResource
             'birth_date' => $student->birth_date->toDateString(),
             'birth_place' => $student->birth_place,
             'address' => $student->address,
+            'photo_url' => app(PersonPhoto::class)->url($student->photo_path),
             'medical' => $file->canViewMedical ? [
                 'blood_type' => $student->blood_type?->value,
                 'allergies' => $student->allergies,

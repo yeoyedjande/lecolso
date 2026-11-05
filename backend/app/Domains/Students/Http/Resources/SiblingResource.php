@@ -6,6 +6,7 @@ namespace App\Domains\Students\Http\Resources;
 
 use App\Domains\Students\Models\Enrollment;
 use App\Domains\Students\Models\Student;
+use App\Domains\Students\Support\PersonPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,7 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class SiblingResource extends JsonResource
 {
     /**
-     * @return array{id: string, full_name: string, classroom_name: string|null}
+     * @return array{id: string, full_name: string, photo_url: string|null, classroom_name: string|null}
      */
     public function toArray(Request $request): array
     {
@@ -26,6 +27,7 @@ final class SiblingResource extends JsonResource
         return [
             'id' => $this->resource->id,
             'full_name' => $this->resource->fullName(),
+            'photo_url' => app(PersonPhoto::class)->url($this->resource->photo_path),
             'classroom_name' => $enrollment instanceof Enrollment ? $enrollment->classroom->name() : null,
         ];
     }

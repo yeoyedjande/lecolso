@@ -6,6 +6,7 @@ namespace App\Domains\Students\Http\Resources;
 
 use App\Domains\Students\Models\GuardianLink;
 use App\Domains\Students\Models\Student;
+use App\Domains\Students\Support\PersonPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,7 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class StudentRowResource extends JsonResource
 {
     /**
-     * @return array{id: string, matricule: string, first_name: string, last_name: string, full_name: string, gender: string, birth_date: string, enrollment: array{id: string, status: string, classroom_id: string, classroom_name: string, cycle_id: string, cycle_code: string}|null, primary_contact: array{name: string, phone: string}|null}
+     * @return array{id: string, matricule: string, first_name: string, last_name: string, full_name: string, gender: string, birth_date: string, photo_url: string|null, enrollment: array{id: string, status: string, classroom_id: string, classroom_name: string, cycle_id: string, cycle_code: string}|null, primary_contact: array{name: string, phone: string}|null}
      */
     public function toArray(Request $request): array
     {
@@ -34,6 +35,7 @@ final class StudentRowResource extends JsonResource
             'full_name' => $student->fullName(),
             'gender' => $student->gender->value,
             'birth_date' => $student->birth_date->toDateString(),
+            'photo_url' => app(PersonPhoto::class)->url($student->photo_path),
             'enrollment' => $enrollment === null ? null : [
                 'id' => $enrollment->id,
                 'status' => $enrollment->status->value,

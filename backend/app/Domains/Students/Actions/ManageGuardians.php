@@ -16,12 +16,15 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Tuteurs du dossier d'un élève. Règles : au moins un tuteur ; exactement un payeur et un contact principal
- * (désigner un autre tuteur retire la qualité au précédent) ; un tuteur sans plus aucun élève est effacé.
+ * (désigner un autre tuteur retire la qualité au précédent) ; un tuteur sans plus aucun élève est effacé, avec sa photo.
  * Les informations d'un tuteur (nom, téléphone…) sont partagées par toute la fratrie.
  */
 final readonly class ManageGuardians
 {
-    public function __construct(private GuardianDirectory $directory) {}
+    public function __construct(
+        private GuardianDirectory $directory,
+        private ManagePhotos $photos,
+    ) {}
 
     /**
      * @throws ValidationException tuteur déjà lié à l'élève
@@ -91,14 +94,22 @@ final readonly class ManageGuardians
             throw new BusinessConflict('reassign_first', 'Désignez d’abord un autre payeur et un autre contact principal.');
         }
 
-        DB::transaction(static function () use ($link): void {
+        $orphanPhoto = DB::transaction(static function () use ($link): ?string {
             $guardianId = $link->guardian_id;
             $link->delete();
 
-            if (! GuardianLink::query()->where('guardian_id', $guardianId)->exists()) {
-                Guardian::query()->whereKey($guardianId)->delete();
+            if (GuardianLink::query()->where('guardian_id', $guardianId)->exists()) {
+                return null;
             }
+
+            $guardian = Guardian::query()->find($guardianId);
+            $guardian?->delete();
+
+            return $guardian?->photo_path;
         });
+
+        // Fichier effacé après la transaction : une annulation laisserait sinon un tuteur sans sa photo
+        $this->photos->forget($orphanPhoto);
     }
 
     /**

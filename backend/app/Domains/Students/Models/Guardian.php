@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $phone
  * @property string|null $email
  * @property string|null $profession
+ * @property string|null $photo_path photo WebP du stockage privé (Support\PersonPhoto)
  * @property-read Collection<int, GuardianLink> $links
  */
 final class Guardian extends Model

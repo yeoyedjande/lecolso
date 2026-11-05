@@ -6,6 +6,7 @@ namespace App\Domains\Students\Http\Controllers;
 
 use App\Domains\Identity\Models\User;
 use App\Domains\Students\Actions\ListStudents;
+use App\Domains\Students\Actions\ManagePhotos;
 use App\Domains\Students\Actions\PresentStudent;
 use App\Domains\Students\Actions\UpdateStudent;
 use App\Domains\Students\Http\Requests\ListStudentsRequest;
@@ -60,10 +61,13 @@ final class StudentController
     /**
      * Supprimer le dossier d'un élève.
      *
-     * Suppression logique (saisie erronée) : le matricule n'est jamais réutilisé. Un départ se note sur l'inscription.
+     * Suppression logique (saisie erronée) : le matricule n'est jamais réutilisé, la photo est effacée. Un départ se
+     * note sur l'inscription.
      */
-    public function destroy(ManageStudentRequest $request): JsonResponse
+    public function destroy(ManageStudentRequest $request, ManagePhotos $photos): JsonResponse
     {
+        // Le dossier reste (suppression logique) ; la photo, donnée personnelle sans usage, est effacée
+        $photos->remove($request->student());
         $request->student()->delete();
 
         return new JsonResponse(null, 204);

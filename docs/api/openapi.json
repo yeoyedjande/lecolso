@@ -997,6 +997,70 @@
                 "security": []
             }
         },
+        "/files/person-photos/{file}": {
+            "get": {
+                "operationId": "files.person-photo",
+                "description": "URL sign\u00e9e renvoy\u00e9e par l'API (`photo_url`) \u00e0 qui peut voir l'\u00e9l\u00e8ve, valable 10 minutes ; sans signature valide :\n403. Jamais mise en cache partag\u00e9 ni transmise dans l'en-t\u00eate Referer.",
+                "summary": "Lire la photo d'un \u00e9l\u00e8ve ou d'un tuteur",
+                "tags": [
+                    "PersonPhotoFile"
+                ],
+                "parameters": [
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "image/webp": {
+                                "schema": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "private, max-age=600"
+                                }
+                            },
+                            "X-Content-Type-Options": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "nosniff"
+                                }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "inline"
+                                }
+                            },
+                            "Referrer-Policy": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "no-referrer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    }
+                }
+            }
+        },
         "/users/{user}/password-reset": {
             "post": {
                 "operationId": "users.password-reset",
@@ -2493,7 +2557,7 @@
             },
             "delete": {
                 "operationId": "students.destroy",
-                "description": "Suppression logique (saisie erron\u00e9e) : le matricule n'est jamais r\u00e9utilis\u00e9. Un d\u00e9part se note sur l'inscription.",
+                "description": "Suppression logique (saisie erron\u00e9e) : le matricule n'est jamais r\u00e9utilis\u00e9, la photo est effac\u00e9e. Un d\u00e9part se\nnote sur l'inscription.",
                 "summary": "Supprimer le dossier d'un \u00e9l\u00e8ve",
                 "tags": [
                     "Student"
@@ -2671,6 +2735,256 @@
                 "summary": "Retirer un tuteur",
                 "tags": [
                     "StudentGuardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "guardian",
+                        "in": "path",
+                        "required": true,
+                        "description": "The guardian ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/students/{student}/photo": {
+            "post": {
+                "operationId": "students.photo.store",
+                "description": "JPEG, PNG ou WebP, 5 Mo au plus ; redress\u00e9e, r\u00e9duite \u00e0 512 px et r\u00e9encod\u00e9e en WebP sans m\u00e9tadonn\u00e9es.",
+                "summary": "Ajouter ou remplacer la photo de l'\u00e9l\u00e8ve",
+                "tags": [
+                    "StudentPhoto"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UploadStudentPhotoRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "students.photo.destroy",
+                "summary": "Retirer la photo de l'\u00e9l\u00e8ve",
+                "tags": [
+                    "StudentPhoto"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/students/{student}/guardians/{guardian}/photo": {
+            "post": {
+                "operationId": "students.guardians.photo.store",
+                "description": "Le tuteur est partag\u00e9 par la fratrie : la photo l'est aussi.",
+                "summary": "Ajouter ou remplacer la photo d'un tuteur",
+                "tags": [
+                    "StudentPhoto"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "guardian",
+                        "in": "path",
+                        "required": true,
+                        "description": "The guardian ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UploadGuardianPhotoRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "students.guardians.photo.destroy",
+                "summary": "Retirer la photo d'un tuteur",
+                "tags": [
+                    "StudentPhoto"
                 ],
                 "parameters": [
                     {
@@ -3373,6 +3687,9 @@
                             "null"
                         ]
                     },
+                    "photo_url": {
+                        "type": "string"
+                    },
                     "relation": {
                         "type": "string",
                         "enum": [
@@ -3398,6 +3715,7 @@
                     "phone",
                     "email",
                     "profession",
+                    "photo_url",
                     "relation",
                     "is_primary_contact",
                     "is_payer",
@@ -4046,6 +4364,9 @@
                     "full_name": {
                         "type": "string"
                     },
+                    "photo_url": {
+                        "type": "string"
+                    },
                     "classroom_name": {
                         "type": [
                             "string",
@@ -4056,6 +4377,7 @@
                 "required": [
                     "id",
                     "full_name",
+                    "photo_url",
                     "classroom_name"
                 ],
                 "title": "SiblingResource"
@@ -4231,6 +4553,9 @@
                             "null"
                         ]
                     },
+                    "photo_url": {
+                        "type": "string"
+                    },
                     "medical": {
                         "type": [
                             "object",
@@ -4314,6 +4639,7 @@
                     "birth_date",
                     "birth_place",
                     "address",
+                    "photo_url",
                     "medical",
                     "guardians",
                     "enrollments",
@@ -4350,6 +4676,9 @@
                         ]
                     },
                     "birth_date": {
+                        "type": "string"
+                    },
+                    "photo_url": {
                         "type": "string"
                     },
                     "enrollment": {
@@ -4417,6 +4746,7 @@
                     "full_name",
                     "gender",
                     "birth_date",
+                    "photo_url",
                     "enrollment",
                     "primary_contact"
                 ],
@@ -4690,6 +5020,22 @@
                 },
                 "title": "UpdateStudentRequest"
             },
+            "UploadGuardianPhotoRequest": {
+                "type": "object",
+                "description": "Photo d'un tuteur li\u00e9 \u00e0 l'\u00e9l\u00e8ve de la route (partag\u00e9e par la fratrie).",
+                "properties": {
+                    "photo": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "description": "Maximum file size: 5120 kilobytes."
+                    }
+                },
+                "required": [
+                    "photo"
+                ],
+                "title": "UploadGuardianPhotoRequest"
+            },
             "UploadSchoolLogoRequest": {
                 "type": "object",
                 "properties": {
@@ -4704,6 +5050,22 @@
                     "logo"
                 ],
                 "title": "UploadSchoolLogoRequest"
+            },
+            "UploadStudentPhotoRequest": {
+                "type": "object",
+                "description": "Photo de l'\u00e9l\u00e8ve : g\u00e9rer son dossier (students.manage sur son cycle) ; 404 hors du p\u00e9rim\u00e8tre.",
+                "properties": {
+                    "photo": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "description": "Maximum file size: 5120 kilobytes."
+                    }
+                },
+                "required": [
+                    "photo"
+                ],
+                "title": "UploadStudentPhotoRequest"
             },
             "UserAssignmentResource": {
                 "type": "object",

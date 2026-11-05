@@ -30,6 +30,11 @@ final class WebpImage
             throw new InvalidImage('Image illisible : envoyez un fichier JPEG, PNG ou WebP.');
         }
 
+        // Photo de téléphone : l'orientation n'est qu'une indication EXIF, perdue au réencodage. On l'applique d'abord.
+        if ($info[2] === IMAGETYPE_JPEG) {
+            $source = self::applyExifOrientation($source, $bytes);
+        }
+
         $width = imagesx($source);
         $height = imagesy($source);
         $scale = min(1, $maxSide / max($width, $height));
@@ -51,5 +56,33 @@ final class WebpImage
         }
 
         return $webp;
+    }
+
+    /**
+     * Redresse une photo JPEG selon son orientation EXIF (1 à 8). Sans extension exif ni orientation : inchangée.
+     */
+    private static function applyExifOrientation(GdImage $image, string $bytes): GdImage
+    {
+        if (! function_exists('exif_read_data')) {
+            return $image;
+        }
+
+        $exif = @exif_read_data('data://image/jpeg;base64,'.base64_encode($bytes));
+        $orientation = is_array($exif) && is_int($exif['Orientation'] ?? null) ? $exif['Orientation'] : 1;
+
+        // imagerotate tourne dans le sens inverse des aiguilles d'une montre
+        $rotated = match ($orientation) {
+            3, 4 => imagerotate($image, 180, 0),
+            5, 6 => imagerotate($image, -90, 0),
+            7, 8 => imagerotate($image, 90, 0),
+            default => $image,
+        };
+        $image = $rotated instanceof GdImage ? $rotated : $image;
+
+        if (in_array($orientation, [2, 4, 5, 7], true)) {
+            imageflip($image, IMG_FLIP_HORIZONTAL);
+        }
+
+        return $image;
     }
 }
