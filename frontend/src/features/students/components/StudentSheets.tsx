@@ -66,7 +66,7 @@ function SheetLayout({
         <SheetTitle className="font-display text-xl font-bold">{title}</SheetTitle>
         <SheetDescription className="text-sm text-muted-foreground">{description}</SheetDescription>
       </div>
-      <div className="grid flex-1 content-start gap-5 overflow-y-auto px-6 py-5">
+      <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto px-6 py-5">
         {failed && <FormAlert>{t('enrollment.failed')}</FormAlert>}
         {children}
       </div>

@@ -149,7 +149,7 @@ export function ClassroomSheet({
           {t('classes.sheet.description')}
         </SheetDescription>
       </div>
-      <div className="grid flex-1 content-start gap-5 overflow-y-auto px-6 py-5">
+      <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto px-6 py-5">
         {failed && <FormAlert>{t('classes.sheet.failed')}</FormAlert>}
         <Field label={t('classes.sheet.level')} error={message('level_id')}>
           {(control) => (

@@ -204,6 +204,50 @@ export function useRemoveGuardian(studentId: string) {
   })
 }
 
+/** Formats et poids acceptés pour une photo (mêmes règles que l'API, vérifiées avant l'envoi). */
+export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+
+/** Photo de l'élève (guardianId null) ou d'un de ses tuteurs : envoi (fichier) ou retrait (null). */
+export function useStudentPhoto(studentId: string) {
+  const save = useSaveFile()
+  return useMutation({
+    mutationFn: async ({
+      guardianId,
+      file,
+    }: {
+      guardianId: string | null
+      file: File | null
+    }): Promise<StudentFile> => {
+      const form = new FormData()
+      if (file !== null) form.append('photo', file)
+      // Corps réel : le formulaire multipart ci-dessus (le contrat décrit le champ `photo` en binaire)
+      const upload = { body: { photo: file?.name ?? '' }, bodySerializer: () => form }
+      const { data, response } =
+        guardianId === null
+          ? file === null
+            ? await api.DELETE('/students/{student}/photo', {
+                params: { path: { student: studentId } },
+              })
+            : await api.POST('/students/{student}/photo', {
+                params: { path: { student: studentId } },
+                ...upload,
+              })
+          : file === null
+            ? await api.DELETE('/students/{student}/guardians/{guardian}/photo', {
+                params: { path: { student: studentId, guardian: guardianId } },
+              })
+            : await api.POST('/students/{student}/guardians/{guardian}/photo', {
+                params: { path: { student: studentId, guardian: guardianId } },
+                ...upload,
+              })
+      if (data === undefined) throw new Error(`Photo impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: save,
+  })
+}
+
 export function useDeleteStudent() {
   const { school, key } = useStudentsKey()
   const queryClient = useQueryClient()
