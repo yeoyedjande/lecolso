@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Academic\Models;
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Models\Enrollment;
 use App\Support\Audit\Auditable;
 use App\Support\Tenancy\BelongsToSchool;
 use Database\Factories\ClassroomFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Classe : niveau + année + section (« CE1 A »), capacité, salle, enseignant titulaire.
@@ -28,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Level $level
  * @property-read AcademicYear $academicYear
  * @property-read User|null $homeroomTeacher
+ * @property-read int|null $enrolled_count élèves inscrits (inscriptions actives), si chargé par withEnrolledCount
  */
 final class Classroom extends Model
 {
@@ -70,6 +73,16 @@ final class Classroom extends Model
     public function homeroomTeacher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'homeroom_teacher_id');
+    }
+
+    /**
+     * Inscriptions dans la classe (domaine Students, lecture seule ici).
+     *
+     * @return HasMany<Enrollment, $this>
+     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
     }
 
     protected static function newFactory(): ClassroomFactory

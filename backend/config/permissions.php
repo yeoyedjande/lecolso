@@ -25,6 +25,9 @@ return [
     // Élèves et inscriptions
     'students.view' => ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],
     'students.manage' => ['director', 'secretary'],
+    // Données médicales des élèves (groupe sanguin, allergies, notes) : décision du 05/11/2026, pas la comptabilité.
+    // L'enseignant : élèves de ses classes ; le parent : ses enfants (même périmètre que students.view).
+    'students.medical.view' => ['director', 'secretary', 'teacher', 'guardian'],
 
     // Frais et paiements
     'billing.view' => ['promoter', 'director', 'secretary', 'accountant', 'guardian'],

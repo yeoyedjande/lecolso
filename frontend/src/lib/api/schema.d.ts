@@ -167,7 +167,7 @@ export interface paths {
         post?: never;
         /**
          * Supprimer une classe
-         * @description (Les inscriptions, à venir, empêcheront de supprimer une classe qui a des élèves.)
+         * @description 409 `classroom_not_empty` si des élèves y ont été inscrits (changez-les d'abord de classe).
          */
         delete: operations["classrooms.destroy"];
         options?: never;
@@ -242,6 +242,48 @@ export interface paths {
          *     sur ce cycle (403 sinon) ; 404 si le cycle n'appartient pas à l'école.
          */
         patch: operations["cycles.update"];
+        trace?: never;
+    };
+    "/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inscrire un nouvel élève
+         * @description Dossier, tuteurs (réutilisés par téléphone : fratrie) et classe en une fois ; matricule « LAU-000123 » attribué.
+         *     409 `classroom_full` (capacité atteinte) ou `year_closed` (année clôturée).
+         */
+        post: operations["enrollments.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enrollments/{enrollment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Changer de classe, noter un départ ou un retour
+         * @description `classroom_id` (même année) ou `status` : `left` (avec `left_on`, `leave_reason`) ou `active`.
+         *     409 `classroom_full`, `year_closed`, `other_year`. Renvoie le dossier de l'élève.
+         */
+        patch: operations["enrollments.update"];
         trace?: never;
     };
     "/health": {
@@ -580,6 +622,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Élèves de l'école
+         * @description Inscrits sur l'année demandée (en cours par défaut), par nom, 25 par page (curseur). Personnel : son cycle ;
+         *     enseignant : élèves de ses classes ; parent : ses enfants. Aucune donnée médicale dans la liste.
+         */
+        get: operations["students.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{student}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dossier d'un élève
+         * @description Tuteurs, inscriptions, fratrie ; `medical` seulement avec students.medical.view. 404 hors du périmètre.
+         */
+        get: operations["students.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer le dossier d'un élève
+         * @description Suppression logique (saisie erronée) : le matricule n'est jamais réutilisé. Un départ se note sur l'inscription.
+         */
+        delete: operations["students.destroy"];
+        options?: never;
+        head?: never;
+        /** Modifier le dossier d'un élève */
+        patch: operations["students.update"];
+        trace?: never;
+    };
+    "/students/{student}/guardians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter un tuteur
+         * @description Téléphone d'un tuteur déjà connu de l'école : il est réutilisé (fratrie).
+         */
+        post: operations["students.guardians.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{student}/guardians/{guardian}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un tuteur
+         * @description 409 `last_guardian` (dernier tuteur) ou `reassign_first` (payeur ou contact principal à remplacer d'abord).
+         */
+        delete: operations["students.guardians.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un tuteur
+         * @description Ses informations (partagées par la fratrie) et son lien avec cet élève.
+         */
+        patch: operations["students.guardians.update"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -606,6 +738,12 @@ export interface components {
             /** Format: uuid */
             cycle_id?: string | null;
         };
+        /**
+         * BloodType
+         * @description Groupe sanguin (donnée médicale : permission students.medical.view, jamais journalisée).
+         * @enum {string}
+         */
+        BloodType: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             current_password: string;
@@ -619,6 +757,7 @@ export interface components {
             name: string;
             section: string;
             capacity: number | null;
+            enrolled_count: number;
             room: string | null;
             level: {
                 id: string;
@@ -674,6 +813,89 @@ export interface components {
             };
             levels: components["schemas"]["LevelResource"][];
         };
+        /**
+         * EnrollStudentRequest
+         * @description Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
+         *     contact principal, le premier tuteur par défaut) et `classroom_id`. Droits : students.manage sur le cycle de la
+         *     classe ; champs médicaux de `student` refusés sans students.medical.view sur ce cycle.
+         */
+        EnrollStudentRequest: {
+            student: {
+                first_name: string;
+                last_name: string;
+                gender: components["schemas"]["Gender"];
+                /** Format: date */
+                birth_date: string;
+                birth_place?: string | null;
+                address?: string | null;
+                blood_type?: components["schemas"]["BloodType"] | null;
+                allergies?: string | null;
+                medical_notes?: string | null;
+            };
+            /** Format: uuid */
+            classroom_id: string;
+            /** Format: date */
+            enrolled_on?: string;
+            guardians: {
+                name: string;
+                phone: string;
+                /** Format: email */
+                email?: string | null;
+                profession?: string | null;
+                relation: components["schemas"]["GuardianRelation"];
+                is_primary_contact?: boolean;
+                is_payer?: boolean;
+                can_pick_up?: boolean;
+            }[];
+        };
+        /** EnrollmentResource */
+        EnrollmentResource: {
+            id: string;
+            /** @enum {string} */
+            status: "active" | "left";
+            enrolled_on: string;
+            left_on: string | null;
+            leave_reason: string | null;
+            academic_year: {
+                id: string;
+                label: string;
+                is_current: boolean;
+                /** @enum {string} */
+                status: "open" | "closed";
+            };
+            classroom: {
+                id: string;
+                name: string;
+                level_code: string;
+                cycle_id: string;
+                cycle_code: string;
+                homeroom_teacher: string | null;
+            };
+        };
+        /**
+         * Gender
+         * @enum {string}
+         */
+        Gender: "F" | "M";
+        /** GuardianLinkResource */
+        GuardianLinkResource: {
+            id: string;
+            name: string;
+            phone: string;
+            email: string | null;
+            profession: string | null;
+            /** @enum {string} */
+            relation: "father" | "mother" | "guardian" | "other";
+            is_primary_contact: boolean;
+            is_payer: boolean;
+            can_pick_up: boolean;
+        };
+        /**
+         * GuardianRelation
+         * @description Lien entre un tuteur et l'élève.
+         * @enum {string}
+         */
+        GuardianRelation: "father" | "mother" | "guardian" | "other";
         /** HealthResource */
         HealthResource: {
             /** @enum {string} */
@@ -783,6 +1005,8 @@ export interface components {
             id: string;
             name: string;
             slug: string;
+            code: string;
+            code_locked: boolean;
             /** @enum {string} */
             type: "preschool_primary" | "secondary" | "higher";
             city: string | null;
@@ -833,6 +1057,28 @@ export interface components {
             roles: components["schemas"]["UserAssignmentResource"][];
             can_manage: boolean;
         };
+        /** SiblingResource */
+        SiblingResource: {
+            id: string;
+            full_name: string;
+            classroom_name: string | null;
+        };
+        /**
+         * StoreGuardianRequest
+         * @description Ajouter un tuteur au dossier (téléphone d'un tuteur connu de l'école : il est réutilisé). `is_payer` ou
+         *     `is_primary_contact` : la qualité passe à ce tuteur.
+         */
+        StoreGuardianRequest: {
+            name: string;
+            phone: string;
+            /** Format: email */
+            email?: string | null;
+            profession?: string | null;
+            relation: components["schemas"]["GuardianRelation"];
+            is_primary_contact?: boolean;
+            is_payer?: boolean;
+            can_pick_up?: boolean;
+        };
         /** StoreSchoolRoleRequest */
         StoreSchoolRoleRequest: {
             name: string;
@@ -852,6 +1098,55 @@ export interface components {
                 cycle_id?: string | null;
             }[];
         };
+        /** StudentResource */
+        StudentResource: {
+            id: string;
+            matricule: string;
+            first_name: string;
+            last_name: string;
+            full_name: string;
+            /** @enum {string} */
+            gender: "F" | "M";
+            birth_date: string;
+            birth_place: string | null;
+            address: string | null;
+            medical: {
+                /** @enum {string|null} */
+                blood_type: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | null;
+                allergies: string | null;
+                medical_notes: string | null;
+            } | null;
+            guardians: components["schemas"]["GuardianLinkResource"][];
+            enrollments: components["schemas"]["EnrollmentResource"][];
+            siblings: components["schemas"]["SiblingResource"][];
+            can_manage: boolean;
+            can_view_medical: boolean;
+            created_at: string | null;
+        };
+        /** StudentRowResource */
+        StudentRowResource: {
+            id: string;
+            matricule: string;
+            first_name: string;
+            last_name: string;
+            full_name: string;
+            /** @enum {string} */
+            gender: "F" | "M";
+            birth_date: string;
+            enrollment: {
+                id: string;
+                /** @enum {string} */
+                status: "active" | "left";
+                classroom_id: string;
+                classroom_name: string;
+                cycle_id: string;
+                cycle_code: string;
+            } | null;
+            primary_contact: {
+                name: string;
+                phone: string;
+            } | null;
+        };
         /** UpdateCycleRequest */
         UpdateCycleRequest: {
             name?: string;
@@ -864,9 +1159,40 @@ export interface components {
                 daily_log?: string;
             };
         };
+        /**
+         * UpdateEnrollmentRequest
+         * @description Inscription d'un élève : `classroom_id` (changement de classe, même année) ou `status` (`left` avec `left_on` et
+         *     `leave_reason` facultatif ; `active` pour un retour). Droits : gérer l'élève, et inscrire dans la nouvelle classe.
+         */
+        UpdateEnrollmentRequest: {
+            /** Format: uuid */
+            classroom_id?: string;
+            /** @enum {string} */
+            status?: "active" | "left";
+            /** Format: date */
+            left_on?: string;
+            leave_reason?: string | null;
+        };
+        /**
+         * UpdateGuardianRequest
+         * @description Modifier un tuteur (nom, téléphone, e-mail, profession : partagés par la fratrie) et son lien avec l'élève
+         *     (parenté, payeur, contact principal, autorisé à récupérer). Champs envoyés seulement.
+         */
+        UpdateGuardianRequest: {
+            name?: string;
+            phone?: string;
+            /** Format: email */
+            email?: string | null;
+            profession?: string | null;
+            relation?: components["schemas"]["GuardianRelation"];
+            is_primary_contact?: boolean;
+            is_payer?: boolean;
+            can_pick_up?: boolean;
+        };
         /** UpdateSchoolProfileRequest */
         UpdateSchoolProfileRequest: {
             name?: string;
+            code?: string;
             city?: string | null;
             address?: string | null;
             phone?: string | null;
@@ -886,6 +1212,23 @@ export interface components {
             phone?: string;
             /** Format: email */
             email?: string | null;
+        };
+        /**
+         * UpdateStudentRequest
+         * @description Modification du dossier (champs envoyés seulement ; chaîne vide = effacer un champ facultatif). Les champs médicaux
+         *     sont refusés (422) sans students.medical.view sur l'élève.
+         */
+        UpdateStudentRequest: {
+            first_name?: string;
+            last_name?: string;
+            gender?: components["schemas"]["Gender"];
+            /** Format: date */
+            birth_date?: string;
+            birth_place?: string | null;
+            address?: string | null;
+            blood_type?: components["schemas"]["BloodType"] | null;
+            allergies?: string | null;
+            medical_notes?: string | null;
         };
         /** UploadSchoolLogoRequest */
         UploadSchoolLogoRequest: {
@@ -1437,6 +1780,68 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["CycleResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "enrollments.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrollStudentRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "enrollments.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The enrollment ID */
+                enrollment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateEnrollmentRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
                     };
                 };
             };
@@ -2093,6 +2498,240 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    "students.index": {
+        parameters: {
+            query?: {
+                academic_year_id?: string | null;
+                classroom_id?: string | null;
+                cycle_id?: string | null;
+                status?: "active" | "left" | "all" | null;
+                search?: string | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `StudentRowResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentRowResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateStudentRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreGuardianRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+                /** @description The guardian ID */
+                guardian: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+                /** @description The guardian ID */
+                guardian: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateGuardianRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
 }

@@ -23,6 +23,7 @@ import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { useCycles } from '@/features/cycles/api'
 import { useAllSchoolUsers } from '@/features/users/api'
+import { ConflictError } from '@/lib/api/errors'
 import { CYCLE_CLASSES, cycleTone } from '@/lib/cycles'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -83,8 +84,13 @@ export function ClassesPage() {
     try {
       await remove.mutateAsync(toDelete.id)
       toast(t('classes.deleteDialog.done', { name: toDelete.name }), { tone: 'success' })
-    } catch {
-      toast(t('common.error'), { tone: 'error' })
+    } catch (error) {
+      toast(
+        error instanceof ConflictError && error.code === 'classroom_not_empty'
+          ? t('classes.notEmpty')
+          : t('common.error'),
+        { tone: 'error' },
+      )
     } finally {
       setToDelete(null)
     }
@@ -190,8 +196,11 @@ export function ClassesPage() {
                               <Users aria-hidden className="size-4 text-muted-foreground" />
                               <dd>
                                 {classroom.capacity === null
-                                  ? t('classes.noCapacity')
-                                  : t('classes.capacity', { count: classroom.capacity })}
+                                  ? t('classes.enrolled', { count: classroom.enrolled_count })
+                                  : t('classes.enrolledOf', {
+                                      count: classroom.enrolled_count,
+                                      capacity: classroom.capacity,
+                                    })}
                               </dd>
                             </div>
                           </dl>

@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { FormAlert } from '@/features/auth/components/FormAlert'
-import { ValidationError } from '@/lib/api/errors'
+import { ConflictError, ValidationError } from '@/lib/api/errors'
 import { formatPhone } from '@/lib/format'
 import { normalizeCiAnyPhone } from '@/lib/phone'
 import { toast } from '@/lib/toast'
@@ -21,6 +21,7 @@ import { LogoUploader } from './LogoUploader'
 
 const schema = z.object({
   name: z.string().check(z.trim(), z.minLength(2, 'nameMin')),
+  code: z.string().check(z.trim(), z.regex(/^[A-Za-z]{2,5}$/, 'code')),
   city: z.string(),
   address: z.string(),
   phone: z
@@ -35,7 +36,7 @@ const schema = z.object({
 })
 
 type Values = z.infer<typeof schema>
-const FIELDS = ['name', 'city', 'address', 'phone', 'email', 'motto'] as const
+const FIELDS = ['name', 'code', 'city', 'address', 'phone', 'email', 'motto'] as const
 
 /** Identité de l'école (vraie API) : logo, nom, coordonnées, devise ; modifiable par la direction de toute l'école. */
 export function SchoolIdentityForm({
@@ -59,6 +60,7 @@ export function SchoolIdentityForm({
     resolver: zodResolver(schema),
     defaultValues: {
       name: profile.name,
+      code: profile.code,
       city: profile.city ?? '',
       address: profile.address ?? '',
       phone: profile.phone === null ? '' : formatPhone(profile.phone),
@@ -73,6 +75,7 @@ export function SchoolIdentityForm({
     if (error.type === 'server') return error.message
     switch (error.message) {
       case 'nameMin':
+      case 'code':
       case 'phone':
       case 'email':
       case 'mottoMax':
@@ -87,6 +90,7 @@ export function SchoolIdentityForm({
     try {
       const saved = await update.mutateAsync({
         name: values.name.trim(),
+        ...(profile.code_locked ? {} : { code: values.code.trim().toUpperCase() }),
         city: values.city.trim(),
         address: values.address.trim(),
         phone: values.phone.trim(),
@@ -95,6 +99,7 @@ export function SchoolIdentityForm({
       })
       reset({
         name: saved.name,
+        code: saved.code,
         city: saved.city ?? '',
         address: saved.address ?? '',
         phone: saved.phone === null ? '' : formatPhone(saved.phone),
@@ -103,6 +108,10 @@ export function SchoolIdentityForm({
       })
       toast(t('settings.identity.saved'), { tone: 'success' })
     } catch (error) {
+      if (error instanceof ConflictError && error.code === 'code_locked') {
+        setError('code', { type: 'server', message: t('settings.identity.codeLocked') })
+        return
+      }
       if (!(error instanceof ValidationError)) {
         setFailed(true)
         return
@@ -138,7 +147,15 @@ export function SchoolIdentityForm({
             <Field
               key={field}
               label={t(`settings.identity.${field}`)}
-              hint={field === 'name' ? undefined : t('settings.identity.optional')}
+              hint={
+                field === 'name'
+                  ? undefined
+                  : field === 'code'
+                    ? profile.code_locked
+                      ? t('settings.identity.codeLocked')
+                      : t('settings.identity.codeHint')
+                    : t('settings.identity.optional')
+              }
               error={message(field)}
               className={field === 'address' || field === 'motto' ? 'md:col-span-2' : undefined}
             >
@@ -147,7 +164,7 @@ export function SchoolIdentityForm({
                   {...control}
                   {...register(field)}
                   type={field === 'email' ? 'email' : field === 'phone' ? 'tel' : 'text'}
-                  readOnly={!editable}
+                  readOnly={!editable || (field === 'code' && profile.code_locked)}
                   autoComplete="off"
                 />
               )}

@@ -2,40 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Classroom;
-use App\Domains\Academic\Models\Level;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Tenancy\Models\School;
-
-function levelOf(School $school, string $code): Level
-{
-    return inSchool($school, static fn (): Level => Level::query()->where('code', $code)->firstOrFail());
-}
-
-function currentYearOf(School $school): AcademicYear
-{
-    return inSchool($school, static fn (): AcademicYear => AcademicYear::query()->where('is_current', true)->first()
-        ?? AcademicYear::factory()->createOne());
-}
-
-/**
- * Classe de l'année en cours.
- *
- * @param  array<string, mixed>  $attributes
- */
-function classroomOf(School $school, string $levelCode, string $section = 'A', array $attributes = []): Classroom
-{
-    $year = currentYearOf($school);
-    $level = levelOf($school, $levelCode);
-
-    return inSchool($school, static fn (): Classroom => Classroom::factory()->createOne([
-        'academic_year_id' => $year->id,
-        'level_id' => $level->id,
-        'section' => $section,
-        ...$attributes,
-    ]));
-}
 
 it('liste les classes de l’année en cours par cycle, niveau et section', function (): void {
     $school = makeSchool(['kindergarten', 'primary']);

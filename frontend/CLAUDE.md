@@ -94,7 +94,13 @@ src/
   (`features/users`, écran `/{slug}/utilisateurs` : liste par curseur, ajout, rôles, désactivation, suppression,
   mot de passe provisoire), **années scolaires** (`features/academic`, onglet des paramètres) et **classes**
   (`features/classes` : `useClassroomList`, `useSaveClassroom`, `useDeleteClassroom` ; les hooks de démonstration
-  `useClassrooms` / `useClassroomOptions` servent encore aux élèves, notes et messages).
+  `useClassrooms` / `useClassroomOptions` servent encore aux notes, messages et à l'import), **élèves, tuteurs et
+  inscriptions** (`features/students/api.ts` : `useStudentList` par curseur, `useStudentFile` — `null` si introuvable
+  ou hors périmètre —, `useEnrollStudent`, `useUpdateStudent`, `useUpdateEnrollment`, tuteurs ; écrans Élèves, fiche,
+  Inscriptions). `medical` vaut `null` sans `students.medical.view` : n'afficher et n'envoyer les champs médicaux
+  que s'il est renseigné (fiche) ou si l'utilisateur a la permission sur le cycle de la classe (assistant).
+  Encaissements, espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
+  `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).
   **Identité de l'école** (`features/school` : `useSchoolProfile`, formulaire et logo dans Paramètres) ; logo dans

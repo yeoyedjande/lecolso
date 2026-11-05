@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-import { ACCOUNTS, mockApi, type Account } from './mock-api.ts'
+import { ACCOUNTS, lauriersStudentId, mockApi, type Account } from './mock-api.ts'
 
 /** Écrans de l'application (adresses par chemin /{slug}/…), avec le compte connecté et la dernière école utilisée. */
 export interface Screen {
@@ -43,8 +43,8 @@ export const SCREENS: Screen[] = [
   },
   ...(
     [
-      ['gestion-eleves', '/les-lauriers/eleves', /^\d+ élèves$/],
-      ['gestion-fiche-eleve', '/les-lauriers/eleves/lau-el-0001', 'Matricule'],
+      ['gestion-eleves', '/les-lauriers/eleves', /^25 élèves affichés/],
+      ['gestion-fiche-eleve', `/les-lauriers/eleves/${lauriersStudentId(1)}`, 'Matricule'],
       ['gestion-inscription', '/les-lauriers/inscriptions', 'Étape 1 sur 4'],
       ['gestion-import', '/les-lauriers/import', 'Colonnes attendues (première ligne du fichier)'],
       ['gestion-classes', '/les-lauriers/classes', 'CM2 A'],

@@ -228,3 +228,18 @@ it('garde l’ancien logo si le stockage refuse le nouveau', function (): void {
     Storage::set(config()->string('filesystems.default'), $working);
     Storage::assertExists($previous);
 });
+
+it('modifie le préfixe des matricules tant qu’aucun matricule n’est émis', function (): void {
+    $school = makeSchool(['primary'], ['code' => 'LAU']);
+    actingAsRole(Role::Director, $school);
+
+    spa('GET', '/api/v1/school', [], $school)->assertJsonPath('data.code', 'LAU')->assertJsonPath('data.code_locked', false);
+    spa('PATCH', '/api/v1/school', ['code' => 'lau1'], $school)->assertUnprocessable()->assertJsonValidationErrors('code');
+    spa('PATCH', '/api/v1/school', ['code' => 'LRS'], $school)->assertOk()->assertJsonPath('data.code', 'LRS');
+
+    enrollStudent($school, classroomOf($school, 'CE1'));
+
+    spa('GET', '/api/v1/school', [], $school)->assertJsonPath('data.code_locked', true);
+    spa('PATCH', '/api/v1/school', ['code' => 'LAU'], $school)->assertStatus(409)->assertJsonPath('code', 'code_locked');
+    spa('PATCH', '/api/v1/school', ['code' => 'LRS', 'motto' => 'Savoir'], $school)->assertOk();
+});

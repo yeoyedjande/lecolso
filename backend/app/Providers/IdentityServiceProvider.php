@@ -19,6 +19,10 @@ use App\Domains\Identity\Policies\UserPolicy;
 use App\Domains\Messaging\Contracts\SmsSender;
 use App\Domains\Messaging\Sms\FakeSmsSender;
 use App\Domains\Messaging\Sms\UnconfiguredSmsSender;
+use App\Domains\Students\Models\Enrollment;
+use App\Domains\Students\Models\Guardian;
+use App\Domains\Students\Models\Student;
+use App\Domains\Students\Policies\StudentPolicy;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
@@ -60,12 +64,16 @@ final class IdentityServiceProvider extends ServiceProvider
         Route::model('academicYear', AcademicYear::class);
         Route::model('classroom', Classroom::class);
         Route::model('assignment', RoleAssignment::class);
+        Route::model('student', Student::class);
+        Route::model('guardian', Guardian::class);
+        Route::model('enrollment', Enrollment::class);
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Cycle::class, CyclePolicy::class);
         Gate::policy(AcademicYear::class, AcademicYearPolicy::class);
         Gate::policy(Classroom::class, ClassroomPolicy::class);
         Gate::policy(SchoolRole::class, SchoolRolePolicy::class);
+        Gate::policy(Student::class, StudentPolicy::class);
 
         // Connexion : 5 tentatives par minute pour un même identifiant ET 20 par minute pour une même adresse IP
         RateLimiter::for('login', static function (Request $request): array {
