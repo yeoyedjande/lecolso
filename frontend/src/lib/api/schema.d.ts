@@ -4,2734 +4,2734 @@
  */
 
 export interface paths {
-  '/academic-years': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Années scolaires de l'école
-     * @description La plus récente d'abord. Tout membre de l'école.
-     */
-    get: operations['academic-years.index']
-    put?: never
-    /**
-     * Créer une année scolaire
-     * @description Permission school.settings.manage sur toute l'école. `is_current` : en faire l'année en cours.
-     */
-    post: operations['academic-years.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/academic-years/{academicYear}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /**
-     * Modifier une année scolaire
-     * @description Dates, statut (`open` / `closed`), année en cours. 409 `current_year` si l'on clôture l'année en cours.
-     */
-    patch: operations['academic-years.update']
-    trace?: never
-  }
-  '/auth/login': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Connexion
-     * @description Identifiant (téléphone ou e-mail) et mot de passe. Session par cookie httpOnly : appeler d'abord
-     *     GET /sanctum/csrf-cookie. Même réponse 422 que le compte existe ou non ; 429 après 5 tentatives par minute
-     *     pour un identifiant, ou 20 par minute depuis une adresse IP.
-     */
-    post: operations['auth.login']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/auth/logout': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Déconnexion
-     * @description Invalide la session et renouvelle le jeton CSRF.
-     */
-    post: operations['auth.logout']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/auth/password': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Changer son mot de passe
-     * @description Obligatoire à la première connexion avec un mot de passe provisoire. 8 caractères minimum.
-     */
-    post: operations['auth.password']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/me': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Profil de l'utilisateur connecté
-     * @description Ses écoles, ses rôles (par cycle) et ses permissions par école (null = toute l'école, sinon les cycles).
-     */
-    get: operations['me']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/classrooms': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Classes de l'école
-     * @description Celles de l'année en cours (ou de `academic_year_id`), par cycle, niveau et section ; un utilisateur limité à des
-     *     cycles ne voit que les classes de ses cycles.
-     */
-    get: operations['classrooms.index']
-    put?: never
-    /**
-     * Créer une classe
-     * @description Niveau et section (« A ») ; année en cours par défaut. school.settings.manage sur le cycle du niveau.
-     */
-    post: operations['classrooms.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/classrooms/{classroom}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Supprimer une classe
-     * @description 409 `classroom_not_empty` si des élèves y ont été inscrits (changez-les d'abord de classe).
-     */
-    delete: operations['classrooms.destroy']
-    options?: never
-    head?: never
-    /** Modifier une classe */
-    patch: operations['classrooms.update']
-    trace?: never
-  }
-  '/platform/schools': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Tous les établissements (super-admin)
-     * @description Réservé aux super-admins (404 pour les autres). Lecture hors RLS par la connexion séparée app_platform.
-     *     Pagination par curseur, 50 écoles par page, triées par nom.
-     */
-    get: operations['platform.schools.index']
-    put?: never
-    /**
-     * Créer une école (super-admin)
-     * @description Ouvre les cycles choisis (catalogue) et rattache le directeur. Si le directeur n'a pas encore de compte,
-     *     il est créé avec un mot de passe provisoire, renvoyé une seule fois et à changer à la première connexion.
-     *     Réservé aux super-admins (404 pour les autres).
-     */
-    post: operations['platform.schools.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/cycles': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Cycles de l'école
-     * @description Avec leurs niveaux et paramètres. Un utilisateur limité à un cycle ne voit que celui-ci.
-     */
-    get: operations['cycles.index']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/cycles/{cycle}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /**
-     * Modifier un cycle
-     * @description Nom et/ou paramètres (fusionnés avec les paramètres actuels). Permission school.settings.manage
-     *     sur ce cycle (403 sinon) ; 404 si le cycle n'appartient pas à l'école.
-     */
-    patch: operations['cycles.update']
-    trace?: never
-  }
-  '/enrollments': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Inscrire un nouvel élève
-     * @description Dossier, tuteurs (réutilisés par téléphone : fratrie) et classe en une fois ; matricule « LAU-000123 » attribué.
-     *     409 `classroom_full` (capacité atteinte) ou `year_closed` (année clôturée).
-     */
-    post: operations['enrollments.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/enrollments/{enrollment}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /**
-     * Changer de classe, noter un départ ou un retour
-     * @description `classroom_id` (même année) ou `status` : `left` (avec `left_on`, `leave_reason`) ou `active`.
-     *     409 `classroom_full`, `year_closed`, `other_year`. Renvoie le dossier de l'élève.
-     */
-    patch: operations['enrollments.update']
-    trace?: never
-  }
-  '/health': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * État de l'API
-     * @description Vérifie la base de données et Redis. Répond 200 si tout est disponible, 503 sinon
-     *     (utilisé comme healthcheck par Railway au déploiement). Route publique, hors tenant.
-     */
-    get: operations['health']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/users/{user}/password-reset': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Réinitialiser le mot de passe d'un utilisateur de l'école
-     * @description Directeur ou secrétaire de l'école (dans la limite de leurs cycles). Génère un mot de passe provisoire,
-     *     renvoyé une seule fois, à changer à la prochaine connexion. 404 si l'utilisateur n'est pas membre de l'école.
-     */
-    post: operations['users.password-reset']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/files/school-logos/{file}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Lire un logo d'école
-     * @description URL signée renvoyée par l'API (`logo_url`), valable 30 minutes ; sans signature valide : 403. Aucune session :
-     *     la page publique de l'école l'affiche aussi.
-     */
-    get: operations['files.school-logo']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/school': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Identité de l'école courante
-     * @description Nom, coordonnées, devise et logo (URL signée de 30 minutes). Tout membre de l'école.
-     */
-    get: operations['school.show']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /**
-     * Modifier l'identité de l'école
-     * @description Champs envoyés seulement ; chaîne vide = effacer. Permission school.settings.manage sur toute l'école.
-     *     Ces coordonnées sont affichées sur la page publique de l'école.
-     */
-    patch: operations['school.update']
-    trace?: never
-  }
-  '/school/logo': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Envoyer le logo
-     * @description multipart/form-data, champ `logo` : JPEG, PNG ou WebP, 2 Mo au plus. Converti en WebP de 512 px au plus,
-     *     sans métadonnées ; remplace le logo précédent.
-     */
-    post: operations['school.logo.store']
-    /** Retirer le logo */
-    delete: operations['school.logo.destroy']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/roles': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Rôles de l'école
-     * @description Rôles système (dans l'ordre : promoteur, direction, secrétariat, comptabilité, enseignant, parent) puis rôles
-     *     personnalisés par nom, avec leurs permissions et le nombre d'affectations. Qui gère les rôles ou voit les
-     *     utilisateurs.
-     */
-    get: operations['roles.index']
-    put?: never
-    /**
-     * Créer un rôle personnalisé
-     * @description Permission roles.manage sur toute l'école. On ne peut accorder que des permissions que l'on détient sur
-     *     toute l'école (422 sinon), jamais une permission réservée aux parents.
-     */
-    post: operations['roles.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/roles/{role}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Supprimer un rôle personnalisé
-     * @description 409 `role_in_use` s'il est encore attribué, 409 `role_locked` pour un rôle système, 404 s'il n'existe pas
-     *     dans l'école.
-     */
-    delete: operations['roles.destroy']
-    options?: never
-    head?: never
-    /**
-     * Modifier un rôle
-     * @description Rôle personnalisé : nom, description, permissions. Rôle système modifiable (secrétariat, comptabilité) :
-     *     permissions seulement. Autre rôle système : 409 `role_locked`. 404 si le rôle n'existe pas dans l'école.
-     */
-    patch: operations['roles.update']
-    trace?: never
-  }
-  '/permissions': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Catalogue des permissions
-     * @description Toutes les permissions, groupées par module, pour l'écran des rôles.
-     */
-    get: operations['permissions.index']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/users': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Comptes de l'école
-     * @description Par nom, 25 par page (curseur). Permission users.view ; limitée à un cycle, seuls les comptes de ce cycle.
-     */
-    get: operations['users.index']
-    put?: never
-    /**
-     * Ajouter un compte
-     * @description Avec au moins un rôle. Téléphone inconnu : nouveau compte et mot de passe provisoire (`provisional_password`,
-     *     renvoyé une seule fois). Téléphone d'un compte d'une autre école : rattaché, il garde son mot de passe
-     *     (`provisional_password` null). Chaque rôle exige le droit de l'attribuer (cycle, hiérarchie, pas d'élévation).
-     */
-    post: operations['users.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/users/{user}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Un compte de l'école
-     * @description 404 s'il n'est pas membre de l'école.
-     */
-    get: operations['users.show']
-    put?: never
-    post?: never
-    /**
-     * Supprimer un compte de l'école
-     * @description Retire tous ses rôles. Le compte n'est effacé (`erased`) que s'il n'appartient à aucune autre école.
-     */
-    delete: operations['users.destroy']
-    options?: never
-    head?: never
-    /**
-     * Modifier un compte
-     * @description Nom, téléphone, e-mail (uniques entre tous les comptes). Jamais son propre compte ; un promoteur seulement par
-     *     un promoteur.
-     */
-    patch: operations['users.update']
-    trace?: never
-  }
-  '/users/{user}/deactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Désactiver un compte
-     * @description Son accès à l'école est coupé dès la requête suivante ; ses rôles sont conservés.
-     */
-    post: operations['users.deactivate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/users/{user}/reactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Réactiver un compte */
-    post: operations['users.reactivate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/users/{user}/roles': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Attribuer un rôle
-     * @description Rôle système ou personnalisé, sur un cycle ou toute l'école. Promoteur et Direction : par un promoteur
-     *     seulement ; jamais un rôle dont on ne détient pas toutes les permissions sur ce cycle.
-     */
-    post: operations['users.roles.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/users/{user}/roles/{assignment}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Retirer un rôle
-     * @description 409 `last_role` pour le dernier rôle du compte (le supprimer ou le désactiver).
-     */
-    delete: operations['users.roles.destroy']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/public/schools/{slug}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Page publique d'une école
-     * @description Sans authentification : nom, ville, type et cycles ouverts (avec leurs niveaux). Aucune donnée personnelle.
-     */
-    get: operations['public.schools.show']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/students': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Élèves de l'école
-     * @description Inscrits sur l'année demandée (en cours par défaut), par nom, 25 par page (curseur). Personnel : son cycle ;
-     *     enseignant : élèves de ses classes ; parent : ses enfants. Aucune donnée médicale dans la liste.
-     */
-    get: operations['students.index']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/students/{student}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Dossier d'un élève
-     * @description Tuteurs, inscriptions, fratrie ; `medical` seulement avec students.medical.view. 404 hors du périmètre.
-     */
-    get: operations['students.show']
-    put?: never
-    post?: never
-    /**
-     * Supprimer le dossier d'un élève
-     * @description Suppression logique (saisie erronée) : le matricule n'est jamais réutilisé. Un départ se note sur l'inscription.
-     */
-    delete: operations['students.destroy']
-    options?: never
-    head?: never
-    /** Modifier le dossier d'un élève */
-    patch: operations['students.update']
-    trace?: never
-  }
-  '/students/{student}/guardians': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Ajouter un tuteur
-     * @description Téléphone d'un tuteur déjà connu de l'école : il est réutilisé (fratrie).
-     */
-    post: operations['students.guardians.store']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/students/{student}/guardians/{guardian}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Retirer un tuteur
-     * @description 409 `last_guardian` (dernier tuteur) ou `reassign_first` (payeur ou contact principal à remplacer d'abord).
-     */
-    delete: operations['students.guardians.destroy']
-    options?: never
-    head?: never
-    /**
-     * Modifier un tuteur
-     * @description Ses informations (partagées par la fratrie) et son lien avec cet élève.
-     */
-    patch: operations['students.guardians.update']
-    trace?: never
-  }
+    "/academic-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Années scolaires de l'école
+         * @description La plus récente d'abord. Tout membre de l'école.
+         */
+        get: operations["academic-years.index"];
+        put?: never;
+        /**
+         * Créer une année scolaire
+         * @description Permission school.settings.manage sur toute l'école. `is_current` : en faire l'année en cours.
+         */
+        post: operations["academic-years.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/academic-years/{academicYear}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier une année scolaire
+         * @description Dates, statut (`open` / `closed`), année en cours. 409 `current_year` si l'on clôture l'année en cours.
+         */
+        patch: operations["academic-years.update"];
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connexion
+         * @description Identifiant (téléphone ou e-mail) et mot de passe. Session par cookie httpOnly : appeler d'abord
+         *     GET /sanctum/csrf-cookie. Même réponse 422 que le compte existe ou non ; 429 après 5 tentatives par minute
+         *     pour un identifiant, ou 20 par minute depuis une adresse IP.
+         */
+        post: operations["auth.login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déconnexion
+         * @description Invalide la session et renouvelle le jeton CSRF.
+         */
+        post: operations["auth.logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Changer son mot de passe
+         * @description Obligatoire à la première connexion avec un mot de passe provisoire. 8 caractères minimum.
+         */
+        post: operations["auth.password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profil de l'utilisateur connecté
+         * @description Ses écoles, ses rôles (par cycle) et ses permissions par école (null = toute l'école, sinon les cycles).
+         */
+        get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Classes de l'école
+         * @description Celles de l'année en cours (ou de `academic_year_id`), par cycle, niveau et section ; un utilisateur limité à des
+         *     cycles ne voit que les classes de ses cycles.
+         */
+        get: operations["classrooms.index"];
+        put?: never;
+        /**
+         * Créer une classe
+         * @description Niveau et section (« A ») ; année en cours par défaut. school.settings.manage sur le cycle du niveau.
+         */
+        post: operations["classrooms.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer une classe
+         * @description 409 `classroom_not_empty` si des élèves y ont été inscrits (changez-les d'abord de classe).
+         */
+        delete: operations["classrooms.destroy"];
+        options?: never;
+        head?: never;
+        /** Modifier une classe */
+        patch: operations["classrooms.update"];
+        trace?: never;
+    };
+    "/platform/schools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tous les établissements (super-admin)
+         * @description Réservé aux super-admins (404 pour les autres). Lecture hors RLS par la connexion séparée app_platform.
+         *     Pagination par curseur, 50 écoles par page, triées par nom.
+         */
+        get: operations["platform.schools.index"];
+        put?: never;
+        /**
+         * Créer une école (super-admin)
+         * @description Ouvre les cycles choisis (catalogue) et rattache le directeur. Si le directeur n'a pas encore de compte,
+         *     il est créé avec un mot de passe provisoire, renvoyé une seule fois et à changer à la première connexion.
+         *     Réservé aux super-admins (404 pour les autres).
+         */
+        post: operations["platform.schools.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cycles de l'école
+         * @description Avec leurs niveaux et paramètres. Un utilisateur limité à un cycle ne voit que celui-ci.
+         */
+        get: operations["cycles.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cycles/{cycle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un cycle
+         * @description Nom et/ou paramètres (fusionnés avec les paramètres actuels). Permission school.settings.manage
+         *     sur ce cycle (403 sinon) ; 404 si le cycle n'appartient pas à l'école.
+         */
+        patch: operations["cycles.update"];
+        trace?: never;
+    };
+    "/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inscrire un nouvel élève
+         * @description Dossier, tuteurs (réutilisés par téléphone : fratrie) et classe en une fois ; matricule « LAU-000123 » attribué.
+         *     409 `classroom_full` (capacité atteinte) ou `year_closed` (année clôturée).
+         */
+        post: operations["enrollments.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enrollments/{enrollment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Changer de classe, noter un départ ou un retour
+         * @description `classroom_id` (même année) ou `status` : `left` (avec `left_on`, `leave_reason`) ou `active`.
+         *     409 `classroom_full`, `year_closed`, `other_year`. Renvoie le dossier de l'élève.
+         */
+        patch: operations["enrollments.update"];
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * État de l'API
+         * @description Vérifie la base de données et Redis. Répond 200 si tout est disponible, 503 sinon
+         *     (utilisé comme healthcheck par Railway au déploiement). Route publique, hors tenant.
+         */
+        get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Réinitialiser le mot de passe d'un utilisateur de l'école
+         * @description Directeur ou secrétaire de l'école (dans la limite de leurs cycles). Génère un mot de passe provisoire,
+         *     renvoyé une seule fois, à changer à la prochaine connexion. 404 si l'utilisateur n'est pas membre de l'école.
+         */
+        post: operations["users.password-reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/school-logos/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire un logo d'école
+         * @description URL signée renvoyée par l'API (`logo_url`), valable 30 minutes ; sans signature valide : 403. Aucune session :
+         *     la page publique de l'école l'affiche aussi.
+         */
+        get: operations["files.school-logo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/school": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Identité de l'école courante
+         * @description Nom, coordonnées, devise et logo (URL signée de 30 minutes). Tout membre de l'école.
+         */
+        get: operations["school.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier l'identité de l'école
+         * @description Champs envoyés seulement ; chaîne vide = effacer. Permission school.settings.manage sur toute l'école.
+         *     Ces coordonnées sont affichées sur la page publique de l'école.
+         */
+        patch: operations["school.update"];
+        trace?: never;
+    };
+    "/school/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer le logo
+         * @description multipart/form-data, champ `logo` : JPEG, PNG ou WebP, 2 Mo au plus. Converti en WebP de 512 px au plus,
+         *     sans métadonnées ; remplace le logo précédent.
+         */
+        post: operations["school.logo.store"];
+        /** Retirer le logo */
+        delete: operations["school.logo.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rôles de l'école
+         * @description Rôles système (dans l'ordre : promoteur, direction, secrétariat, comptabilité, enseignant, parent) puis rôles
+         *     personnalisés par nom, avec leurs permissions et le nombre d'affectations. Qui gère les rôles ou voit les
+         *     utilisateurs.
+         */
+        get: operations["roles.index"];
+        put?: never;
+        /**
+         * Créer un rôle personnalisé
+         * @description Permission roles.manage sur toute l'école. On ne peut accorder que des permissions que l'on détient sur
+         *     toute l'école (422 sinon), jamais une permission réservée aux parents.
+         */
+        post: operations["roles.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles/{role}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer un rôle personnalisé
+         * @description 409 `role_in_use` s'il est encore attribué, 409 `role_locked` pour un rôle système, 404 s'il n'existe pas
+         *     dans l'école.
+         */
+        delete: operations["roles.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un rôle
+         * @description Rôle personnalisé : nom, description, permissions. Rôle système modifiable (secrétariat, comptabilité) :
+         *     permissions seulement. Autre rôle système : 409 `role_locked`. 404 si le rôle n'existe pas dans l'école.
+         */
+        patch: operations["roles.update"];
+        trace?: never;
+    };
+    "/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Catalogue des permissions
+         * @description Toutes les permissions, groupées par module, pour l'écran des rôles.
+         */
+        get: operations["permissions.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comptes de l'école
+         * @description Par nom, 25 par page (curseur). Permission users.view ; limitée à un cycle, seuls les comptes de ce cycle.
+         */
+        get: operations["users.index"];
+        put?: never;
+        /**
+         * Ajouter un compte
+         * @description Avec au moins un rôle. Téléphone inconnu : nouveau compte et mot de passe provisoire (`provisional_password`,
+         *     renvoyé une seule fois). Téléphone d'un compte d'une autre école : rattaché, il garde son mot de passe
+         *     (`provisional_password` null). Chaque rôle exige le droit de l'attribuer (cycle, hiérarchie, pas d'élévation).
+         */
+        post: operations["users.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Un compte de l'école
+         * @description 404 s'il n'est pas membre de l'école.
+         */
+        get: operations["users.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer un compte de l'école
+         * @description Retire tous ses rôles. Le compte n'est effacé (`erased`) que s'il n'appartient à aucune autre école.
+         */
+        delete: operations["users.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un compte
+         * @description Nom, téléphone, e-mail (uniques entre tous les comptes). Jamais son propre compte ; un promoteur seulement par
+         *     un promoteur.
+         */
+        patch: operations["users.update"];
+        trace?: never;
+    };
+    "/users/{user}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Désactiver un compte
+         * @description Son accès à l'école est coupé dès la requête suivante ; ses rôles sont conservés.
+         */
+        post: operations["users.deactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Réactiver un compte */
+        post: operations["users.reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attribuer un rôle
+         * @description Rôle système ou personnalisé, sur un cycle ou toute l'école. Promoteur et Direction : par un promoteur
+         *     seulement ; jamais un rôle dont on ne détient pas toutes les permissions sur ce cycle.
+         */
+        post: operations["users.roles.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user}/roles/{assignment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un rôle
+         * @description 409 `last_role` pour le dernier rôle du compte (le supprimer ou le désactiver).
+         */
+        delete: operations["users.roles.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/schools/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Page publique d'une école
+         * @description Sans authentification : nom, ville, type et cycles ouverts (avec leurs niveaux). Aucune donnée personnelle.
+         */
+        get: operations["public.schools.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Élèves de l'école
+         * @description Inscrits sur l'année demandée (en cours par défaut), par nom, 25 par page (curseur). Personnel : son cycle ;
+         *     enseignant : élèves de ses classes ; parent : ses enfants. Aucune donnée médicale dans la liste.
+         */
+        get: operations["students.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{student}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dossier d'un élève
+         * @description Tuteurs, inscriptions, fratrie ; `medical` seulement avec students.medical.view. 404 hors du périmètre.
+         */
+        get: operations["students.show"];
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer le dossier d'un élève
+         * @description Suppression logique (saisie erronée) : le matricule n'est jamais réutilisé. Un départ se note sur l'inscription.
+         */
+        delete: operations["students.destroy"];
+        options?: never;
+        head?: never;
+        /** Modifier le dossier d'un élève */
+        patch: operations["students.update"];
+        trace?: never;
+    };
+    "/students/{student}/guardians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter un tuteur
+         * @description Téléphone d'un tuteur déjà connu de l'école : il est réutilisé (fratrie).
+         */
+        post: operations["students.guardians.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{student}/guardians/{guardian}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un tuteur
+         * @description 409 `last_guardian` (dernier tuteur) ou `reassign_first` (payeur ou contact principal à remplacer d'abord).
+         */
+        delete: operations["students.guardians.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un tuteur
+         * @description Ses informations (partagées par la fratrie) et son lien avec cet élève.
+         */
+        patch: operations["students.guardians.update"];
+        trace?: never;
+    };
 }
-export type webhooks = Record<string, never>
+export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** AcademicYearResource */
-    AcademicYearResource: {
-      id: string
-      label: string
-      starts_on: string
-      ends_on: string
-      /** @enum {string} */
-      status: 'open' | 'closed'
-      is_current: boolean
-    }
-    /**
-     * AcademicYearStatus
-     * @description Année scolaire ouverte (inscriptions, notes, présences) ou clôturée (consultation seulement).
-     * @enum {string}
-     */
-    AcademicYearStatus: 'open' | 'closed'
-    /** AssignUserRoleRequest */
-    AssignUserRoleRequest: {
-      role: string
-      /** Format: uuid */
-      cycle_id?: string | null
-    }
-    /**
-     * BloodType
-     * @description Groupe sanguin (donnée médicale : permission students.medical.view, jamais journalisée).
-     * @enum {string}
-     */
-    BloodType: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
-    /** ChangePasswordRequest */
-    ChangePasswordRequest: {
-      current_password: string
-      password: string
-      password_confirmation: string
-    }
-    /** ClassroomResource */
-    ClassroomResource: {
-      id: string
-      academic_year_id: string
-      name: string
-      section: string
-      capacity: number | null
-      enrolled_count: number
-      room: string | null
-      level: {
-        id: string
-        code: string
-        name: string
-        cycle_id: string
-        cycle_code: string
-      }
-      homeroom_teacher: {
-        id: string
-        name: string
-      } | null
-      can_manage: boolean
-    }
-    /** CreateSchoolRequest */
-    CreateSchoolRequest: {
-      name: string
-      /**
-       * @description Chemin app.<domaine>/{slug} : minuscules, chiffres et tirets, hors segments réservés (config/tenancy.php).
-       *     Figé à la création en V1 : aucune route ne le modifie (les liens déjà envoyés restent valides).
-       */
-      slug: string
-      city?: string | null
-      type?: components['schemas']['SchoolType']
-      cycles: ('daycare' | 'kindergarten' | 'primary')[]
-      director: {
-        name: string
-        phone: string
-        /** Format: email */
-        email?: string | null
-      }
-    }
-    /** CycleResource */
-    CycleResource: {
-      id: string
-      code: string
-      name: string
-      position: number
-      is_active: boolean
-      settings: {
-        /** @enum {string} */
-        term_type: 'trimester' | 'semester' | 'free_period'
-        /** @enum {string} */
-        assessment_mode: 'observation' | 'competency' | 'weighted_average'
-        /** @enum {string} */
-        attendance_mode: 'roll_call' | 'check_in_out'
-        /** @enum {string} */
-        billing_period: 'monthly' | 'quarterly' | 'yearly'
-        /** @enum {string} */
-        report_document: 'none' | 'skills_booklet' | 'report_card'
-        /** @enum {string} */
-        daily_log: 'none' | 'optional' | 'required'
-      }
-      levels: components['schemas']['LevelResource'][]
-    }
-    /**
-     * EnrollStudentRequest
-     * @description Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
-     *     contact principal, le premier tuteur par défaut) et `classroom_id`. Droits : students.manage sur le cycle de la
-     *     classe ; champs médicaux de `student` refusés sans students.medical.view sur ce cycle.
-     */
-    EnrollStudentRequest: {
-      student: {
-        first_name: string
-        last_name: string
-        gender: components['schemas']['Gender']
-        /** Format: date */
-        birth_date: string
-        birth_place?: string | null
-        address?: string | null
-        blood_type?: components['schemas']['BloodType'] | null
-        allergies?: string | null
-        medical_notes?: string | null
-      }
-      /** Format: uuid */
-      classroom_id: string
-      /** Format: date */
-      enrolled_on?: string
-      guardians: {
-        name: string
-        phone: string
-        /** Format: email */
-        email?: string | null
-        profession?: string | null
-        relation: components['schemas']['GuardianRelation']
-        is_primary_contact?: boolean
-        is_payer?: boolean
-        can_pick_up?: boolean
-      }[]
-    }
-    /** EnrollmentResource */
-    EnrollmentResource: {
-      id: string
-      /** @enum {string} */
-      status: 'active' | 'left'
-      enrolled_on: string
-      left_on: string | null
-      leave_reason: string | null
-      academic_year: {
-        id: string
-        label: string
-        is_current: boolean
-        /** @enum {string} */
-        status: 'open' | 'closed'
-      }
-      classroom: {
-        id: string
-        name: string
-        level_code: string
-        cycle_id: string
-        cycle_code: string
-        homeroom_teacher: string | null
-      }
-    }
-    /**
-     * Gender
-     * @enum {string}
-     */
-    Gender: 'F' | 'M'
-    /** GuardianLinkResource */
-    GuardianLinkResource: {
-      id: string
-      name: string
-      phone: string
-      email: string | null
-      profession: string | null
-      /** @enum {string} */
-      relation: 'father' | 'mother' | 'guardian' | 'other'
-      is_primary_contact: boolean
-      is_payer: boolean
-      can_pick_up: boolean
-    }
-    /**
-     * GuardianRelation
-     * @description Lien entre un tuteur et l'élève.
-     * @enum {string}
-     */
-    GuardianRelation: 'father' | 'mother' | 'guardian' | 'other'
-    /** HealthResource */
-    HealthResource: {
-      /** @enum {string} */
-      status: 'ok' | 'error'
-      /** @enum {string} */
-      database: 'ok' | 'error'
-      /** @enum {string} */
-      redis: 'ok' | 'error'
-    }
-    /** LevelResource */
-    LevelResource: {
-      id: string
-      code: string
-      name: string
-      position: number
-    }
-    /** LoginRequest */
-    LoginRequest: {
-      /** @description Téléphone (« 07 00 00 00 00 », « +225… ») ou adresse e-mail */
-      login: string
-      password: string
-      /** @description « Se souvenir de moi » (30 jours) : ignoré pour les comptes du personnel */
-      remember?: boolean
-    }
-    /** PermissionResource */
-    PermissionResource: {
-      key: string
-      group: string
-      staff_assignable: boolean
-    }
-    /** ProfileResource */
-    ProfileResource: {
-      id: string
-      name: string
-      phone: string
-      email: string | null
-      must_change_password: boolean
-      is_super_admin: boolean
-      /** @description « Se souvenir de moi » proposé (comptes sans rôle du personnel) */
-      can_be_remembered: boolean
-      schools: components['schemas']['SchoolMembershipResource'][]
-    }
-    /** PublicSchoolResource */
-    PublicSchoolResource: {
-      name: string
-      slug: string
-      city: string | null
-      type: string
-      address: string | null
-      phone: string | null
-      email: string | null
-      motto: string | null
-      logo_url: string | null
-      cycles: {
-        code: string
-        name: string
-        levels: string[]
-      }[]
-    }
-    /** RoleAssignmentResource */
-    RoleAssignmentResource: {
-      role: string
-      role_name: string | null
-      cycle_id: string | null
-    }
-    /**
-     * SaveAcademicYearRequest
-     * @description Création (POST : libellé et dates obligatoires) ou modification (PATCH : champs envoyés seulement).
-     */
-    SaveAcademicYearRequest: {
-      label: string
-      /** Format: date */
-      starts_on: string
-      /** Format: date */
-      ends_on: string
-      status?: components['schemas']['AcademicYearStatus']
-      is_current?: boolean
-    }
-    /**
-     * SaveClassroomRequest
-     * @description Création (POST : niveau et section obligatoires ; année en cours par défaut) ou modification (PATCH).
-     *     Droits : school.settings.manage sur le cycle du niveau, et sur celui du nouveau niveau en cas de changement.
-     */
-    SaveClassroomRequest: {
-      /** Format: uuid */
-      level_id: string
-      /** Format: uuid */
-      academic_year_id?: string
-      section: string
-      capacity?: number | null
-      room?: string | null
-      /** Format: uuid */
-      homeroom_teacher_id?: string | null
-    }
-    /** SchoolMembershipResource */
-    SchoolMembershipResource: {
-      id: string
-      name: string
-      slug: string
-      roles: components['schemas']['RoleAssignmentResource'][]
-      permissions: {
-        [key: string]: string[] | null
-      }
-    }
-    /** SchoolProfileResource */
-    SchoolProfileResource: {
-      id: string
-      name: string
-      slug: string
-      code: string
-      code_locked: boolean
-      /** @enum {string} */
-      type: 'preschool_primary' | 'secondary' | 'higher'
-      city: string | null
-      address: string | null
-      phone: string | null
-      email: string | null
-      motto: string | null
-      currency: string
-      logo_url: string | null
-    }
-    /** SchoolResource */
-    SchoolResource: {
-      id: string
-      organization_id: string | null
-      name: string
-      slug: string
-      /** @enum {string} */
-      type: 'preschool_primary' | 'secondary' | 'higher'
-      city: string | null
-      currency: string
-      created_at: string | null
-    }
-    /** SchoolRoleResource */
-    SchoolRoleResource: {
-      key: string
-      name: string | null
-      description: string | null
-      is_system: boolean
-      is_editable: boolean
-      permissions: string[]
-      assignments_count: number
-    }
-    /**
-     * SchoolType
-     * @description Type d'établissement (ADR 0003) : seul preschool_primary est disponible en V1.
-     * @enum {string}
-     */
-    SchoolType: 'preschool_primary' | 'secondary' | 'higher'
-    /** SchoolUserResource */
-    SchoolUserResource: {
-      id: string
-      name: string
-      phone: string
-      email: string | null
-      active: boolean
-      must_change_password: boolean
-      last_login_at: string | null
-      roles: components['schemas']['UserAssignmentResource'][]
-      can_manage: boolean
-    }
-    /** SiblingResource */
-    SiblingResource: {
-      id: string
-      full_name: string
-      classroom_name: string | null
-    }
-    /**
-     * StoreGuardianRequest
-     * @description Ajouter un tuteur au dossier (téléphone d'un tuteur connu de l'école : il est réutilisé). `is_payer` ou
-     *     `is_primary_contact` : la qualité passe à ce tuteur.
-     */
-    StoreGuardianRequest: {
-      name: string
-      phone: string
-      /** Format: email */
-      email?: string | null
-      profession?: string | null
-      relation: components['schemas']['GuardianRelation']
-      is_primary_contact?: boolean
-      is_payer?: boolean
-      can_pick_up?: boolean
-    }
-    /** StoreSchoolRoleRequest */
-    StoreSchoolRoleRequest: {
-      name: string
-      description?: string | null
-      /** @description Clés de GET /permissions ; validées par ValidateRolePermissions (catalogue, parents, élévation) */
-      permissions: string[]
-    }
-    /** StoreSchoolUserRequest */
-    StoreSchoolUserRequest: {
-      name: string
-      phone: string
-      /** Format: email */
-      email?: string | null
-      roles: {
-        role: string
-        /** Format: uuid */
-        cycle_id?: string | null
-      }[]
-    }
-    /** StudentResource */
-    StudentResource: {
-      id: string
-      matricule: string
-      first_name: string
-      last_name: string
-      full_name: string
-      /** @enum {string} */
-      gender: 'F' | 'M'
-      birth_date: string
-      birth_place: string | null
-      address: string | null
-      medical: {
-        /** @enum {string|null} */
-        blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | null
-        allergies: string | null
-        medical_notes: string | null
-      } | null
-      guardians: components['schemas']['GuardianLinkResource'][]
-      enrollments: components['schemas']['EnrollmentResource'][]
-      siblings: components['schemas']['SiblingResource'][]
-      can_manage: boolean
-      can_view_medical: boolean
-      created_at: string | null
-    }
-    /** StudentRowResource */
-    StudentRowResource: {
-      id: string
-      matricule: string
-      first_name: string
-      last_name: string
-      full_name: string
-      /** @enum {string} */
-      gender: 'F' | 'M'
-      birth_date: string
-      enrollment: {
-        id: string
-        /** @enum {string} */
-        status: 'active' | 'left'
-        classroom_id: string
-        classroom_name: string
-        cycle_id: string
-        cycle_code: string
-      } | null
-      primary_contact: {
-        name: string
-        phone: string
-      } | null
-    }
-    /** UpdateCycleRequest */
-    UpdateCycleRequest: {
-      name?: string
-      settings?: {
-        term_type?: string
-        assessment_mode?: string
-        attendance_mode?: string
-        billing_period?: string
-        report_document?: string
-        daily_log?: string
-      }
-    }
-    /**
-     * UpdateEnrollmentRequest
-     * @description Inscription d'un élève : `classroom_id` (changement de classe, même année) ou `status` (`left` avec `left_on` et
-     *     `leave_reason` facultatif ; `active` pour un retour). Droits : gérer l'élève, et inscrire dans la nouvelle classe.
-     */
-    UpdateEnrollmentRequest: {
-      /** Format: uuid */
-      classroom_id?: string
-      /** @enum {string} */
-      status?: 'active' | 'left'
-      /** Format: date */
-      left_on?: string
-      leave_reason?: string | null
-    }
-    /**
-     * UpdateGuardianRequest
-     * @description Modifier un tuteur (nom, téléphone, e-mail, profession : partagés par la fratrie) et son lien avec l'élève
-     *     (parenté, payeur, contact principal, autorisé à récupérer). Champs envoyés seulement.
-     */
-    UpdateGuardianRequest: {
-      name?: string
-      phone?: string
-      /** Format: email */
-      email?: string | null
-      profession?: string | null
-      relation?: components['schemas']['GuardianRelation']
-      is_primary_contact?: boolean
-      is_payer?: boolean
-      can_pick_up?: boolean
-    }
-    /** UpdateSchoolProfileRequest */
-    UpdateSchoolProfileRequest: {
-      name?: string
-      code?: string
-      city?: string | null
-      address?: string | null
-      phone?: string | null
-      /** Format: email */
-      email?: string | null
-      motto?: string | null
-    }
-    /** UpdateSchoolRoleRequest */
-    UpdateSchoolRoleRequest: {
-      name?: string
-      description?: string | null
-      permissions?: string[]
-    }
-    /** UpdateSchoolUserRequest */
-    UpdateSchoolUserRequest: {
-      name?: string
-      phone?: string
-      /** Format: email */
-      email?: string | null
-    }
-    /**
-     * UpdateStudentRequest
-     * @description Modification du dossier (champs envoyés seulement ; chaîne vide = effacer un champ facultatif). Les champs médicaux
-     *     sont refusés (422) sans students.medical.view sur l'élève.
-     */
-    UpdateStudentRequest: {
-      first_name?: string
-      last_name?: string
-      gender?: components['schemas']['Gender']
-      /** Format: date */
-      birth_date?: string
-      birth_place?: string | null
-      address?: string | null
-      blood_type?: components['schemas']['BloodType'] | null
-      allergies?: string | null
-      medical_notes?: string | null
-    }
-    /** UploadSchoolLogoRequest */
-    UploadSchoolLogoRequest: {
-      /**
-       * Format: binary
-       * @description Maximum file size: 2048 kilobytes.
-       */
-      logo: string
-    }
-    /** UserAssignmentResource */
-    UserAssignmentResource: {
-      id: string
-      role: string
-      role_name: string | null
-      cycle_id: string | null
-    }
-  }
-  responses: {
-    /** @description Unauthenticated */
-    AuthenticationException: {
-      headers: {
-        [name: string]: unknown
-      }
-      content: {
-        'application/json': {
-          /** @description Error overview. */
-          message: string
-        }
-      }
-    }
-    /** @description Not found */
-    ModelNotFoundException: {
-      headers: {
-        [name: string]: unknown
-      }
-      content: {
-        'application/json': {
-          /** @description Error overview. */
-          message: string
-        }
-      }
-    }
-    /** @description Validation error */
-    ValidationException: {
-      headers: {
-        [name: string]: unknown
-      }
-      content: {
-        'application/json': {
-          /** @description Errors overview. */
-          message: string
-          /** @description A detailed description of each field that failed validation. */
-          errors: {
-            [key: string]: string[]
-          }
-        }
-      }
-    }
-    /** @description Authorization error */
-    AuthorizationException: {
-      headers: {
-        [name: string]: unknown
-      }
-      content: {
-        'application/json': {
-          /** @description Error overview. */
-          message: string
-        }
-      }
-    }
-    /** @description Not found */
-    NotFoundHttpException: {
-      headers: {
-        [name: string]: unknown
-      }
-      content: {
-        'application/json': {
-          /** @description Error overview. */
-          message: string
-        }
-      }
-    }
-  }
-  parameters: never
-  requestBodies: never
-  headers: never
-  pathItems: never
-}
-export type $defs = Record<string, never>
-export interface operations {
-  'academic-years.index': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Array of `AcademicYearResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['AcademicYearResource'][]
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'academic-years.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SaveAcademicYearRequest']
-      }
-    }
-    responses: {
-      /** @description `AcademicYearResource` */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['AcademicYearResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'academic-years.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The academic year ID */
-        academicYear: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SaveAcademicYearRequest']
-      }
-    }
-    responses: {
-      /** @description `AcademicYearResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['AcademicYearResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'auth.login': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LoginRequest']
-      }
-    }
-    responses: {
-      /** @description `ProfileResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['ProfileResource']
-          }
-        }
-      }
-      /** @description Bad request */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            /** @description Error overview. */
-            message: string
-          }
-        }
-      }
-      422: components['responses']['ValidationException']
-      /** @description Trop de tentatives (par identifiant ou par adresse IP). */
-      429: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message: string
-            code: string
-          }
-        }
-      }
-    }
-  }
-  'auth.logout': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description No content */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      401: components['responses']['AuthenticationException']
-    }
-  }
-  'auth.password': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ChangePasswordRequest']
-      }
-    }
-    responses: {
-      /** @description No content */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  me: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `ProfileResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['ProfileResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-    }
-  }
-  'classrooms.index': {
-    parameters: {
-      query?: {
-        academic_year_id?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Array of `ClassroomResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['ClassroomResource'][]
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'classrooms.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SaveClassroomRequest']
-      }
-    }
-    responses: {
-      /** @description `ClassroomResource` */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['ClassroomResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'classrooms.destroy': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The classroom ID */
-        classroom: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description No content */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'classrooms.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The classroom ID */
-        classroom: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SaveClassroomRequest']
-      }
-    }
-    responses: {
-      /** @description `ClassroomResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['ClassroomResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'platform.schools.index': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Une page d’écoles, triées par nom. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolResource'][]
-            links: {
-              first: string | null
-              last: string | null
-              prev: string | null
-              next: string | null
-            }
-            meta: {
-              /** @description Base path for paginator generated URLs. */
-              path: string | null
-              /** @description Number of items shown per page. */
-              per_page: number
-              /** @description The "cursor" that points to the next set of items. */
-              next_cursor: string | null
-              /** @description The "cursor" that points to the previous set of items. */
-              prev_cursor: string | null
-            }
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message: string
-          }
-        }
-      }
-    }
-  }
-  'platform.schools.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateSchoolRequest']
-      }
-    }
-    responses: {
-      /** @description École créée. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolResource']
+    schemas: {
+        /** AcademicYearResource */
+        AcademicYearResource: {
+            id: string;
+            label: string;
+            starts_on: string;
+            ends_on: string;
+            /** @enum {string} */
+            status: "open" | "closed";
+            is_current: boolean;
+        };
+        /**
+         * AcademicYearStatus
+         * @description Année scolaire ouverte (inscriptions, notes, présences) ou clôturée (consultation seulement).
+         * @enum {string}
+         */
+        AcademicYearStatus: "open" | "closed";
+        /** AssignUserRoleRequest */
+        AssignUserRoleRequest: {
+            role: string;
+            /** Format: uuid */
+            cycle_id?: string | null;
+        };
+        /**
+         * BloodType
+         * @description Groupe sanguin (donnée médicale : permission students.medical.view, jamais journalisée).
+         * @enum {string}
+         */
+        BloodType: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+        /** ChangePasswordRequest */
+        ChangePasswordRequest: {
+            current_password: string;
+            password: string;
+            password_confirmation: string;
+        };
+        /** ClassroomResource */
+        ClassroomResource: {
+            id: string;
+            academic_year_id: string;
+            name: string;
+            section: string;
+            capacity: number | null;
+            enrolled_count: number;
+            room: string | null;
+            level: {
+                id: string;
+                code: string;
+                name: string;
+                cycle_id: string;
+                cycle_code: string;
+            };
+            homeroom_teacher: {
+                id: string;
+                name: string;
+            } | null;
+            can_manage: boolean;
+        };
+        /** CreateSchoolRequest */
+        CreateSchoolRequest: {
+            name: string;
+            /**
+             * @description Chemin app.<domaine>/{slug} : minuscules, chiffres et tirets, hors segments réservés (config/tenancy.php).
+             *     Figé à la création en V1 : aucune route ne le modifie (les liens déjà envoyés restent valides).
+             */
+            slug: string;
+            city?: string | null;
+            type?: components["schemas"]["SchoolType"];
+            cycles: ("daycare" | "kindergarten" | "primary")[];
             director: {
-              id: string
-              name: string
-              phone: string
-              provisional_password: string | null
-            }
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message: string
-          }
-        }
-      }
-      422: components['responses']['ValidationException']
-    }
-  }
-  'cycles.index': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
+                name: string;
+                phone: string;
+                /** Format: email */
+                email?: string | null;
+            };
+        };
+        /** CycleResource */
+        CycleResource: {
+            id: string;
+            code: string;
+            name: string;
+            position: number;
+            is_active: boolean;
+            settings: {
+                /** @enum {string} */
+                term_type: "trimester" | "semester" | "free_period";
+                /** @enum {string} */
+                assessment_mode: "observation" | "competency" | "weighted_average";
+                /** @enum {string} */
+                attendance_mode: "roll_call" | "check_in_out";
+                /** @enum {string} */
+                billing_period: "monthly" | "quarterly" | "yearly";
+                /** @enum {string} */
+                report_document: "none" | "skills_booklet" | "report_card";
+                /** @enum {string} */
+                daily_log: "none" | "optional" | "required";
+            };
+            levels: components["schemas"]["LevelResource"][];
+        };
+        /**
+         * EnrollStudentRequest
+         * @description Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
+         *     contact principal, le premier tuteur par défaut) et `classroom_id`. Droits : students.manage sur le cycle de la
+         *     classe ; champs médicaux de `student` refusés sans students.medical.view sur ce cycle.
+         */
+        EnrollStudentRequest: {
+            student: {
+                first_name: string;
+                last_name: string;
+                gender: components["schemas"]["Gender"];
+                /** Format: date */
+                birth_date: string;
+                birth_place?: string | null;
+                address?: string | null;
+                blood_type?: components["schemas"]["BloodType"] | null;
+                allergies?: string | null;
+                medical_notes?: string | null;
+            };
+            /** Format: uuid */
+            classroom_id: string;
+            /** Format: date */
+            enrolled_on?: string;
+            guardians: {
+                name: string;
+                phone: string;
+                /** Format: email */
+                email?: string | null;
+                profession?: string | null;
+                relation: components["schemas"]["GuardianRelation"];
+                is_primary_contact?: boolean;
+                is_payer?: boolean;
+                can_pick_up?: boolean;
+            }[];
+        };
+        /** EnrollmentResource */
+        EnrollmentResource: {
+            id: string;
+            /** @enum {string} */
+            status: "active" | "left";
+            enrolled_on: string;
+            left_on: string | null;
+            leave_reason: string | null;
+            academic_year: {
+                id: string;
+                label: string;
+                is_current: boolean;
+                /** @enum {string} */
+                status: "open" | "closed";
+            };
+            classroom: {
+                id: string;
+                name: string;
+                level_code: string;
+                cycle_id: string;
+                cycle_code: string;
+                homeroom_teacher: string | null;
+            };
+        };
+        /**
+         * Gender
+         * @enum {string}
+         */
+        Gender: "F" | "M";
+        /** GuardianLinkResource */
+        GuardianLinkResource: {
+            id: string;
+            name: string;
+            phone: string;
+            email: string | null;
+            profession: string | null;
+            /** @enum {string} */
+            relation: "father" | "mother" | "guardian" | "other";
+            is_primary_contact: boolean;
+            is_payer: boolean;
+            can_pick_up: boolean;
+        };
+        /**
+         * GuardianRelation
+         * @description Lien entre un tuteur et l'élève.
+         * @enum {string}
+         */
+        GuardianRelation: "father" | "mother" | "guardian" | "other";
+        /** HealthResource */
+        HealthResource: {
+            /** @enum {string} */
+            status: "ok" | "error";
+            /** @enum {string} */
+            database: "ok" | "error";
+            /** @enum {string} */
+            redis: "ok" | "error";
+        };
+        /** LevelResource */
+        LevelResource: {
+            id: string;
+            code: string;
+            name: string;
+            position: number;
+        };
+        /** LoginRequest */
+        LoginRequest: {
+            /** @description Téléphone (« 07 00 00 00 00 », « +225… ») ou adresse e-mail */
+            login: string;
+            password: string;
+            /** @description « Se souvenir de moi » (30 jours) : ignoré pour les comptes du personnel */
+            remember?: boolean;
+        };
+        /** PermissionResource */
+        PermissionResource: {
+            key: string;
+            group: string;
+            staff_assignable: boolean;
+        };
+        /** ProfileResource */
+        ProfileResource: {
+            id: string;
+            name: string;
+            phone: string;
+            email: string | null;
+            must_change_password: boolean;
+            is_super_admin: boolean;
+            /** @description « Se souvenir de moi » proposé (comptes sans rôle du personnel) */
+            can_be_remembered: boolean;
+            schools: components["schemas"]["SchoolMembershipResource"][];
+        };
+        /** PublicSchoolResource */
+        PublicSchoolResource: {
+            name: string;
+            slug: string;
+            city: string | null;
+            type: string;
+            address: string | null;
+            phone: string | null;
+            email: string | null;
+            motto: string | null;
+            logo_url: string | null;
+            cycles: {
+                code: string;
+                name: string;
+                levels: string[];
+            }[];
+        };
+        /** RoleAssignmentResource */
+        RoleAssignmentResource: {
+            role: string;
+            role_name: string | null;
+            cycle_id: string | null;
+        };
+        /**
+         * SaveAcademicYearRequest
+         * @description Création (POST : libellé et dates obligatoires) ou modification (PATCH : champs envoyés seulement).
+         */
+        SaveAcademicYearRequest: {
+            label: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string;
+            status?: components["schemas"]["AcademicYearStatus"];
+            is_current?: boolean;
+        };
+        /**
+         * SaveClassroomRequest
+         * @description Création (POST : niveau et section obligatoires ; année en cours par défaut) ou modification (PATCH).
+         *     Droits : school.settings.manage sur le cycle du niveau, et sur celui du nouveau niveau en cas de changement.
+         */
+        SaveClassroomRequest: {
+            /** Format: uuid */
+            level_id: string;
+            /** Format: uuid */
+            academic_year_id?: string;
+            section: string;
+            capacity?: number | null;
+            room?: string | null;
+            /** Format: uuid */
+            homeroom_teacher_id?: string | null;
+        };
+        /** SchoolMembershipResource */
+        SchoolMembershipResource: {
+            id: string;
+            name: string;
+            slug: string;
+            roles: components["schemas"]["RoleAssignmentResource"][];
+            permissions: {
+                [key: string]: string[] | null;
+            };
+        };
+        /** SchoolProfileResource */
+        SchoolProfileResource: {
+            id: string;
+            name: string;
+            slug: string;
+            code: string;
+            code_locked: boolean;
+            /** @enum {string} */
+            type: "preschool_primary" | "secondary" | "higher";
+            city: string | null;
+            address: string | null;
+            phone: string | null;
+            email: string | null;
+            motto: string | null;
+            currency: string;
+            logo_url: string | null;
+        };
+        /** SchoolResource */
+        SchoolResource: {
+            id: string;
+            organization_id: string | null;
+            name: string;
+            slug: string;
+            /** @enum {string} */
+            type: "preschool_primary" | "secondary" | "higher";
+            city: string | null;
+            currency: string;
+            created_at: string | null;
+        };
+        /** SchoolRoleResource */
+        SchoolRoleResource: {
+            key: string;
+            name: string | null;
+            description: string | null;
+            is_system: boolean;
+            is_editable: boolean;
+            permissions: string[];
+            assignments_count: number;
+        };
+        /**
+         * SchoolType
+         * @description Type d'établissement (ADR 0003) : seul preschool_primary est disponible en V1.
+         * @enum {string}
+         */
+        SchoolType: "preschool_primary" | "secondary" | "higher";
+        /** SchoolUserResource */
+        SchoolUserResource: {
+            id: string;
+            name: string;
+            phone: string;
+            email: string | null;
+            active: boolean;
+            must_change_password: boolean;
+            last_login_at: string | null;
+            roles: components["schemas"]["UserAssignmentResource"][];
+            can_manage: boolean;
+        };
+        /** SiblingResource */
+        SiblingResource: {
+            id: string;
+            full_name: string;
+            classroom_name: string | null;
+        };
+        /**
+         * StoreGuardianRequest
+         * @description Ajouter un tuteur au dossier (téléphone d'un tuteur connu de l'école : il est réutilisé). `is_payer` ou
+         *     `is_primary_contact` : la qualité passe à ce tuteur.
+         */
+        StoreGuardianRequest: {
+            name: string;
+            phone: string;
+            /** Format: email */
+            email?: string | null;
+            profession?: string | null;
+            relation: components["schemas"]["GuardianRelation"];
+            is_primary_contact?: boolean;
+            is_payer?: boolean;
+            can_pick_up?: boolean;
+        };
+        /** StoreSchoolRoleRequest */
+        StoreSchoolRoleRequest: {
+            name: string;
+            description?: string | null;
+            /** @description Clés de GET /permissions ; validées par ValidateRolePermissions (catalogue, parents, élévation) */
+            permissions: string[];
+        };
+        /** StoreSchoolUserRequest */
+        StoreSchoolUserRequest: {
+            name: string;
+            phone: string;
+            /** Format: email */
+            email?: string | null;
+            roles: {
+                role: string;
+                /** Format: uuid */
+                cycle_id?: string | null;
+            }[];
+        };
+        /** StudentResource */
+        StudentResource: {
+            id: string;
+            matricule: string;
+            first_name: string;
+            last_name: string;
+            full_name: string;
+            /** @enum {string} */
+            gender: "F" | "M";
+            birth_date: string;
+            birth_place: string | null;
+            address: string | null;
+            medical: {
+                /** @enum {string|null} */
+                blood_type: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | null;
+                allergies: string | null;
+                medical_notes: string | null;
+            } | null;
+            guardians: components["schemas"]["GuardianLinkResource"][];
+            enrollments: components["schemas"]["EnrollmentResource"][];
+            siblings: components["schemas"]["SiblingResource"][];
+            can_manage: boolean;
+            can_view_medical: boolean;
+            created_at: string | null;
+        };
+        /** StudentRowResource */
+        StudentRowResource: {
+            id: string;
+            matricule: string;
+            first_name: string;
+            last_name: string;
+            full_name: string;
+            /** @enum {string} */
+            gender: "F" | "M";
+            birth_date: string;
+            enrollment: {
+                id: string;
+                /** @enum {string} */
+                status: "active" | "left";
+                classroom_id: string;
+                classroom_name: string;
+                cycle_id: string;
+                cycle_code: string;
+            } | null;
+            primary_contact: {
+                name: string;
+                phone: string;
+            } | null;
+        };
+        /** UpdateCycleRequest */
+        UpdateCycleRequest: {
+            name?: string;
+            settings?: {
+                term_type?: string;
+                assessment_mode?: string;
+                attendance_mode?: string;
+                billing_period?: string;
+                report_document?: string;
+                daily_log?: string;
+            };
+        };
+        /**
+         * UpdateEnrollmentRequest
+         * @description Inscription d'un élève : `classroom_id` (changement de classe, même année) ou `status` (`left` avec `left_on` et
+         *     `leave_reason` facultatif ; `active` pour un retour). Droits : gérer l'élève, et inscrire dans la nouvelle classe.
+         */
+        UpdateEnrollmentRequest: {
+            /** Format: uuid */
+            classroom_id?: string;
+            /** @enum {string} */
+            status?: "active" | "left";
+            /** Format: date */
+            left_on?: string;
+            leave_reason?: string | null;
+        };
+        /**
+         * UpdateGuardianRequest
+         * @description Modifier un tuteur (nom, téléphone, e-mail, profession : partagés par la fratrie) et son lien avec l'élève
+         *     (parenté, payeur, contact principal, autorisé à récupérer). Champs envoyés seulement.
+         */
+        UpdateGuardianRequest: {
+            name?: string;
+            phone?: string;
+            /** Format: email */
+            email?: string | null;
+            profession?: string | null;
+            relation?: components["schemas"]["GuardianRelation"];
+            is_primary_contact?: boolean;
+            is_payer?: boolean;
+            can_pick_up?: boolean;
+        };
+        /** UpdateSchoolProfileRequest */
+        UpdateSchoolProfileRequest: {
+            name?: string;
+            code?: string;
+            city?: string | null;
+            address?: string | null;
+            phone?: string | null;
+            /** Format: email */
+            email?: string | null;
+            motto?: string | null;
+        };
+        /** UpdateSchoolRoleRequest */
+        UpdateSchoolRoleRequest: {
+            name?: string;
+            description?: string | null;
+            permissions?: string[];
+        };
+        /** UpdateSchoolUserRequest */
+        UpdateSchoolUserRequest: {
+            name?: string;
+            phone?: string;
+            /** Format: email */
+            email?: string | null;
+        };
+        /**
+         * UpdateStudentRequest
+         * @description Modification du dossier (champs envoyés seulement ; chaîne vide = effacer un champ facultatif). Les champs médicaux
+         *     sont refusés (422) sans students.medical.view sur l'élève.
+         */
+        UpdateStudentRequest: {
+            first_name?: string;
+            last_name?: string;
+            gender?: components["schemas"]["Gender"];
+            /** Format: date */
+            birth_date?: string;
+            birth_place?: string | null;
+            address?: string | null;
+            blood_type?: components["schemas"]["BloodType"] | null;
+            allergies?: string | null;
+            medical_notes?: string | null;
+        };
+        /** UploadSchoolLogoRequest */
+        UploadSchoolLogoRequest: {
+            /**
+             * Format: binary
+             * @description Maximum file size: 2048 kilobytes.
+             */
+            logo: string;
+        };
+        /** UserAssignmentResource */
+        UserAssignmentResource: {
+            id: string;
+            role: string;
+            role_name: string | null;
+            cycle_id: string | null;
+        };
+    };
     responses: {
-      /** @description Array of `CycleResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['CycleResource'][]
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-    }
-  }
-  'cycles.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The cycle ID */
-        cycle: string
-      }
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['UpdateCycleRequest']
-      }
-    }
-    responses: {
-      /** @description `CycleResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['CycleResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'enrollments.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['EnrollStudentRequest']
-      }
-    }
-    responses: {
-      /** @description `StudentResource` */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'enrollments.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The enrollment ID */
-        enrollment: string
-      }
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['UpdateEnrollmentRequest']
-      }
-    }
-    responses: {
-      /** @description `StudentResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  health: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description La base de données et Redis répondent. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HealthResource']
-        }
-      }
-      /** @description Au moins un composant est indisponible (aucun détail d'erreur renvoyé). */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HealthResource']
-        }
-      }
-    }
-  }
-  'users.password-reset': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            /** @constant */
-            provisional_password: ''
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'files.school-logo': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        file: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          'Cache-Control'?: 'private, max-age=1800'
-          'X-Content-Type-Options'?: 'nosniff'
-          'Content-Disposition'?: 'inline'
-          [name: string]: unknown
-        }
-        content: {
-          'image/webp': string | null
-        }
-      }
-      404: components['responses']['NotFoundHttpException']
-    }
-  }
-  'school.show': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `SchoolProfileResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolProfileResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'school.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['UpdateSchoolProfileRequest']
-      }
-    }
-    responses: {
-      /** @description `SchoolProfileResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolProfileResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'school.logo.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['UploadSchoolLogoRequest']
-      }
-    }
-    responses: {
-      /** @description `SchoolProfileResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolProfileResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'school.logo.destroy': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `SchoolProfileResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolProfileResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'roles.index': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Array of `SchoolRoleResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolRoleResource'][]
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'roles.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['StoreSchoolRoleRequest']
-      }
-    }
-    responses: {
-      /** @description `SchoolRoleResource` */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolRoleResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'roles.destroy': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        role: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description No content */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'roles.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        role: string
-      }
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['UpdateSchoolRoleRequest']
-      }
-    }
-    responses: {
-      /** @description `SchoolRoleResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolRoleResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'permissions.index': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Array of `PermissionResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['PermissionResource'][]
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.index': {
-    parameters: {
-      query?: {
-        search?: string | null
-        role?: string | null
-        cycle_id?: string | null
-        status?: 'all' | 'active' | 'deactivated' | null
-        cursor?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Paginated set of `SchoolUserResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource'][]
-            links: {
-              first: string | null
-              last: string | null
-              prev: string | null
-              next: string | null
-            }
-            meta: {
-              /** @description Base path for paginator generated URLs. */
-              path: string | null
-              /** @description Number of items shown per page. */
-              per_page: number
-              /** @description The "cursor" that points to the next set of items. */
-              next_cursor: string | null
-              /** @description The "cursor" that points to the previous set of items. */
-              prev_cursor: string | null
-            }
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['StoreSchoolUserRequest']
-      }
-    }
-    responses: {
-      /** @description `SchoolUserResource` */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource']
-            /** @constant */
-            provisional_password: ''
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.show': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `SchoolUserResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.destroy': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            erased: boolean
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-      }
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['UpdateSchoolUserRequest']
-      }
-    }
-    responses: {
-      /** @description `SchoolUserResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.deactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `SchoolUserResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.reactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `SchoolUserResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.roles.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['AssignUserRoleRequest']
-      }
-    }
-    responses: {
-      /** @description `SchoolUserResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'users.roles.destroy': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The user ID */
-        user: string
-        /** @description The assignment ID */
-        assignment: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `SchoolUserResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['SchoolUserResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'public.schools.show': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        slug: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `PublicSchoolResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['PublicSchoolResource']
-          }
-        }
-      }
-      /** @description Aucune école avec ce slug. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message: string
-          }
-        }
-      }
-    }
-  }
-  'students.index': {
-    parameters: {
-      query?: {
-        academic_year_id?: string | null
-        classroom_id?: string | null
-        cycle_id?: string | null
-        status?: 'active' | 'left' | 'all' | null
-        search?: string | null
-        cursor?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Paginated set of `StudentRowResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentRowResource'][]
-            links: {
-              first: string | null
-              last: string | null
-              prev: string | null
-              next: string | null
-            }
-            meta: {
-              /** @description Base path for paginator generated URLs. */
-              path: string | null
-              /** @description Number of items shown per page. */
-              per_page: number
-              /** @description The "cursor" that points to the next set of items. */
-              next_cursor: string | null
-              /** @description The "cursor" that points to the previous set of items. */
-              prev_cursor: string | null
-            }
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'students.show': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The student ID */
-        student: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `StudentResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'students.destroy': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The student ID */
-        student: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description No content */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'students.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The student ID */
-        student: string
-      }
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['UpdateStudentRequest']
-      }
-    }
-    responses: {
-      /** @description `StudentResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'students.guardians.store': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The student ID */
-        student: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['StoreGuardianRequest']
-      }
-    }
-    responses: {
-      /** @description `StudentResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'students.guardians.destroy': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The student ID */
-        student: string
-        /** @description The guardian ID */
-        guardian: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description `StudentResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
-  'students.guardians.update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The student ID */
-        student: string
-        /** @description The guardian ID */
-        guardian: string
-      }
-      cookie?: never
-    }
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['UpdateGuardianRequest']
-      }
-    }
-    responses: {
-      /** @description `StudentResource` */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            data: components['schemas']['StudentResource']
-          }
-        }
-      }
-      401: components['responses']['AuthenticationException']
-      403: components['responses']['AuthorizationException']
-      404: components['responses']['ModelNotFoundException']
-      422: components['responses']['ValidationException']
-    }
-  }
+        /** @description Unauthenticated */
+        AuthenticationException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+        /** @description Not found */
+        ModelNotFoundException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+        /** @description Validation error */
+        ValidationException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Errors overview. */
+                    message: string;
+                    /** @description A detailed description of each field that failed validation. */
+                    errors: {
+                        [key: string]: string[];
+                    };
+                };
+            };
+        };
+        /** @description Authorization error */
+        AuthorizationException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+        /** @description Not found */
+        NotFoundHttpException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+    };
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
+}
+export type $defs = Record<string, never>;
+export interface operations {
+    "academic-years.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `AcademicYearResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AcademicYearResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "academic-years.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAcademicYearRequest"];
+            };
+        };
+        responses: {
+            /** @description `AcademicYearResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AcademicYearResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "academic-years.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The academic year ID */
+                academicYear: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAcademicYearRequest"];
+            };
+        };
+        responses: {
+            /** @description `AcademicYearResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AcademicYearResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "auth.login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description `ProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProfileResource"];
+                    };
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Error overview. */
+                        message: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+            /** @description Trop de tentatives (par identifiant ou par adresse IP). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        code: string;
+                    };
+                };
+            };
+        };
+    };
+    "auth.logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "auth.password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "classrooms.index": {
+        parameters: {
+            query?: {
+                academic_year_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ClassroomResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClassroomResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "classrooms.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveClassroomRequest"];
+            };
+        };
+        responses: {
+            /** @description `ClassroomResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClassroomResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "classrooms.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "classrooms.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveClassroomRequest"];
+            };
+        };
+        responses: {
+            /** @description `ClassroomResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClassroomResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "platform.schools.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Une page d’écoles, triées par nom. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "platform.schools.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolRequest"];
+            };
+        };
+        responses: {
+            /** @description École créée. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolResource"];
+                        director: {
+                            id: string;
+                            name: string;
+                            phone: string;
+                            provisional_password: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            /** @description L’utilisateur n’est pas super-admin : la route n’est pas révélée. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "cycles.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `CycleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CycleResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "cycles.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The cycle ID */
+                cycle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateCycleRequest"];
+            };
+        };
+        responses: {
+            /** @description `CycleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CycleResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "enrollments.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrollStudentRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "enrollments.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The enrollment ID */
+                enrollment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateEnrollmentRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description La base de données et Redis répondent. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResource"];
+                };
+            };
+            /** @description Au moins un composant est indisponible (aucun détail d'erreur renvoyé). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResource"];
+                };
+            };
+        };
+    };
+    "users.password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        provisional_password: "";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "files.school-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, max-age=1800";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Disposition"?: "inline";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": string | null;
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
+        };
+    };
+    "school.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "school.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSchoolProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "school.logo.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadSchoolLogoRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "school.logo.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `SchoolRoleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolRoleResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreSchoolRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolRoleResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolRoleResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roles.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSchoolRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolRoleResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolRoleResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "permissions.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `PermissionResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PermissionResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.index": {
+        parameters: {
+            query?: {
+                search?: string | null;
+                role?: string | null;
+                cycle_id?: string | null;
+                status?: "all" | "active" | "deactivated" | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreSchoolUserRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolUserResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                        /** @constant */
+                        provisional_password: "";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        erased: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSchoolUserRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.roles.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignUserRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "users.roles.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user ID */
+                user: string;
+                /** @description The assignment ID */
+                assignment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolUserResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolUserResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "public.schools.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `PublicSchoolResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PublicSchoolResource"];
+                    };
+                };
+            };
+            /** @description Aucune école avec ce slug. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    "students.index": {
+        parameters: {
+            query?: {
+                academic_year_id?: string | null;
+                classroom_id?: string | null;
+                cycle_id?: string | null;
+                status?: "active" | "left" | "all" | null;
+                search?: string | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated set of `StudentRowResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentRowResource"][];
+                        links: {
+                            first: string | null;
+                            last: string | null;
+                            prev: string | null;
+                            next: string | null;
+                        };
+                        meta: {
+                            /** @description Base path for paginator generated URLs. */
+                            path: string | null;
+                            /** @description Number of items shown per page. */
+                            per_page: number;
+                            /** @description The "cursor" that points to the next set of items. */
+                            next_cursor: string | null;
+                            /** @description The "cursor" that points to the previous set of items. */
+                            prev_cursor: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateStudentRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreGuardianRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+                /** @description The guardian ID */
+                guardian: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.guardians.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+                /** @description The guardian ID */
+                guardian: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateGuardianRequest"];
+            };
+        };
+        responses: {
+            /** @description `StudentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
 }
