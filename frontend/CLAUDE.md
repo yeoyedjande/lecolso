@@ -104,8 +104,13 @@ src/
   **Facturation** (`features/billing/api.ts`) : grille de frais et calendriers (`useBillingGrid`, `useSaveFeeGrid`,
   `useSaveCalendar`, `useGenerateInvoices`), échéancier (`useBillingSchedules`), factures d'un élève
   (`useStudentInvoices`, `useChangeInvoice` : service, ligne manuelle, remise) dans l'onglet « Frais » de la fiche,
-  services optionnels choisis à l'inscription. Encaissements, reçus, caisse et impayés restent en démonstration (lot 5b, 5c).
-  Encaissements, espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
+  services optionnels choisis à l'inscription. **Encaissements** (`useRecordPayment` : facture de l'année de l'élève
+  trouvé par `useStudentList`), **reçus** (`useReceipt`, `<ReceiptSheet>` ; annulation par la direction,
+  `useCancelPayment`), **caisse du jour** (`useCashDesk`, `useCloseCashSession`), situation, paiements, remboursement et
+  report d'un trop-perçu dans l'onglet « Frais » (`useChangeInvoice` : `refund`, `transfer`), politique de départ dans
+  l'écran Frais (`useFinancialPolicy`). Impayés et relances restent en démonstration (lot 5c), comme les paiements et
+  reçus de l'espace parent (`useDemoReceipt`).
+  Espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).

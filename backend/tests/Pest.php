@@ -6,8 +6,12 @@ use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Academic\Models\Level;
+use App\Domains\Billing\Actions\CreateInvoice;
 use App\Domains\Billing\Models\FeeSchedule;
 use App\Domains\Billing\Models\FeeType;
+use App\Domains\Billing\Models\Installment;
+use App\Domains\Billing\Models\Invoice;
+use App\Domains\Billing\Models\InvoiceLine;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
@@ -17,6 +21,7 @@ use App\Domains\Students\Data\GuardianInput;
 use App\Domains\Students\Data\NewEnrollment;
 use App\Domains\Students\Enums\Gender;
 use App\Domains\Students\Enums\GuardianRelation;
+use App\Domains\Students\Models\Enrollment;
 use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Models\School;
 use App\Support\Tenancy\Platform;
@@ -253,4 +258,29 @@ function setFees(School $school, string $levelCode, array $amounts): void
             ['amount' => $amount],
         ));
     }
+}
+
+/**
+ * Facture de l'élève (créée d'après la grille ; services optionnels choisis).
+ *
+ * @param  list<string>  $options
+ */
+function invoiceOf(School $school, Student $student, array $options = []): Invoice
+{
+    $invoice = inSchool($school, static fn (): ?Invoice => app(CreateInvoice::class)->handle(
+        Enrollment::query()->where('student_id', $student->id)->firstOrFail(),
+        $options,
+    ));
+
+    return $invoice ?? throw new LogicException('Grille vide : aucune facture.');
+}
+
+/** Somme des échéances d'une facture, et somme des lignes : toujours égales. */
+function assertBalanced(School $school, Invoice $invoice): int
+{
+    $lines = inSchool($school, static fn (): int => (int) InvoiceLine::query()->where('invoice_id', $invoice->id)->sum('amount'));
+    $installments = inSchool($school, static fn (): int => (int) Installment::query()->where('invoice_id', $invoice->id)->sum('amount'));
+    expect($installments)->toBe($lines);
+
+    return $lines;
 }

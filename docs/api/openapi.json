@@ -600,6 +600,207 @@
                 }
             }
         },
+        "/billing/cash-desk": {
+            "get": {
+                "operationId": "billing.cash-desk.show",
+                "description": "`date` (AAAA-MM-JJ, aujourd'hui par d\u00e9faut). Sa caisse ; toutes avec `billing.manage` sur toute l'\u00e9cole.",
+                "summary": "Caisse d'un jour",
+                "tags": [
+                    "CashDesk"
+                ],
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`CashDeskResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashDeskResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/billing/cash-sessions/{cashSession}/close": {
+            "post": {
+                "operationId": "billing.cash-sessions.close",
+                "description": "Esp\u00e8ces compt\u00e9es (`counted_cash`) ; `note` obligatoire en cas d'\u00e9cart. Ensuite la caisse est fig\u00e9e.\n409 `cash_closed`.",
+                "summary": "Cl\u00f4turer sa caisse",
+                "tags": [
+                    "CashDesk"
+                ],
+                "parameters": [
+                    {
+                        "name": "cashSession",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cash session ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CloseCashSessionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CashSessionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CashSessionResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/billing/policy": {
+            "get": {
+                "operationId": "billing.policy.show",
+                "summary": "Politique financi\u00e8re de l'\u00e9cole",
+                "tags": [
+                    "CashDesk"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`FinancialPolicyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FinancialPolicyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "billing.policy.update",
+                "description": "Direction de toute l'\u00e9cole (`school.settings.manage`). S'applique aux d\u00e9parts enregistr\u00e9s ensuite.",
+                "summary": "Modifier la politique financi\u00e8re",
+                "tags": [
+                    "CashDesk"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveFinancialPolicyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`FinancialPolicyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FinancialPolicyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/classrooms": {
             "get": {
                 "operationId": "classrooms.index",
@@ -1628,6 +1829,316 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/payments": {
+            "post": {
+                "operationId": "invoices.payments.store",
+                "description": "Dans la caisse du jour de l'utilisateur ; renvoie le re\u00e7u (num\u00e9ro REC-2026-000123). 409 `nothing_due`,\n`amount_exceeds` (au-del\u00e0 du reste \u00e0 payer), `cash_closed` (caisse du jour cl\u00f4tur\u00e9e), `reference_used`.",
+                "summary": "Encaisser un paiement",
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RecordPaymentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ReceiptResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReceiptResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/refunds": {
+            "post": {
+                "operationId": "invoices.refunds.store",
+                "description": "Direction (`billing.refund`), motif obligatoire, sorti de sa caisse du jour. 409 `no_credit`,\n`amount_exceeds_credit`, `cash_closed`. Renvoie la facture.",
+                "summary": "Rembourser un trop-per\u00e7u",
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefundRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/credit-transfers": {
+            "post": {
+                "operationId": "invoices.credit-transfers.store",
+                "description": "Vers une autre facture du m\u00eame payeur (`to_invoice_id`). Direction (`billing.refund`), motif obligatoire.\n409 `other_payer`, `no_credit`, `amount_exceeds_credit`, `target_not_due`. Renvoie la facture d'origine.",
+                "summary": "Reporter un trop-per\u00e7u",
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TransferCreditRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/payments/{payment}": {
+            "get": {
+                "operationId": "payments.show",
+                "description": "Qui voit la facture de l'\u00e9l\u00e8ve ; un paiement annul\u00e9 porte la mention et le motif.",
+                "summary": "Re\u00e7u d'un paiement",
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "payment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The payment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ReceiptResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReceiptResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/payments/{payment}/cancel": {
+            "post": {
+                "operationId": "payments.cancel",
+                "description": "Direction (`billing.cancel`), motif obligatoire ; le re\u00e7u reste, marqu\u00e9 annul\u00e9. 409 `already_cancelled`,\n`cash_closed`.",
+                "summary": "Annuler un paiement",
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "payment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The payment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CancelPaymentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ReceiptResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReceiptResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
@@ -3962,6 +4473,204 @@
                 ],
                 "title": "BloodType"
             },
+            "CancelPaymentRequest": {
+                "type": "object",
+                "description": "Annulation d'un paiement (direction : billing.cancel sur le cycle) : motif obligatoire.",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "reason"
+                ],
+                "title": "CancelPaymentRequest"
+            },
+            "CashDeskResource": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string"
+                    },
+                    "all_cashiers": {
+                        "type": "boolean"
+                    },
+                    "net_total": {
+                        "type": "integer"
+                    },
+                    "sessions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CashSessionResource"
+                        }
+                    }
+                },
+                "required": [
+                    "date",
+                    "all_cashiers",
+                    "net_total",
+                    "sessions"
+                ],
+                "title": "CashDeskResource"
+            },
+            "CashMethodTotalResource": {
+                "type": "object",
+                "properties": {
+                    "method": {
+                        "type": "string"
+                    },
+                    "collected": {
+                        "type": "integer"
+                    },
+                    "cancelled": {
+                        "type": "integer"
+                    },
+                    "refunded": {
+                        "type": "integer"
+                    },
+                    "net": {
+                        "type": "integer"
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "method",
+                    "collected",
+                    "cancelled",
+                    "refunded",
+                    "net",
+                    "count"
+                ],
+                "title": "CashMethodTotalResource"
+            },
+            "CashMovementResource": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "type": "string"
+                    },
+                    "at": {
+                        "type": "string"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "method": {
+                        "type": "string"
+                    },
+                    "student_name": {
+                        "type": "string"
+                    },
+                    "payment_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "cancelled": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "kind",
+                    "at",
+                    "number",
+                    "amount",
+                    "method",
+                    "student_name",
+                    "payment_id",
+                    "reason",
+                    "cancelled"
+                ],
+                "title": "CashMovementResource"
+            },
+            "CashSessionResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "cashier_name": {
+                        "type": "string"
+                    },
+                    "is_mine": {
+                        "type": "boolean"
+                    },
+                    "business_date": {
+                        "type": "string"
+                    },
+                    "closed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "expected_cash": {
+                        "type": "integer"
+                    },
+                    "counted_cash": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "difference": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "net_total": {
+                        "type": "integer"
+                    },
+                    "methods": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CashMethodTotalResource"
+                        }
+                    },
+                    "movements": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CashMovementResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "cashier_name",
+                    "is_mine",
+                    "business_date",
+                    "closed_at",
+                    "expected_cash",
+                    "counted_cash",
+                    "difference",
+                    "note",
+                    "net_total",
+                    "methods",
+                    "movements"
+                ],
+                "title": "CashSessionResource"
+            },
             "ChangePasswordRequest": {
                 "type": "object",
                 "properties": {
@@ -4085,6 +4794,28 @@
                 ],
                 "title": "ClassroomResource"
             },
+            "CloseCashSessionRequest": {
+                "type": "object",
+                "description": "Cl\u00f4ture d'une caisse par son caissier (personne d'autre) : esp\u00e8ces compt\u00e9es (FCFA), note obligatoire en cas d'\u00e9cart\n(contr\u00f4l\u00e9e par l'Action, qui conna\u00eet le montant attendu).",
+                "properties": {
+                    "counted_cash": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000000000
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "counted_cash"
+                ],
+                "title": "CloseCashSessionRequest"
+            },
             "CreateSchoolRequest": {
                 "type": "object",
                 "properties": {
@@ -4157,6 +4888,70 @@
                     "director"
                 ],
                 "title": "CreateSchoolRequest"
+            },
+            "CreditTargetResource": {
+                "type": "object",
+                "properties": {
+                    "invoice_id": {
+                        "type": "string"
+                    },
+                    "student_name": {
+                        "type": "string"
+                    },
+                    "academic_year_label": {
+                        "type": "string"
+                    },
+                    "remaining": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "invoice_id",
+                    "student_name",
+                    "academic_year_label",
+                    "remaining"
+                ],
+                "title": "CreditTargetResource"
+            },
+            "CreditTransferResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "direction": {
+                        "type": "string"
+                    },
+                    "transferred_at": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "created_by_name": {
+                        "type": "string"
+                    },
+                    "other_student_name": {
+                        "type": "string"
+                    },
+                    "other_year_label": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "direction",
+                    "transferred_at",
+                    "amount",
+                    "reason",
+                    "created_by_name",
+                    "other_student_name",
+                    "other_year_label"
+                ],
+                "title": "CreditTransferResource"
             },
             "CycleResource": {
                 "type": "object",
@@ -4253,6 +5048,15 @@
                     "levels"
                 ],
                 "title": "CycleResource"
+            },
+            "DeparturePolicy": {
+                "type": "string",
+                "description": "Politique financi\u00e8re d'une \u00e9cole au d\u00e9part d'un \u00e9l\u00e8ve (schools.settings.billing_departure). Par d\u00e9faut : les \u00e9ch\u00e9ances des p\u00e9riodes non commenc\u00e9es \u00e0 la date du d\u00e9part sont annul\u00e9es (d\u00e9cision du 05/11/2026).\n",
+                "enum": [
+                    "cancel_unstarted",
+                    "keep_all"
+                ],
+                "title": "DeparturePolicy"
             },
             "EnrollStudentRequest": {
                 "type": "object",
@@ -4532,6 +5336,22 @@
                 ],
                 "title": "FeeTypeResource"
             },
+            "FinancialPolicyResource": {
+                "type": "object",
+                "properties": {
+                    "departure": {
+                        "type": "string",
+                        "enum": [
+                            "cancel_unstarted",
+                            "keep_all"
+                        ]
+                    }
+                },
+                "required": [
+                    "departure"
+                ],
+                "title": "FinancialPolicyResource"
+            },
             "Gender": {
                 "type": "string",
                 "enum": [
@@ -4668,7 +5488,8 @@
                         "enum": [
                             "fee",
                             "discount",
-                            "manual"
+                            "manual",
+                            "departure"
                         ]
                     },
                     "fee_type_id": {
@@ -4777,11 +5598,63 @@
                             "name"
                         ]
                     },
+                    "left_on": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "total": {
                         "type": "integer"
                     },
                     "discount_total": {
                         "type": "integer"
+                    },
+                    "balance": {
+                        "type": "object",
+                        "properties": {
+                            "settled": {
+                                "type": "integer"
+                            },
+                            "remaining": {
+                                "type": "integer"
+                            },
+                            "overdue": {
+                                "type": "integer"
+                            },
+                            "credit": {
+                                "type": "integer"
+                            },
+                            "next": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "due_on": {
+                                        "type": "string"
+                                    },
+                                    "label": {
+                                        "type": "string"
+                                    },
+                                    "amount": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "due_on",
+                                    "label",
+                                    "amount"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "settled",
+                            "remaining",
+                            "overdue",
+                            "credit",
+                            "next"
+                        ]
                     },
                     "lines": {
                         "type": "array",
@@ -4798,27 +5671,45 @@
                                     "type": "string"
                                 },
                                 "label": {
-                                    "anyOf": [
-                                        {
-                                            "type": "string"
-                                        },
-                                        {
-                                            "type": "string",
-                                            "enum": [
-                                                ""
-                                            ]
-                                        }
-                                    ]
+                                    "type": "string"
                                 },
                                 "amount": {
+                                    "type": "integer"
+                                },
+                                "settled": {
                                     "type": "integer"
                                 }
                             },
                             "required": [
                                 "due_on",
                                 "label",
-                                "amount"
+                                "amount",
+                                "settled"
                             ]
+                        }
+                    },
+                    "payments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PaymentResource"
+                        }
+                    },
+                    "refunds": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RefundResource"
+                        }
+                    },
+                    "transfers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CreditTransferResource"
+                        }
+                    },
+                    "credit_targets": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CreditTargetResource"
                         }
                     },
                     "available_options": {
@@ -4830,7 +5721,16 @@
                     "can_manage": {
                         "type": "boolean"
                     },
+                    "can_collect": {
+                        "type": "boolean"
+                    },
                     "can_discount": {
+                        "type": "boolean"
+                    },
+                    "can_cancel": {
+                        "type": "boolean"
+                    },
+                    "can_refund": {
                         "type": "boolean"
                     }
                 },
@@ -4839,13 +5739,22 @@
                     "academic_year",
                     "classroom_name",
                     "payer",
+                    "left_on",
                     "total",
                     "discount_total",
+                    "balance",
                     "lines",
                     "schedule",
+                    "payments",
+                    "refunds",
+                    "transfers",
+                    "credit_targets",
                     "available_options",
                     "can_manage",
-                    "can_discount"
+                    "can_collect",
+                    "can_discount",
+                    "can_cancel",
+                    "can_refund"
                 ],
                 "title": "InvoiceResource"
             },
@@ -4895,6 +5804,95 @@
                     "password"
                 ],
                 "title": "LoginRequest"
+            },
+            "PaymentMethod": {
+                "type": "string",
+                "description": "Moyen de paiement au guichet. Seules les esp\u00e8ces se comptent dans la caisse ; les autres exigent une r\u00e9f\u00e9rence.\n",
+                "enum": [
+                    "cash",
+                    "orange_money",
+                    "mtn_momo",
+                    "moov_money",
+                    "wave",
+                    "cheque",
+                    "transfer"
+                ],
+                "title": "PaymentMethod"
+            },
+            "PaymentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "receipt_number": {
+                        "type": "string"
+                    },
+                    "paid_at": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "cash",
+                            "orange_money",
+                            "mtn_momo",
+                            "moov_money",
+                            "wave",
+                            "cheque",
+                            "transfer"
+                        ]
+                    },
+                    "reference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "payer_name": {
+                        "type": "string"
+                    },
+                    "cashier_name": {
+                        "type": "string"
+                    },
+                    "cancellation": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "reason": {
+                                "type": "string"
+                            },
+                            "cancelled_at": {
+                                "type": "string"
+                            },
+                            "cancelled_by_name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "reason",
+                            "cancelled_at",
+                            "cancelled_by_name"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "receipt_number",
+                    "paid_at",
+                    "amount",
+                    "method",
+                    "reference",
+                    "payer_name",
+                    "cashier_name",
+                    "cancellation"
+                ],
+                "title": "PaymentResource"
             },
             "PermissionResource": {
                 "type": "object",
@@ -5050,6 +6048,213 @@
                     "cycles"
                 ],
                 "title": "PublicSchoolResource"
+            },
+            "ReceiptResource": {
+                "type": "object",
+                "properties": {
+                    "payment": {
+                        "$ref": "#/components/schemas/PaymentResource"
+                    },
+                    "student": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "full_name": {
+                                "type": "string"
+                            },
+                            "matricule": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "full_name",
+                            "matricule"
+                        ]
+                    },
+                    "classroom_name": {
+                        "type": "string"
+                    },
+                    "academic_year_label": {
+                        "type": "string"
+                    },
+                    "remaining": {
+                        "type": "integer"
+                    },
+                    "school": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "city": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "address": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "phone": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "logo_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "city",
+                            "address",
+                            "phone",
+                            "email",
+                            "logo_url"
+                        ]
+                    },
+                    "can_cancel": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "payment",
+                    "student",
+                    "classroom_name",
+                    "academic_year_label",
+                    "remaining",
+                    "school",
+                    "can_cancel"
+                ],
+                "title": "ReceiptResource"
+            },
+            "RecordPaymentRequest": {
+                "type": "object",
+                "description": "Encaissement (billing.manage sur le cycle) : montant en FCFA entiers, moyen de paiement, r\u00e9f\u00e9rence obligatoire hors\nesp\u00e8ces (op\u00e9rateur Mobile Money, ch\u00e8que, virement).",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100000000
+                    },
+                    "method": {
+                        "$ref": "#/components/schemas/PaymentMethod"
+                    },
+                    "reference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "minLength": 3,
+                        "maxLength": 60
+                    }
+                },
+                "required": [
+                    "amount",
+                    "method"
+                ],
+                "title": "RecordPaymentRequest"
+            },
+            "RefundRequest": {
+                "type": "object",
+                "description": "Remboursement d'un trop-per\u00e7u (direction : billing.refund) : montant, moyen, r\u00e9f\u00e9rence hors esp\u00e8ces, motif.",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100000000
+                    },
+                    "method": {
+                        "$ref": "#/components/schemas/PaymentMethod"
+                    },
+                    "reference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "minLength": 3,
+                        "maxLength": 60
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "amount",
+                    "method",
+                    "reason"
+                ],
+                "title": "RefundRequest"
+            },
+            "RefundResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "refunded_at": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "cash",
+                            "orange_money",
+                            "mtn_momo",
+                            "moov_money",
+                            "wave",
+                            "cheque",
+                            "transfer"
+                        ]
+                    },
+                    "reference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "refunded_by_name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "number",
+                    "refunded_at",
+                    "amount",
+                    "method",
+                    "reference",
+                    "reason",
+                    "refunded_by_name"
+                ],
+                "title": "RefundResource"
             },
             "RoleAssignmentResource": {
                 "type": "object",
@@ -5237,6 +6442,19 @@
                     "amounts"
                 ],
                 "title": "SaveFeeGridRequest"
+            },
+            "SaveFinancialPolicyRequest": {
+                "type": "object",
+                "description": "Politique financi\u00e8re de l'\u00e9cole (direction de toute l'\u00e9cole : school.settings.manage sans cycle).\n`departure` : cancel_unstarted (d\u00e9faut) ou keep_all.",
+                "properties": {
+                    "departure": {
+                        "$ref": "#/components/schemas/DeparturePolicy"
+                    }
+                },
+                "required": [
+                    "departure"
+                ],
+                "title": "SaveFinancialPolicyRequest"
             },
             "ScheduleRowResource": {
                 "type": "object",
@@ -5943,6 +7161,32 @@
                     "primary_contact"
                 ],
                 "title": "StudentRowResource"
+            },
+            "TransferCreditRequest": {
+                "type": "object",
+                "description": "Report d'un trop-per\u00e7u (direction : billing.refund sur la facture d'origine) vers une autre facture du m\u00eame payeur,\nque l'utilisateur peut modifier (billing.manage sur son cycle) ; sinon 422, comme une facture inexistante.",
+                "properties": {
+                    "to_invoice_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "amount": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100000000
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "to_invoice_id",
+                    "amount",
+                    "reason"
+                ],
+                "title": "TransferCreditRequest"
             },
             "UpdateCycleRequest": {
                 "type": "object",

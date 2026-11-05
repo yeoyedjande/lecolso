@@ -144,9 +144,25 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Facture : `CreateInvoice` (appelée par l'inscription, dans la même transaction, et par `GenerateInvoices`) ; prorata
   par `InvoiceSchedule::remainingShares` ; remises réparties depuis la dernière échéance (`rebalanceDiscounts`, 409
   `discount_exceeds`). La grille n'est jamais réappliquée à une facture émise (`ManageInvoiceLines` pour la modifier).
-- Solde : aucune répartition stockée ; les paiements (lot 5b) s'imputeront aux échéances par date.
-- Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` et `billing.discount` sur le
-  cycle de la classe (`InvoicePolicy`, `BillingScope`). Payeur suivi par l'événement `Students\Events\StudentPayerChanged`.
+- Solde : `Support\InvoiceBalance::of($invoice, $date)` — réglé = paiements non annulés + reports reçus −
+  remboursements − reports envoyés, imputé aux échéances par date (aucune répartition stockée) ; reste, retard,
+  trop-perçu (`credit`), prochaine échéance.
+- Encaissements (lot 5b) : `payments`, `payment_cancellations`, `refunds`, `credit_transfers` **immuables** (déclencheur
+  `forbid_ledger_update` + `REVOKE UPDATE, DELETE` pour `app_user` et `app_platform`) ; auteurs recopiés (id et nom),
+  sans clé étrangère vers `users`. `RecordPayment` : facture verrouillée (`FOR UPDATE`), reste dû vérifié, caisse du
+  jour (`CashRegister::openFor`, verrouillée), numéro `REC-AAAA-NNNNNN` par `Sequence` (`receipt:AAAA`). Annulation
+  (`CancelPayment`, `billing.cancel`), remboursement (`RefundCredit`, `RMB-…`) et report (`TransferCredit`, même payeur)
+  par la direction (`billing.refund`), motif obligatoire. `cash_sessions` : une par caissier et par jour (Africa/Abidjan),
+  clôture par son caissier (`CloseCashSession` : espèces attendues figées, compté, note si écart), puis figée
+  (déclencheur). Événement `PaymentReceived`.
+- Départ d'un élève : `Students\Events\StudentLeft` / `StudentReturned` (dans la transaction de `ChangeEnrollment`)
+  → `Listeners\ApplyDeparture` : ligne `departure` négative qui annule le net des échéances postérieures au départ,
+  retirée au retour. Politique de l'école : `schools.settings.billing_departure` (`FinancialPolicy`, `DeparturePolicy`),
+  écrite par `Tenancy\Actions\UpdateSchoolSettings`.
+- Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` (modifier, encaisser),
+  `billing.discount`, `billing.cancel`, `billing.refund` sur le cycle de la classe (`InvoicePolicy`, `BillingScope`) ;
+  caisse : la sienne, toutes avec `billing.manage` sur toute l'école. Payeur suivi par l'événement
+  `Students\Events\StudentPayerChanged`.
 
 ## Fichiers
 

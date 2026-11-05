@@ -7,6 +7,8 @@ namespace App\Domains\Students\Actions;
 use App\Domains\Academic\Enums\AcademicYearStatus;
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Students\Enums\EnrollmentStatus;
+use App\Domains\Students\Events\StudentLeft;
+use App\Domains\Students\Events\StudentReturned;
 use App\Domains\Students\Models\Enrollment;
 use App\Domains\Students\Support\ClassroomSeats;
 use App\Support\Http\BusinessConflict;
@@ -51,9 +53,14 @@ final readonly class ChangeEnrollment
     public function leave(Enrollment $enrollment, string $leftOn, ?string $reason): Enrollment
     {
         self::assertOpen($enrollment);
-        $enrollment->fill(['status' => EnrollmentStatus::Left, 'left_on' => $leftOn, 'leave_reason' => $reason])->save();
 
-        return $enrollment;
+        // Même transaction que les conséquences du départ (facture : Billing\Listeners\ApplyDeparture)
+        return DB::transaction(static function () use ($enrollment, $leftOn, $reason): Enrollment {
+            $enrollment->fill(['status' => EnrollmentStatus::Left, 'left_on' => $leftOn, 'leave_reason' => $reason])->save();
+            StudentLeft::dispatch($enrollment->school_id, $enrollment->id);
+
+            return $enrollment;
+        });
     }
 
     /**
@@ -68,6 +75,7 @@ final readonly class ChangeEnrollment
         return DB::transaction(function () use ($enrollment): Enrollment {
             $this->seats->reserve($enrollment->classroom);
             $enrollment->fill(['status' => EnrollmentStatus::Active, 'left_on' => null, 'leave_reason' => null])->save();
+            StudentReturned::dispatch($enrollment->school_id, $enrollment->id);
 
             return $enrollment;
         });

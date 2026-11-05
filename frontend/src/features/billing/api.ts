@@ -6,7 +6,7 @@ import type { components } from '@/lib/api/schema'
 import { useDemoMutation, useDemoQuery } from '@/lib/demo/hooks'
 import { fullName } from '@/lib/demo/lookup'
 
-import { cashDesk, recordPayment, unpaid, type RecordPaymentInput } from './demo'
+import { unpaid } from './demo'
 
 export type BillingGrid = components['schemas']['BillingGridResource']
 export type FeeType = components['schemas']['FeeTypeResource']
@@ -14,6 +14,23 @@ export type Invoice = components['schemas']['InvoiceResource']
 export type ScheduleRow = components['schemas']['ScheduleRowResource']
 export type GridAmount = components['schemas']['SaveFeeGridRequest']['amounts'][number]
 export type CalendarDate = components['schemas']['SaveCalendarRequest']['dates'][number]
+export type Payment = components['schemas']['PaymentResource']
+export type PaymentMethod = Payment['method']
+export type Receipt = components['schemas']['ReceiptResource']
+export type CashDesk = components['schemas']['CashDeskResource']
+export type CashSession = components['schemas']['CashSessionResource']
+export type FinancialPolicy = components['schemas']['FinancialPolicyResource']
+
+/** Moyens de paiement au guichet, dans l'ordre d'affichage. */
+export const PAYMENT_METHODS: readonly PaymentMethod[] = [
+  'cash',
+  'orange_money',
+  'mtn_momo',
+  'moov_money',
+  'wave',
+  'cheque',
+  'transfer',
+]
 
 function useBillingKey() {
   const school = useCurrentSchool()
@@ -127,9 +144,17 @@ export type InvoiceChange =
   | { kind: 'addLine'; label: string; amount: number; dueOn: string | null }
   | { kind: 'addDiscount'; amount: number; reason: string }
   | { kind: 'removeLine'; lineId: string }
+  | {
+      kind: 'refund'
+      amount: number
+      method: PaymentMethod
+      reference: string | null
+      reason: string
+    }
+  | { kind: 'transfer'; toInvoiceId: string; amount: number; reason: string }
 
 /** Modification d'une facture (service, ligne manuelle, remise) ; la facture renvoyée remplace l'ancienne. */
-export function useChangeInvoice(studentId: string) {
+export function useChangeInvoice() {
   const { key } = useBillingKey()
   const queryClient = useQueryClient()
   return useMutation({
@@ -165,40 +190,201 @@ export function useChangeInvoice(studentId: string) {
                     params: { path },
                     body: { amount: change.amount, reason: change.reason },
                   })
-                : await api.DELETE('/invoices/{invoice}/lines/{line}', {
-                    params: { path: { ...path, line: change.lineId } },
-                  })
+                : change.kind === 'refund'
+                  ? await api.POST('/invoices/{invoice}/refunds', {
+                      params: { path },
+                      body: {
+                        amount: change.amount,
+                        method: change.method,
+                        reference: change.reference,
+                        reason: change.reason,
+                      },
+                    })
+                  : change.kind === 'transfer'
+                    ? await api.POST('/invoices/{invoice}/credit-transfers', {
+                        params: { path },
+                        body: {
+                          to_invoice_id: change.toInvoiceId,
+                          amount: change.amount,
+                          reason: change.reason,
+                        },
+                      })
+                    : await api.DELETE('/invoices/{invoice}/lines/{line}', {
+                        params: { path: { ...path, line: change.lineId } },
+                      })
       if (data === undefined)
         throw new Error(`Modification impossible (${String(response.status)})`)
       return data.data
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [...key, 'invoices', studentId] })
+      // Un report touche aussi la facture d'un frère ou d'une sœur ; un remboursement, la caisse du jour
+      await queryClient.invalidateQueries({ queryKey: [...key, 'invoices'] })
       await queryClient.invalidateQueries({ queryKey: [...key, 'schedules'] })
+      await queryClient.invalidateQueries({ queryKey: [...key, 'cash'] })
     },
   })
 }
 
-// --- Démonstration : impayés, caisse, encaissement et reçu (lots 5b et 5c) ---
+// --- Encaissements, reçus et caisse du jour (vraie API) ---
+
+/** Après un mouvement d'argent : factures, caisse du jour et reçus relus. */
+function useInvalidateMoney() {
+  const { key } = useBillingKey()
+  const queryClient = useQueryClient()
+  return async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [...key, 'invoices'] }),
+      queryClient.invalidateQueries({ queryKey: [...key, 'cash'] }),
+      queryClient.invalidateQueries({ queryKey: [...key, 'receipt'] }),
+    ])
+  }
+}
+
+export interface RecordPaymentInput {
+  invoiceId: string
+  amount: number
+  method: PaymentMethod
+  reference: string | null
+}
+
+/** Encaissement au guichet, dans la caisse du jour de l'utilisateur ; renvoie le reçu numéroté. */
+export function useRecordPayment() {
+  const invalidate = useInvalidateMoney()
+  return useMutation({
+    mutationFn: async (input: RecordPaymentInput): Promise<Receipt> => {
+      const { data, response } = await api.POST('/invoices/{invoice}/payments', {
+        params: { path: { invoice: input.invoiceId } },
+        body: { amount: input.amount, method: input.method, reference: input.reference },
+      })
+      if (data === undefined)
+        throw new Error(`Encaissement impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** Reçu imprimable d'un paiement ; `null` s'il est introuvable (autre école, hors du périmètre). */
+export function useReceipt(paymentId: string) {
+  const { school, key } = useBillingKey()
+  return useQuery({
+    queryKey: [...key, 'receipt', paymentId],
+    enabled: school !== null,
+    // Le logo de l'école est une URL signée de 30 minutes : relue après 10 minutes
+    staleTime: 10 * 60_000,
+    queryFn: async ({ signal }): Promise<Receipt | null> => {
+      const { data, error, response } = await api.GET('/payments/{payment}', {
+        params: { path: { payment: paymentId } },
+        signal,
+      })
+      if (response.status === 404) return null
+      if (data === undefined) throw new Error('Reçu indisponible', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Annulation d'un paiement par la direction (motif obligatoire) ; le reçu reste, marqué annulé. */
+export function useCancelPayment() {
+  const invalidate = useInvalidateMoney()
+  return useMutation({
+    mutationFn: async ({
+      paymentId,
+      reason,
+    }: {
+      paymentId: string
+      reason: string
+    }): Promise<Receipt> => {
+      const { data, response } = await api.POST('/payments/{payment}/cancel', {
+        params: { path: { payment: paymentId } },
+        body: { reason },
+      })
+      if (data === undefined) throw new Error(`Annulation impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** Caisse d'un jour (AAAA-MM-JJ, aujourd'hui par défaut) : sa caisse, ou toutes celles de l'école. */
+export function useCashDesk(date: string | null = null) {
+  const { school, key } = useBillingKey()
+  return useQuery({
+    queryKey: [...key, 'cash', date ?? 'today'],
+    enabled: school !== null,
+    queryFn: async ({ signal }): Promise<CashDesk> => {
+      const { data, error } = await api.GET('/billing/cash-desk', {
+        params: { query: { date } },
+        signal,
+      })
+      if (data === undefined) throw new Error('Caisse indisponible', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Clôture de sa caisse : espèces comptées, note obligatoire en cas d'écart. */
+export function useCloseCashSession() {
+  const invalidate = useInvalidateMoney()
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      countedCash,
+      note,
+    }: {
+      sessionId: string
+      countedCash: number
+      note: string | null
+    }): Promise<CashSession> => {
+      const { data, response } = await api.POST('/billing/cash-sessions/{cashSession}/close', {
+        params: { path: { cashSession: sessionId } },
+        body: { counted_cash: countedCash, note },
+      })
+      if (data === undefined) throw new Error(`Clôture impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** Politique financière de l'école (départ d'un élève). */
+export function useFinancialPolicy(enabled = true) {
+  const { school, key } = useBillingKey()
+  return useQuery({
+    queryKey: [...key, 'policy'],
+    enabled: enabled && school !== null,
+    queryFn: async ({ signal }): Promise<FinancialPolicy> => {
+      const { data, error } = await api.GET('/billing/policy', { signal })
+      if (data === undefined) throw new Error('Politique indisponible', { cause: error })
+      return data.data
+    },
+  })
+}
+
+export function useSaveFinancialPolicy() {
+  const { key } = useBillingKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (departure: FinancialPolicy['departure']): Promise<FinancialPolicy> => {
+      const { data, response } = await api.PUT('/billing/policy', { body: { departure } })
+      if (data === undefined)
+        throw new Error(`Enregistrement impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: (policy) => {
+      queryClient.setQueryData([...key, 'policy'], policy)
+    },
+  })
+}
+
+// --- Démonstration : impayés et relances (lot 5c), reçus de l'espace parent ---
 
 export function useUnpaid() {
   return useDemoQuery(['billing', 'unpaid'], (school, today) => unpaid(school, today))
 }
 
-export function useCashDesk(date?: string) {
-  return useDemoQuery(['billing', 'cash', date ?? 'today'], (school, today) =>
-    cashDesk(school, date ?? today),
-  )
-}
-
-export function useRecordPayment() {
-  return useDemoMutation((school, input: RecordPaymentInput) =>
-    recordPayment(school, input, new Date()),
-  )
-}
-
-/** Reçu imprimable : paiement, élève, payeur, école. */
-export function useReceipt(paymentId: string) {
+/** Reçu de démonstration (espace parent, encore sur les paiements de démonstration). */
+export function useDemoReceipt(paymentId: string) {
   return useDemoQuery(['billing', 'receipt', paymentId], (school) => {
     const payment = school.payments.find((p) => p.id === paymentId)
     if (payment === undefined) return null
@@ -231,5 +417,3 @@ export function useReceipt(paymentId: string) {
 export function useRemind() {
   return useDemoMutation((_school, studentIds: string[]) => studentIds.length)
 }
-
-export type { RecordPaymentInput }

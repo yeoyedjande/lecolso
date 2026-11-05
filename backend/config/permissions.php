@@ -35,6 +35,10 @@ return [
     'billing.pay' => ['guardian'],
     // Remise sur la facture d'un élève (montant et motif) : la direction (décision du 05/11/2026)
     'billing.discount' => ['director'],
+    // Annuler un paiement encaissé (motif obligatoire ; le reçu reste, marqué annulé) : la direction (05/11/2026)
+    'billing.cancel' => ['director'],
+    // Rembourser ou reporter un trop-perçu sur une autre facture du même payeur (validation) : la direction
+    'billing.refund' => ['director'],
 
     // Notes et bulletins
     'grades.view' => ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
