@@ -62,20 +62,22 @@ final class SpaClient
      *
      * @param  array<string, UploadedFile>  $files
      * @param  array<string, string>  $headers
+     * @param  array<string, string>  $fields  champs texte du formulaire
      * @return TestResponse<Response>
      */
-    public static function upload(string $uri, array $files, array $headers = []): TestResponse
+    public static function upload(string $uri, array $files, array $headers = [], array $fields = []): TestResponse
     {
-        return self::send('POST', $uri, $headers, [], $files, null);
+        return self::send('POST', $uri, $headers, [], $files, null, $fields);
     }
 
     /**
      * @param  array<string, string>  $headers
      * @param  array<string, string>  $server
      * @param  array<string, UploadedFile>  $files
+     * @param  array<string, string>  $fields
      * @return TestResponse<Response>
      */
-    private static function send(string $method, string $uri, array $headers, array $server, array $files, ?string $content): TestResponse
+    private static function send(string $method, string $uri, array $headers, array $server, array $files, ?string $content, array $fields = []): TestResponse
     {
         app('auth')->forgetGuards();
 
@@ -86,7 +88,7 @@ final class SpaClient
 
         // Cookies gérés ici (et non par withCookies(), qui les cumule sur le test) : valeurs chiffrées renvoyées
         // telles quelles, comme le ferait un navigateur
-        $response = call($method, $uri, [], self::$cookies, $files, $server, $content);
+        $response = call($method, $uri, $fields, self::$cookies, $files, $server, $content);
 
         foreach ($response->headers->getCookies() as $cookie) {
             $value = $cookie->getValue();

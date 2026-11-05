@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/files/absence-proofs/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire le justificatif d'une absence
+         * @description URL signée (10 minutes) renvoyée à qui peut traiter la justification ; sans signature valide : 403.
+         */
+        get: operations["files.absence-proof"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/academic-years": {
         parameters: {
             query?: never;
@@ -46,6 +66,130 @@ export interface paths {
          * @description Dates, statut (`open` / `closed`), année en cours. 409 `current_year` si l'on clôture l'année en cours.
          */
         patch: operations["academic-years.update"];
+        trace?: never;
+    };
+    "/attendance/classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Classes pour les présences
+         * @description Classes de l'année en cours que l'utilisateur voit (titulaire, ou personnel du cycle), avec leur mode
+         *     (roll_call, check_in_out) et le droit de faire l'appel.
+         */
+        get: operations["attendance.classrooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/roll-calls/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Appel d'une classe pour un jour */
+        get: operations["roll-calls.show"];
+        /**
+         * Enregistrer l'appel
+         * @description Le jour même : titulaire ou personnel du cycle. Journée passée : direction (`attendance.correct`), `reason`
+         *     obligatoire. 409 `wrong_mode`, `year_closed`, `day_closed`.
+         */
+        put: operations["roll-calls.save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historique d'une classe
+         * @description Jours ouvrés de `from` à `to` (au plus 62 jours) : appel fait, présents, absents, retards.
+         */
+        get: operations["attendance.history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/absences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Absences et retards
+         * @description D'un jour (`date`, aujourd'hui par défaut) ou, avec `pending=1`, justifications à traiter (tous jours).
+         */
+        get: operations["attendance.absences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/marks/{mark}/justification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Justifier une absence
+         * @description Parent de l'enfant : motif (et photo facultative) à valider par l'école. Personnel (attendance.manage sur le
+         *     cycle) : justification acceptée directement. 409 `already_justified`.
+         */
+        post: operations["attendance.justify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/justifications/{justification}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepter ou refuser une justification
+         * @description Personnel avec attendance.manage sur le cycle. 409 `already_decided`.
+         */
+        post: operations["attendance.decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/auth/login": {
@@ -406,6 +550,64 @@ export interface paths {
         get: operations["billing.dashboard.show"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/daycare/board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Garderie d'un jour (`date`, aujourd'hui par défaut) */
+        get: operations["daycare.board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/daycare/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Arrivée ou départ
+         * @description Aujourd'hui, par qui fait l'appel de la classe de l'enfant. 409 `not_enrolled`, `wrong_mode`, `day_closed`.
+         *     Renvoie la garderie du jour.
+         */
+        post: operations["daycare.visits.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/daycare/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter au journal
+         * @description Repas, sieste, change, humeur, activité, santé. Renvoie la garderie du jour.
+         */
+        post: operations["daycare.logs.store"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1163,6 +1365,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Synchroniser les saisies hors connexion
+         * @description Opérations `attendance.roll_call`, `daycare.check`, `daycare.log`, chacune avec l'UUID de l'appareil et
+         *     `recorded_at` (heure de saisie). Résultat par opération : applied ou rejected ; une opération déjà traitée
+         *     renvoie son premier résultat (`replayed`).
+         */
+        post: operations["sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/unpaid": {
         parameters: {
             query?: never;
@@ -1208,6 +1432,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AbsenceResource */
+        AbsenceResource: {
+            id: string;
+            date: string;
+            /** @enum {string} */
+            status: "present" | "absent" | "late";
+            late_minutes: number | null;
+            student: components["schemas"]["AttendanceStudentResource"];
+            classroom: {
+                id: string;
+                name: string;
+            };
+            justification: components["schemas"]["JustificationResource"] | null;
+            can_decide: boolean;
+        };
         /** AcademicYearResource */
         AcademicYearResource: {
             id: string;
@@ -1255,6 +1494,35 @@ export interface components {
             role: string;
             /** Format: uuid */
             cycle_id?: string | null;
+        };
+        /** AttendanceClassroomResource */
+        AttendanceClassroomResource: {
+            id: string;
+            name: string;
+            cycle: {
+                id: string;
+                code: string;
+                name: string;
+            };
+            mode: string;
+            can_take: boolean;
+            is_homeroom: boolean;
+        };
+        /** AttendanceDayResource */
+        AttendanceDayResource: {
+            date: string;
+            taken: boolean;
+            present: number;
+            absent: number;
+            late: number;
+        };
+        /** AttendanceStudentResource */
+        AttendanceStudentResource: {
+            id: string;
+            full_name: string;
+            first_name: string;
+            matricule: string;
+            photo_url: string;
         };
         /** BillingGridResource */
         BillingGridResource: {
@@ -1440,6 +1708,13 @@ export interface components {
             };
             levels: components["schemas"]["LevelResource"][];
         };
+        /** DashboardAttendanceResource */
+        DashboardAttendanceResource: {
+            absent_today: number;
+            late_today: number;
+            roll_calls_missing: number;
+            rates: components["schemas"]["DashboardRateResource"][];
+        };
         /** DashboardCycleResource */
         DashboardCycleResource: {
             cycle_id: string;
@@ -1471,6 +1746,11 @@ export interface components {
             amount: number;
             student_name: string;
         };
+        /** DashboardRateResource */
+        DashboardRateResource: {
+            date: string;
+            rate: number;
+        };
         /** DashboardResource */
         DashboardResource: {
             today: string;
@@ -1478,6 +1758,78 @@ export interface components {
             students: number;
             by_cycle: components["schemas"]["DashboardCycleResource"][];
             finance: components["schemas"]["DashboardFinanceResource"] | null;
+            attendance: components["schemas"]["DashboardAttendanceResource"] | null;
+        };
+        /** DaycareBoardResource */
+        DaycareBoardResource: {
+            date: string;
+            classrooms: components["schemas"]["DaycareClassroomResource"][];
+        };
+        /**
+         * DaycareCheckRequest
+         * @description Arrivée (`in`) ou départ (`out`) d'un enfant à la garderie : heure HH:MM, personne qui le dépose ou le récupère.
+         *     Droits contrôlés par l'Action (classe de l'enfant).
+         */
+        DaycareCheckRequest: {
+            /** Format: uuid */
+            student_id: string;
+            /** @enum {string} */
+            direction: "in" | "out";
+            time: string;
+            person?: string | null;
+        };
+        /** DaycareChildResource */
+        DaycareChildResource: {
+            student: components["schemas"]["AttendanceStudentResource"];
+            visit: {
+                arrived_at: string;
+                left_at: string;
+                dropped_by: string;
+                picked_up_by: string;
+            } | null;
+            logs: components["schemas"]["DaycareLogResource"][];
+        };
+        /** DaycareClassroomResource */
+        DaycareClassroomResource: {
+            id: string;
+            name: string;
+            can_record: boolean;
+            children: components["schemas"]["DaycareChildResource"][];
+        };
+        /**
+         * DaycareLogKind
+         * @description Entrée du journal de garderie. Une note de santé n'est jamais journalisée.
+         * @enum {string}
+         */
+        DaycareLogKind: "meal" | "nap" | "diaper" | "mood" | "activity" | "health";
+        /**
+         * DaycareLogRequest
+         * @description Entrée du journal de garderie : heure HH:MM, type (repas, sieste, change, humeur, activité, santé), note.
+         */
+        DaycareLogRequest: {
+            /** Format: uuid */
+            student_id: string;
+            time: string;
+            kind: components["schemas"]["DaycareLogKind"];
+            note: string;
+        };
+        /** DaycareLogResource */
+        DaycareLogResource: {
+            id: string;
+            time: string;
+            /** @enum {string} */
+            kind: "meal" | "nap" | "diaper" | "mood" | "activity" | "health";
+            note: string;
+        };
+        /**
+         * DecideJustificationRequest
+         * @description Décision sur une justification (personnel avec attendance.manage sur le cycle : direction, secrétariat) :
+         *     `decision` accepted ou refused, `note` facultative. Justification que l'utilisateur ne voit pas : 404.
+         */
+        DecideJustificationRequest: {
+            /** @enum {string} */
+            decision: "accepted" | "refused";
+            note?: string | null;
         };
         /**
          * DeparturePolicy
@@ -1664,6 +2016,35 @@ export interface components {
             can_cancel: boolean;
             can_refund: boolean;
         };
+        /** JustificationResource */
+        JustificationResource: {
+            id: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "refused";
+            /** @enum {string} */
+            source: "guardian" | "school";
+            reason: string;
+            proof_url: string;
+            submitted_by_name: string;
+            submitted_at: string;
+            decided_by_name: string | null;
+            decided_at: string | null;
+            decision_note: string | null;
+        };
+        /**
+         * JustifyAbsenceRequest
+         * @description Justifier une absence ou un retard : le parent de l'enfant (attendance.justify, à valider) ou le personnel qui décide
+         *     (attendance.manage sur le cycle, acceptée directement). `reason` (3 à 300 caractères), `proof` (photo JPEG, PNG ou
+         *     WebP, 5 Mo au plus, facultative). Absence que l'utilisateur ne voit pas : 404.
+         */
+        JustifyAbsenceRequest: {
+            reason: string;
+            /**
+             * Format: binary
+             * @description Maximum file size: 5120 kilobytes.
+             */
+            proof?: string | null;
+        };
         /** LevelResource */
         LevelResource: {
             id: string;
@@ -1812,6 +2193,39 @@ export interface components {
             role_name: string | null;
             cycle_id: string | null;
         };
+        /** RollCallCorrectionResource */
+        RollCallCorrectionResource: {
+            reason: string;
+            by: string;
+            at: string;
+        };
+        /** RollCallResource */
+        RollCallResource: {
+            classroom: {
+                id: string;
+                name: string;
+            };
+            date: string;
+            taken: {
+                by: string;
+                at: string;
+            } | null;
+            corrections: components["schemas"]["RollCallCorrectionResource"][];
+            rows: components["schemas"]["RollCallRowResource"][];
+            can_edit: boolean;
+            needs_reason: boolean;
+        };
+        /** RollCallRowResource */
+        RollCallRowResource: {
+            student: components["schemas"]["AttendanceStudentResource"];
+            mark_id: string | null;
+            status: string | "present";
+            late_minutes: string | null;
+            justification: {
+                status: string | null;
+                source: string | null;
+            } | null;
+        };
         /**
          * SaveAcademicYearRequest
          * @description Création (POST : libellé et dates obligatoires) ou modification (PATCH : champs envoyés seulement).
@@ -1878,6 +2292,25 @@ export interface components {
          */
         SaveFinancialPolicyRequest: {
             departure: components["schemas"]["DeparturePolicy"];
+        };
+        /**
+         * SaveRollCallRequest
+         * @description Appel d'une classe : `marks` (élève, statut present/absent/late, minutes de retard), `reason` (obligatoire pour
+         *     corriger une journée passée), `roll_call_id` et `recorded_at` (saisie hors connexion). Droits contrôlés par l'Action.
+         */
+        SaveRollCallRequest: {
+            marks: {
+                /** Format: uuid */
+                student_id: string;
+                /** @enum {string} */
+                status: "present" | "absent" | "late";
+                late_minutes?: number | null;
+            }[];
+            reason?: string | null;
+            /** Format: uuid */
+            roll_call_id?: string | null;
+            /** Format: date-time */
+            recorded_at?: string | null;
         };
         /** ScheduleRowResource */
         ScheduleRowResource: {
@@ -2045,6 +2478,28 @@ export interface components {
                 name: string;
                 phone: string;
             } | null;
+        };
+        /**
+         * SyncRequest
+         * @description File hors connexion : 1 à 100 opérations `{ id (UUID de l'appareil), type, payload }`. Chaque opération est
+         *     contrôlée comme son équivalent en ligne ; une opération déjà traitée renvoie son premier résultat.
+         */
+        SyncRequest: {
+            operations: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                type: "attendance.roll_call" | "daycare.check" | "daycare.log";
+                payload: string[];
+            }[];
+        };
+        /** SyncResultResource */
+        SyncResultResource: {
+            id: string;
+            status: string;
+            code: string | null;
+            message: string | null;
+            replayed: boolean;
         };
         /**
          * TransferCreditRequest
@@ -2281,6 +2736,32 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "files.absence-proof": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, max-age=600";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Disposition"?: "inline";
+                    "Referrer-Policy"?: "no-referrer";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": string | null;
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
+        };
+    };
     "academic-years.index": {
         parameters: {
             query?: never;
@@ -2359,6 +2840,217 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["AcademicYearResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "attendance.classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `AttendanceClassroomResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AttendanceClassroomResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "roll-calls.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `RollCallResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RollCallResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "roll-calls.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveRollCallRequest"];
+            };
+        };
+        responses: {
+            /** @description `RollCallResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["RollCallResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "attendance.history": {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `AttendanceDayResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AttendanceDayResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "attendance.absences": {
+        parameters: {
+            query?: {
+                date?: string | null;
+                pending?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `AbsenceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AbsenceResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "attendance.justify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The mark ID */
+                mark: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["JustifyAbsenceRequest"];
+            };
+        };
+        responses: {
+            /** @description `AbsenceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AbsenceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "attendance.decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The justification ID */
+                justification: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideJustificationRequest"];
+            };
+        };
+        responses: {
+            /** @description `AbsenceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AbsenceResource"];
                     };
                 };
             };
@@ -3026,6 +3718,91 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["DashboardResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "daycare.board": {
+        parameters: {
+            query?: {
+                date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DaycareBoardResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DaycareBoardResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "daycare.visits.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DaycareCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description `DaycareBoardResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DaycareBoardResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "daycare.logs.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DaycareLogRequest"];
+            };
+        };
+        responses: {
+            /** @description `DaycareBoardResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DaycareBoardResource"];
                     };
                 };
             };
@@ -4480,6 +5257,34 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncRequest"];
+            };
+        };
+        responses: {
+            /** @description Array of `SyncResultResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SyncResultResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
         };
     };

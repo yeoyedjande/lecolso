@@ -11,6 +11,70 @@
         }
     ],
     "paths": {
+        "/files/absence-proofs/{file}": {
+            "get": {
+                "operationId": "files.absence-proof",
+                "description": "URL sign\u00e9e (10 minutes) renvoy\u00e9e \u00e0 qui peut traiter la justification ; sans signature valide : 403.",
+                "summary": "Lire le justificatif d'une absence",
+                "tags": [
+                    "AbsenceProofFile"
+                ],
+                "parameters": [
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "image/webp": {
+                                "schema": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "private, max-age=600"
+                                }
+                            },
+                            "X-Content-Type-Options": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "nosniff"
+                                }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "inline"
+                                }
+                            },
+                            "Referrer-Policy": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "no-referrer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    }
+                }
+            }
+        },
         "/academic-years": {
             "get": {
                 "operationId": "academic-years.index",
@@ -140,6 +204,435 @@
                                     "properties": {
                                         "data": {
                                             "$ref": "#/components/schemas/AcademicYearResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/attendance/classrooms": {
+            "get": {
+                "operationId": "attendance.classrooms",
+                "description": "Classes de l'ann\u00e9e en cours que l'utilisateur voit (titulaire, ou personnel du cycle), avec leur mode\n(roll_call, check_in_out) et le droit de faire l'appel.",
+                "summary": "Classes pour les pr\u00e9sences",
+                "tags": [
+                    "Attendance"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `AttendanceClassroomResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AttendanceClassroomResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/roll-calls/{date}": {
+            "get": {
+                "operationId": "roll-calls.show",
+                "summary": "Appel d'une classe pour un jour",
+                "tags": [
+                    "Attendance"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`RollCallResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/RollCallResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "roll-calls.save",
+                "description": "Le jour m\u00eame : titulaire ou personnel du cycle. Journ\u00e9e pass\u00e9e : direction (`attendance.correct`), `reason`\nobligatoire. 409 `wrong_mode`, `year_closed`, `day_closed`.",
+                "summary": "Enregistrer l'appel",
+                "tags": [
+                    "Attendance"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveRollCallRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`RollCallResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/RollCallResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/attendance": {
+            "get": {
+                "operationId": "attendance.history",
+                "description": "Jours ouvr\u00e9s de `from` \u00e0 `to` (au plus 62 jours) : appel fait, pr\u00e9sents, absents, retards.",
+                "summary": "Historique d'une classe",
+                "tags": [
+                    "Attendance"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `AttendanceDayResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AttendanceDayResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/attendance/absences": {
+            "get": {
+                "operationId": "attendance.absences",
+                "description": "D'un jour (`date`, aujourd'hui par d\u00e9faut) ou, avec `pending=1`, justifications \u00e0 traiter (tous jours).",
+                "summary": "Absences et retards",
+                "tags": [
+                    "Attendance"
+                ],
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "pending",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `AbsenceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AbsenceResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/attendance/marks/{mark}/justification": {
+            "post": {
+                "operationId": "attendance.justify",
+                "description": "Parent de l'enfant : motif (et photo facultative) \u00e0 valider par l'\u00e9cole. Personnel (attendance.manage sur le\ncycle) : justification accept\u00e9e directement. 409 `already_justified`.",
+                "summary": "Justifier une absence",
+                "tags": [
+                    "Attendance"
+                ],
+                "parameters": [
+                    {
+                        "name": "mark",
+                        "in": "path",
+                        "required": true,
+                        "description": "The mark ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/JustifyAbsenceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AbsenceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AbsenceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/attendance/justifications/{justification}/decision": {
+            "post": {
+                "operationId": "attendance.decide",
+                "description": "Personnel avec attendance.manage sur le cycle. 409 `already_decided`.",
+                "summary": "Accepter ou refuser une justification",
+                "tags": [
+                    "Attendance"
+                ],
+                "parameters": [
+                    {
+                        "name": "justification",
+                        "in": "path",
+                        "required": true,
+                        "description": "The justification ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DecideJustificationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AbsenceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AbsenceResource"
                                         }
                                     },
                                     "required": [
@@ -1354,6 +1847,155 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/daycare/board": {
+            "get": {
+                "operationId": "daycare.board",
+                "summary": "Garderie d'un jour (`date`, aujourd'hui par d\u00e9faut)",
+                "tags": [
+                    "Daycare"
+                ],
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`DaycareBoardResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DaycareBoardResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/daycare/visits": {
+            "post": {
+                "operationId": "daycare.visits.store",
+                "description": "Aujourd'hui, par qui fait l'appel de la classe de l'enfant. 409 `not_enrolled`, `wrong_mode`, `day_closed`.\nRenvoie la garderie du jour.",
+                "summary": "Arriv\u00e9e ou d\u00e9part",
+                "tags": [
+                    "Daycare"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DaycareCheckRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`DaycareBoardResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DaycareBoardResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/daycare/logs": {
+            "post": {
+                "operationId": "daycare.logs.store",
+                "description": "Repas, sieste, change, humeur, activit\u00e9, sant\u00e9. Renvoie la garderie du jour.",
+                "summary": "Ajouter au journal",
+                "tags": [
+                    "Daycare"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DaycareLogRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`DaycareBoardResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DaycareBoardResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -4230,6 +4872,55 @@
                 }
             }
         },
+        "/sync": {
+            "post": {
+                "operationId": "sync",
+                "description": "Op\u00e9rations `attendance.roll_call`, `daycare.check`, `daycare.log`, chacune avec l'UUID de l'appareil et\n`recorded_at` (heure de saisie). R\u00e9sultat par op\u00e9ration : applied ou rejected ; une op\u00e9ration d\u00e9j\u00e0 trait\u00e9e\nrenvoie son premier r\u00e9sultat (`replayed`).",
+                "summary": "Synchroniser les saisies hors connexion",
+                "tags": [
+                    "Sync"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SyncRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Array of `SyncResultResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SyncResultResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/billing/unpaid": {
             "get": {
                 "operationId": "billing.unpaid.index",
@@ -4348,6 +5039,73 @@
     },
     "components": {
         "schemas": {
+            "AbsenceResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "present",
+                            "absent",
+                            "late"
+                        ]
+                    },
+                    "late_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "student": {
+                        "$ref": "#/components/schemas/AttendanceStudentResource"
+                    },
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "justification": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/JustificationResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "can_decide": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "date",
+                    "status",
+                    "late_minutes",
+                    "student",
+                    "classroom",
+                    "justification",
+                    "can_decide"
+                ],
+                "title": "AbsenceResource"
+            },
             "AcademicYearResource": {
                 "type": "object",
                 "properties": {
@@ -4472,6 +5230,110 @@
                     "role"
                 ],
                 "title": "AssignUserRoleRequest"
+            },
+            "AttendanceClassroomResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "cycle": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "code",
+                            "name"
+                        ]
+                    },
+                    "mode": {
+                        "type": "string"
+                    },
+                    "can_take": {
+                        "type": "boolean"
+                    },
+                    "is_homeroom": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "cycle",
+                    "mode",
+                    "can_take",
+                    "is_homeroom"
+                ],
+                "title": "AttendanceClassroomResource"
+            },
+            "AttendanceDayResource": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string"
+                    },
+                    "taken": {
+                        "type": "boolean"
+                    },
+                    "present": {
+                        "type": "integer"
+                    },
+                    "absent": {
+                        "type": "integer"
+                    },
+                    "late": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "date",
+                    "taken",
+                    "present",
+                    "absent",
+                    "late"
+                ],
+                "title": "AttendanceDayResource"
+            },
+            "AttendanceStudentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "matricule": {
+                        "type": "string"
+                    },
+                    "photo_url": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "full_name",
+                    "first_name",
+                    "matricule",
+                    "photo_url"
+                ],
+                "title": "AttendanceStudentResource"
             },
             "BillingGridResource": {
                 "type": "object",
@@ -5203,6 +6065,33 @@
                 ],
                 "title": "CycleResource"
             },
+            "DashboardAttendanceResource": {
+                "type": "object",
+                "properties": {
+                    "absent_today": {
+                        "type": "integer"
+                    },
+                    "late_today": {
+                        "type": "integer"
+                    },
+                    "roll_calls_missing": {
+                        "type": "integer"
+                    },
+                    "rates": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DashboardRateResource"
+                        }
+                    }
+                },
+                "required": [
+                    "absent_today",
+                    "late_today",
+                    "roll_calls_missing",
+                    "rates"
+                ],
+                "title": "DashboardAttendanceResource"
+            },
             "DashboardCycleResource": {
                 "type": "object",
                 "properties": {
@@ -5317,6 +6206,22 @@
                 ],
                 "title": "DashboardPaymentResource"
             },
+            "DashboardRateResource": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string"
+                    },
+                    "rate": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "date",
+                    "rate"
+                ],
+                "title": "DashboardRateResource"
+            },
             "DashboardResource": {
                 "type": "object",
                 "properties": {
@@ -5347,6 +6252,16 @@
                                 "type": "null"
                             }
                         ]
+                    },
+                    "attendance": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/DashboardAttendanceResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -5354,9 +6269,232 @@
                     "academic_year_label",
                     "students",
                     "by_cycle",
-                    "finance"
+                    "finance",
+                    "attendance"
                 ],
                 "title": "DashboardResource"
+            },
+            "DaycareBoardResource": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string"
+                    },
+                    "classrooms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DaycareClassroomResource"
+                        }
+                    }
+                },
+                "required": [
+                    "date",
+                    "classrooms"
+                ],
+                "title": "DaycareBoardResource"
+            },
+            "DaycareCheckRequest": {
+                "type": "object",
+                "description": "Arriv\u00e9e (`in`) ou d\u00e9part (`out`) d'un enfant \u00e0 la garderie : heure HH:MM, personne qui le d\u00e9pose ou le r\u00e9cup\u00e8re.\nDroits contr\u00f4l\u00e9s par l'Action (classe de l'enfant).",
+                "properties": {
+                    "student_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "direction": {
+                        "type": "string",
+                        "enum": [
+                            "in",
+                            "out"
+                        ]
+                    },
+                    "time": {
+                        "type": "string"
+                    },
+                    "person": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    }
+                },
+                "required": [
+                    "student_id",
+                    "direction",
+                    "time"
+                ],
+                "title": "DaycareCheckRequest"
+            },
+            "DaycareChildResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/AttendanceStudentResource"
+                    },
+                    "visit": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "arrived_at": {
+                                "type": "string"
+                            },
+                            "left_at": {
+                                "type": "string"
+                            },
+                            "dropped_by": {
+                                "type": "string"
+                            },
+                            "picked_up_by": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "arrived_at",
+                            "left_at",
+                            "dropped_by",
+                            "picked_up_by"
+                        ]
+                    },
+                    "logs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DaycareLogResource"
+                        }
+                    }
+                },
+                "required": [
+                    "student",
+                    "visit",
+                    "logs"
+                ],
+                "title": "DaycareChildResource"
+            },
+            "DaycareClassroomResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "can_record": {
+                        "type": "boolean"
+                    },
+                    "children": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DaycareChildResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "can_record",
+                    "children"
+                ],
+                "title": "DaycareClassroomResource"
+            },
+            "DaycareLogKind": {
+                "type": "string",
+                "description": "Entr\u00e9e du journal de garderie. Une note de sant\u00e9 n'est jamais journalis\u00e9e.\n",
+                "enum": [
+                    "meal",
+                    "nap",
+                    "diaper",
+                    "mood",
+                    "activity",
+                    "health"
+                ],
+                "title": "DaycareLogKind"
+            },
+            "DaycareLogRequest": {
+                "type": "object",
+                "description": "Entr\u00e9e du journal de garderie : heure HH:MM, type (repas, sieste, change, humeur, activit\u00e9, sant\u00e9), note.",
+                "properties": {
+                    "student_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "time": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/DaycareLogKind"
+                    },
+                    "note": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "student_id",
+                    "time",
+                    "kind",
+                    "note"
+                ],
+                "title": "DaycareLogRequest"
+            },
+            "DaycareLogResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "time": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "meal",
+                            "nap",
+                            "diaper",
+                            "mood",
+                            "activity",
+                            "health"
+                        ]
+                    },
+                    "note": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "time",
+                    "kind",
+                    "note"
+                ],
+                "title": "DaycareLogResource"
+            },
+            "DecideJustificationRequest": {
+                "type": "object",
+                "description": "D\u00e9cision sur une justification (personnel avec attendance.manage sur le cycle : direction, secr\u00e9tariat) :\n`decision` accepted ou refused, `note` facultative. Justification que l'utilisateur ne voit pas : 404.",
+                "properties": {
+                    "decision": {
+                        "type": "string",
+                        "enum": [
+                            "accepted",
+                            "refused"
+                        ]
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "decision"
+                ],
+                "title": "DecideJustificationRequest"
             },
             "DeparturePolicy": {
                 "type": "string",
@@ -6067,6 +7205,96 @@
                 ],
                 "title": "InvoiceResource"
             },
+            "JustificationResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "accepted",
+                            "refused"
+                        ]
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "guardian",
+                            "school"
+                        ]
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "proof_url": {
+                        "type": "string"
+                    },
+                    "submitted_by_name": {
+                        "type": "string"
+                    },
+                    "submitted_at": {
+                        "type": "string"
+                    },
+                    "decided_by_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "decided_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "decision_note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "status",
+                    "source",
+                    "reason",
+                    "proof_url",
+                    "submitted_by_name",
+                    "submitted_at",
+                    "decided_by_name",
+                    "decided_at",
+                    "decision_note"
+                ],
+                "title": "JustificationResource"
+            },
+            "JustifyAbsenceRequest": {
+                "type": "object",
+                "description": "Justifier une absence ou un retard : le parent de l'enfant (attendance.justify, \u00e0 valider) ou le personnel qui d\u00e9cide\n(attendance.manage sur le cycle, accept\u00e9e directement). `reason` (3 \u00e0 300 caract\u00e8res), `proof` (photo JPEG, PNG ou\nWebP, 5 Mo au plus, facultative). Absence que l'utilisateur ne voit pas : 404.",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 300
+                    },
+                    "proof": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "description": "Maximum file size: 5120 kilobytes."
+                    }
+                },
+                "required": [
+                    "reason"
+                ],
+                "title": "JustifyAbsenceRequest"
+            },
             "LevelResource": {
                 "type": "object",
                 "properties": {
@@ -6635,6 +7863,160 @@
                 ],
                 "title": "RoleAssignmentResource"
             },
+            "RollCallCorrectionResource": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string"
+                    },
+                    "by": {
+                        "type": "string"
+                    },
+                    "at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "reason",
+                    "by",
+                    "at"
+                ],
+                "title": "RollCallCorrectionResource"
+            },
+            "RollCallResource": {
+                "type": "object",
+                "properties": {
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "taken": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "by": {
+                                "type": "string"
+                            },
+                            "at": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "by",
+                            "at"
+                        ]
+                    },
+                    "corrections": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RollCallCorrectionResource"
+                        }
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RollCallRowResource"
+                        }
+                    },
+                    "can_edit": {
+                        "type": "boolean"
+                    },
+                    "needs_reason": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "classroom",
+                    "date",
+                    "taken",
+                    "corrections",
+                    "rows",
+                    "can_edit",
+                    "needs_reason"
+                ],
+                "title": "RollCallResource"
+            },
+            "RollCallRowResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/AttendanceStudentResource"
+                    },
+                    "mark_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "present"
+                                ]
+                            }
+                        ]
+                    },
+                    "late_minutes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "justification": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "status": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "source": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "status",
+                            "source"
+                        ]
+                    }
+                },
+                "required": [
+                    "student",
+                    "mark_id",
+                    "status",
+                    "late_minutes",
+                    "justification"
+                ],
+                "title": "RollCallRowResource"
+            },
             "SaveAcademicYearRequest": {
                 "type": "object",
                 "description": "Cr\u00e9ation (POST : libell\u00e9 et dates obligatoires) ou modification (PATCH : champs envoy\u00e9s seulement).",
@@ -6808,6 +8190,71 @@
                     "departure"
                 ],
                 "title": "SaveFinancialPolicyRequest"
+            },
+            "SaveRollCallRequest": {
+                "type": "object",
+                "description": "Appel d'une classe : `marks` (\u00e9l\u00e8ve, statut present/absent/late, minutes de retard), `reason` (obligatoire pour\ncorriger une journ\u00e9e pass\u00e9e), `roll_call_id` et `recorded_at` (saisie hors connexion). Droits contr\u00f4l\u00e9s par l'Action.",
+                "properties": {
+                    "marks": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "student_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "status": {
+                                    "type": "string",
+                                    "enum": [
+                                        "present",
+                                        "absent",
+                                        "late"
+                                    ]
+                                },
+                                "late_minutes": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ],
+                                    "minimum": 1,
+                                    "maximum": 600
+                                }
+                            },
+                            "required": [
+                                "student_id",
+                                "status"
+                            ]
+                        },
+                        "maxItems": 200,
+                        "uniqueItems": true
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    },
+                    "roll_call_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "recorded_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "marks"
+                ],
+                "title": "SaveRollCallRequest"
             },
             "ScheduleRowResource": {
                 "type": "object",
@@ -7514,6 +8961,85 @@
                     "primary_contact"
                 ],
                 "title": "StudentRowResource"
+            },
+            "SyncRequest": {
+                "type": "object",
+                "description": "File hors connexion : 1 \u00e0 100 op\u00e9rations `{ id (UUID de l'appareil), type, payload }`. Chaque op\u00e9ration est\ncontr\u00f4l\u00e9e comme son \u00e9quivalent en ligne ; une op\u00e9ration d\u00e9j\u00e0 trait\u00e9e renvoie son premier r\u00e9sultat.",
+                "properties": {
+                    "operations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "attendance.roll_call",
+                                        "daycare.check",
+                                        "daycare.log"
+                                    ]
+                                },
+                                "payload": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "minItems": 1
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "type",
+                                "payload"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "operations"
+                ],
+                "title": "SyncRequest"
+            },
+            "SyncResultResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "replayed": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "status",
+                    "code",
+                    "message",
+                    "replayed"
+                ],
+                "title": "SyncResultResource"
             },
             "TransferCreditRequest": {
                 "type": "object",
