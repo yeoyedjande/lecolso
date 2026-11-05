@@ -11,6 +11,7 @@ use App\Domains\Academic\Http\Requests\ListClassroomsRequest;
 use App\Domains\Academic\Http\Requests\SaveClassroomRequest;
 use App\Domains\Academic\Http\Resources\ClassroomResource;
 use App\Domains\Identity\Models\User;
+use App\Support\Http\BusinessConflict;
 use App\Support\Tenancy\CurrentSchool;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
@@ -59,11 +60,17 @@ final class ClassroomController
     /**
      * Supprimer une classe.
      *
-     * (Les inscriptions, à venir, empêcheront de supprimer une classe qui a des élèves.)
+     * 409 `classroom_not_empty` si des élèves y ont été inscrits (changez-les d'abord de classe).
      */
     public function destroy(DeleteClassroomRequest $request): JsonResponse
     {
-        $request->classroom()->delete();
+        $classroom = $request->classroom();
+
+        if ($classroom->enrollments()->exists()) {
+            throw new BusinessConflict('classroom_not_empty', 'Des élèves sont inscrits dans cette classe : changez-les de classe avant de la supprimer.');
+        }
+
+        $classroom->delete();
 
         return new JsonResponse(null, 204);
     }

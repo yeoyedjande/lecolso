@@ -14,11 +14,21 @@ use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Enums\EnrollmentStatus;
+use App\Domains\Students\Enums\Gender;
+use App\Domains\Students\Enums\GuardianRelation;
+use App\Domains\Students\Models\Enrollment;
+use App\Domains\Students\Models\Guardian;
+use App\Domains\Students\Models\GuardianLink;
+use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Enums\SchoolType;
 use App\Domains\Tenancy\Models\School;
+use App\Support\Sequences\Sequence;
 use App\Support\Tenancy\Platform;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -119,6 +129,34 @@ final class DemoSeeder extends Seeder
 
     public const string TEACHER_PHONE = '+2250700000007';
 
+    /** Préfixe des matricules de chaque école. */
+    public const array CODES = ['les-lauriers' => 'LAU', 'petits-genies' => 'PGE'];
+
+    /** Élèves par classe (prénoms et noms tirés en boucle des listes ci-dessous, ordre fixe). */
+    public const array STUDENTS_PER_CLASSROOM = ['les-lauriers' => 3, 'petits-genies' => 2];
+
+    /** Enfants du compte parent de démo (téléphone du compte = tuteur) : école => [classe, prénom, sexe]. */
+    public const array GUARDIAN_CHILDREN = [
+        'les-lauriers' => [['CE1 A', 'Ange', 'M'], ['CP1 A', 'Junior', 'M']],
+        'petits-genies' => [['MS A', 'Grâce', 'F']],
+    ];
+
+    public const string GUARDIAN_PHONE = '+2250700000008';
+
+    private const array FIRST_NAMES = [
+        'F' => ['Awa', 'Aïcha', 'Mariam', 'Fatou', 'Adjoua', 'Aya', 'Inès', 'Grâce', 'Salimata', 'Emmanuella', 'Rokia', 'Esther'],
+        'M' => ['Yao', 'Koffi', 'Ibrahim', 'Moussa', 'Kouamé', 'Didier', 'Serge', 'Ismaël', 'Jean-Marc', 'Souleymane', 'Arnaud', 'Wilfried'],
+    ];
+
+    private const array LAST_NAMES = ['Koné', 'Traoré', 'Bamba', 'Kouassi', 'Ouattara', 'Yao', 'Diallo', 'Coulibaly', 'N’Guessan', 'Touré', 'Kouadio', 'Konan', 'Soro', 'Aka', 'Dembélé'];
+
+    /** Âge de l'élève : 2 ans en crèche, puis un an de plus par niveau. */
+    private const array LEVEL_ORDER = ['CRECHE', 'PS', 'MS', 'GS', 'CP1', 'CP2', 'CE1', 'CE2', 'CM1', 'CM2'];
+
+    private const array MOTHER_NAMES = ['Mariam', 'Adjoua', 'Fatoumata', 'Aminata', 'Brigitte', 'Rachel', 'Nadège', 'Clarisse'];
+
+    private const array FATHER_NAMES = ['Ibrahim', 'Kouassi', 'Lassina', 'Hervé', 'Patrice', 'Seydou', 'Paul', 'Mamadou'];
+
     public function run(Application $app, ProvisionCycles $provisionCycles): void
     {
         if ($app->environment('production')) {
@@ -156,6 +194,7 @@ final class DemoSeeder extends Seeder
                         $this->classroom($school, $year, $levelCode, $section, $homeroom);
                     }
                 }
+                $this->students($school, $year, $slug);
             }
         });
     }
@@ -173,6 +212,109 @@ final class DemoSeeder extends Seeder
         ])->save();
 
         return $year;
+    }
+
+    /**
+     * Élèves de démonstration, inscrits dans chaque classe de l'année : une mère (payeuse, contact principal) et,
+     * un élève sur deux, un père ; enfants du compte parent de démo ; quelques allergies. Matricules et compteur
+     * de l'école alignés (les inscriptions suivantes continuent la numérotation).
+     */
+    private function students(School $school, AcademicYear $year, string $slug): void
+    {
+        $classrooms = Classroom::query()->where('school_id', $school->id)->where('academic_year_id', $year->id)
+            ->with('level.cycle')->get()
+            ->sortBy([
+                static fn (Classroom $a, Classroom $b): int => [$a->level->cycle->position, $a->level->position, $a->section] <=> [$b->level->cycle->position, $b->level->position, $b->section],
+            ]);
+        $schoolIndex = array_search($slug, array_keys(self::SCHOOLS), true);
+        $number = 0;
+
+        foreach ($classrooms as $classroom) {
+            $children = array_values(array_filter(
+                self::GUARDIAN_CHILDREN[$slug] ?? [],
+                static fn (array $child): bool => $child[0] === $classroom->name(),
+            ));
+
+            for ($i = 0; $i < self::STUDENTS_PER_CLASSROOM[$slug] + count($children); $i++) {
+                $number++;
+                $child = $children[$i - self::STUDENTS_PER_CLASSROOM[$slug]] ?? null;
+                $gender = $child === null ? ($number % 2 === 0 ? 'M' : 'F') : $child[2];
+                $lastName = $child === null ? self::LAST_NAMES[($number * 7) % count(self::LAST_NAMES)] : 'Kouadio';
+                $firstName = $child[1] ?? self::FIRST_NAMES[$gender][$number % count(self::FIRST_NAMES[$gender])];
+                $rank = array_search($classroom->level->code, self::LEVEL_ORDER, true);
+                $age = 2 + ($rank === false ? 4 : $rank);
+
+                $student = $this->student($school, sprintf('%s-%06d', self::CODES[$slug], $number), [
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'gender' => Gender::from($gender),
+                    'birth_date' => sprintf('%d-%02d-%02d', 2026 - $age, 1 + $number % 12, 1 + ($number * 3) % 28),
+                    'address' => $number % 3 === 0 ? 'Cocody Angré' : ($number % 3 === 1 ? 'Riviera 2' : 'Marcory Zone 4'),
+                    'allergies' => $number % 9 === 4 ? 'Arachide' : null,
+                ]);
+
+                $phone = sprintf('+2250710%06d', ($schoolIndex === false ? 0 : $schoolIndex) * 1000 + $number);
+                $mother = $child === null
+                    ? $this->guardian($school, $phone, self::MOTHER_NAMES[$number % count(self::MOTHER_NAMES)].' '.$lastName, 'Commerçante')
+                    : $this->guardian($school, self::GUARDIAN_PHONE, 'Kouadio Parent', 'Enseignant');
+                $this->link($school, $mother, $student, $child === null ? GuardianRelation::Mother : GuardianRelation::Father, true);
+
+                if ($child === null && $number % 2 === 0) {
+                    $father = $this->guardian($school, sprintf('+2250510%06d', ($schoolIndex === false ? 0 : $schoolIndex) * 1000 + $number), self::FATHER_NAMES[$number % count(self::FATHER_NAMES)].' '.$lastName, 'Fonctionnaire');
+                    $this->link($school, $father, $student, GuardianRelation::Father, false);
+                }
+
+                $enrollment = Enrollment::query()->where('student_id', $student->id)->where('academic_year_id', $year->id)->first() ?? new Enrollment;
+                $enrollment->forceFill([
+                    'school_id' => $school->id,
+                    'student_id' => $student->id,
+                    'academic_year_id' => $year->id,
+                    'classroom_id' => $classroom->id,
+                    'status' => EnrollmentStatus::Active,
+                    'enrolled_on' => '2026-09-14',
+                ])->save();
+            }
+        }
+
+        // Le compteur reprend après le dernier matricule de démonstration (jamais en arrière)
+        DB::table('document_sequences')->upsert(
+            [['id' => (string) Str::uuid(), 'school_id' => $school->id, 'key' => Sequence::STUDENT_MATRICULE, 'last_value' => $number, 'created_at' => now(), 'updated_at' => now()]],
+            ['school_id', 'key'],
+            ['last_value' => DB::raw('greatest(document_sequences.last_value, excluded.last_value)'), 'updated_at' => now()],
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function student(School $school, string $matricule, array $attributes): Student
+    {
+        $student = Student::withTrashed()->where('school_id', $school->id)->where('matricule', $matricule)->first() ?? new Student;
+        $student->forceFill(['school_id' => $school->id, 'matricule' => $matricule, 'deleted_at' => null, ...$attributes])->save();
+
+        return $student;
+    }
+
+    private function guardian(School $school, string $phone, string $name, string $profession): Guardian
+    {
+        $guardian = Guardian::query()->where('school_id', $school->id)->where('phone', $phone)->first() ?? new Guardian;
+        $guardian->forceFill(['school_id' => $school->id, 'phone' => $phone, 'name' => $name, 'profession' => $profession])->save();
+
+        return $guardian;
+    }
+
+    private function link(School $school, Guardian $guardian, Student $student, GuardianRelation $relation, bool $main): void
+    {
+        $link = GuardianLink::query()->where('student_id', $student->id)->where('guardian_id', $guardian->id)->first() ?? new GuardianLink;
+        $link->forceFill([
+            'school_id' => $school->id,
+            'guardian_id' => $guardian->id,
+            'student_id' => $student->id,
+            'relation' => $relation,
+            'is_primary_contact' => $main,
+            'is_payer' => $main,
+            'can_pick_up' => true,
+        ])->save();
     }
 
     private function classroom(School $school, AcademicYear $year, string $levelCode, string $section, ?string $teacherId): void
@@ -205,6 +347,7 @@ final class DemoSeeder extends Seeder
         $school->forceFill([
             'name' => $definition['name'],
             'slug' => $slug,
+            'code' => self::CODES[$slug] ?? 'ECO',
             'type' => SchoolType::PreschoolPrimary,
             'city' => 'Abidjan',
             'address' => $definition['address'],

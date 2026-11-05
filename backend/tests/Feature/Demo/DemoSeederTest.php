@@ -63,7 +63,12 @@ it('crée les deux écoles, leurs cycles, un compte par rôle et leurs affectati
         // Année 2026-2027 en cours et classes des deux écoles, une seule fois
         ->and(ownerCount('academic_years'))->toBe(2)
         ->and(ownerCount('classrooms'))->toBe(17)
-        ->and(DB::connection('pgsql_owner')->scalar('select count(*) from classrooms where homeroom_teacher_id is not null'))->toBe(2);
+        ->and(DB::connection('pgsql_owner')->scalar('select count(*) from classrooms where homeroom_teacher_id is not null'))->toBe(2)
+        ->and(ownerCount('students'))->toBe(48)
+        ->and(ownerCount('enrollments'))->toBe(48)
+        ->and(DB::connection('pgsql_owner')->scalar("select max(matricule) from students where matricule like 'LAU-%'"))->toBe('LAU-000035')
+        ->and(DB::connection('pgsql_owner')->scalar('select sum(last_value)::int from document_sequences'))->toBe(48)
+        ->and(DB::connection('pgsql_owner')->scalar("select count(*) from guardian_student gs join guardians g on g.id = gs.guardian_id where g.phone = '+2250700000008'"))->toBe(3);
 });
 
 it('permet à la directrice de la maternelle de se connecter et de ne voir que la maternelle', function (): void {

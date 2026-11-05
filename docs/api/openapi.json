@@ -500,7 +500,7 @@
             },
             "delete": {
                 "operationId": "classrooms.destroy",
-                "description": "(Les inscriptions, \u00e0 venir, emp\u00eacheront de supprimer une classe qui a des \u00e9l\u00e8ves.)",
+                "description": "409 `classroom_not_empty` si des \u00e9l\u00e8ves y ont \u00e9t\u00e9 inscrits (changez-les d'abord de classe).",
                 "summary": "Supprimer une classe",
                 "tags": [
                     "Classroom"
@@ -842,6 +842,118 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/enrollments": {
+            "post": {
+                "operationId": "enrollments.store",
+                "description": "Dossier, tuteurs (r\u00e9utilis\u00e9s par t\u00e9l\u00e9phone : fratrie) et classe en une fois ; matricule \u00ab LAU-000123 \u00bb attribu\u00e9.\n409 `classroom_full` (capacit\u00e9 atteinte) ou `year_closed` (ann\u00e9e cl\u00f4tur\u00e9e).",
+                "summary": "Inscrire un nouvel \u00e9l\u00e8ve",
+                "tags": [
+                    "Enrollment"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EnrollStudentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/enrollments/{enrollment}": {
+            "patch": {
+                "operationId": "enrollments.update",
+                "description": "`classroom_id` (m\u00eame ann\u00e9e) ou `status` : `left` (avec `left_on`, `leave_reason`) ou `active`.\n409 `classroom_full`, `year_closed`, `other_year`. Renvoie le dossier de l'\u00e9l\u00e8ve.",
+                "summary": "Changer de classe, noter un d\u00e9part ou un retour",
+                "tags": [
+                    "Enrollment"
+                ],
+                "parameters": [
+                    {
+                        "name": "enrollment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The enrollment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateEnrollmentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
@@ -2077,6 +2189,544 @@
                     }
                 }
             }
+        },
+        "/students": {
+            "get": {
+                "operationId": "students.index",
+                "description": "Inscrits sur l'ann\u00e9e demand\u00e9e (en cours par d\u00e9faut), par nom, 25 par page (curseur). Personnel : son cycle ;\nenseignant : \u00e9l\u00e8ves de ses classes ; parent : ses enfants. Aucune donn\u00e9e m\u00e9dicale dans la liste.",
+                "summary": "\u00c9l\u00e8ves de l'\u00e9cole",
+                "tags": [
+                    "Student"
+                ],
+                "parameters": [
+                    {
+                        "name": "academic_year_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "classroom_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "cycle_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "active",
+                                "left",
+                                "all",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `StudentRowResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/StudentRowResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the next set of items."
+                                                },
+                                                "prev_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the previous set of items."
+                                                }
+                                            },
+                                            "required": [
+                                                "path",
+                                                "per_page",
+                                                "next_cursor",
+                                                "prev_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/students/{student}": {
+            "get": {
+                "operationId": "students.show",
+                "description": "Tuteurs, inscriptions, fratrie ; `medical` seulement avec students.medical.view. 404 hors du p\u00e9rim\u00e8tre.",
+                "summary": "Dossier d'un \u00e9l\u00e8ve",
+                "tags": [
+                    "Student"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "students.update",
+                "summary": "Modifier le dossier d'un \u00e9l\u00e8ve",
+                "tags": [
+                    "Student"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateStudentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "students.destroy",
+                "description": "Suppression logique (saisie erron\u00e9e) : le matricule n'est jamais r\u00e9utilis\u00e9. Un d\u00e9part se note sur l'inscription.",
+                "summary": "Supprimer le dossier d'un \u00e9l\u00e8ve",
+                "tags": [
+                    "Student"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/students/{student}/guardians": {
+            "post": {
+                "operationId": "students.guardians.store",
+                "description": "T\u00e9l\u00e9phone d'un tuteur d\u00e9j\u00e0 connu de l'\u00e9cole : il est r\u00e9utilis\u00e9 (fratrie).",
+                "summary": "Ajouter un tuteur",
+                "tags": [
+                    "StudentGuardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreGuardianRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/students/{student}/guardians/{guardian}": {
+            "patch": {
+                "operationId": "students.guardians.update",
+                "description": "Ses informations (partag\u00e9es par la fratrie) et son lien avec cet \u00e9l\u00e8ve.",
+                "summary": "Modifier un tuteur",
+                "tags": [
+                    "StudentGuardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "guardian",
+                        "in": "path",
+                        "required": true,
+                        "description": "The guardian ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateGuardianRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "students.guardians.destroy",
+                "description": "409 `last_guardian` (dernier tuteur) ou `reassign_first` (payeur ou contact principal \u00e0 remplacer d'abord).",
+                "summary": "Retirer un tuteur",
+                "tags": [
+                    "StudentGuardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "guardian",
+                        "in": "path",
+                        "required": true,
+                        "description": "The guardian ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`StudentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StudentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -2146,6 +2796,21 @@
                 ],
                 "title": "AssignUserRoleRequest"
             },
+            "BloodType": {
+                "type": "string",
+                "description": "Groupe sanguin (donn\u00e9e m\u00e9dicale : permission students.medical.view, jamais journalis\u00e9e).\n",
+                "enum": [
+                    "A+",
+                    "A-",
+                    "B+",
+                    "B-",
+                    "AB+",
+                    "AB-",
+                    "O+",
+                    "O-"
+                ],
+                "title": "BloodType"
+            },
             "ChangePasswordRequest": {
                 "type": "object",
                 "properties": {
@@ -2187,6 +2852,17 @@
                         "type": [
                             "integer",
                             "null"
+                        ]
+                    },
+                    "enrolled_count": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            }
                         ]
                     },
                     "room": {
@@ -2250,6 +2926,7 @@
                     "name",
                     "section",
                     "capacity",
+                    "enrolled_count",
                     "room",
                     "level",
                     "homeroom_teacher",
@@ -2425,6 +3102,319 @@
                     "levels"
                 ],
                 "title": "CycleResource"
+            },
+            "EnrollStudentRequest": {
+                "type": "object",
+                "description": "Inscription compl\u00e8te d'un nouvel \u00e9l\u00e8ve : `student` (dossier), `guardians` (1 \u00e0 4 ; un seul payeur et un seul\ncontact principal, le premier tuteur par d\u00e9faut) et `classroom_id`. Droits : students.manage sur le cycle de la\nclasse ; champs m\u00e9dicaux de `student` refus\u00e9s sans students.medical.view sur ce cycle.",
+                "properties": {
+                    "student": {
+                        "type": "object",
+                        "properties": {
+                            "first_name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                            },
+                            "last_name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                            },
+                            "gender": {
+                                "$ref": "#/components/schemas/Gender"
+                            },
+                            "birth_date": {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            "birth_place": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "maxLength": 80
+                            },
+                            "address": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "maxLength": 160
+                            },
+                            "blood_type": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/components/schemas/BloodType"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "allergies": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "maxLength": 1000
+                            },
+                            "medical_notes": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "maxLength": 2000
+                            }
+                        },
+                        "required": [
+                            "first_name",
+                            "last_name",
+                            "gender",
+                            "birth_date"
+                        ]
+                    },
+                    "classroom_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "enrolled_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "guardians": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 2,
+                                    "maxLength": 120
+                                },
+                                "phone": {
+                                    "type": "string",
+                                    "maxLength": 30
+                                },
+                                "email": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "format": "email",
+                                    "maxLength": 255
+                                },
+                                "profession": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 80
+                                },
+                                "relation": {
+                                    "$ref": "#/components/schemas/GuardianRelation"
+                                },
+                                "is_primary_contact": {
+                                    "type": "boolean"
+                                },
+                                "is_payer": {
+                                    "type": "boolean"
+                                },
+                                "can_pick_up": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "phone",
+                                "relation"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 4
+                    }
+                },
+                "required": [
+                    "student",
+                    "classroom_id",
+                    "guardians"
+                ],
+                "title": "EnrollStudentRequest"
+            },
+            "EnrollmentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "left"
+                        ]
+                    },
+                    "enrolled_on": {
+                        "type": "string"
+                    },
+                    "left_on": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "leave_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "academic_year": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "label": {
+                                "type": "string"
+                            },
+                            "is_current": {
+                                "type": "boolean"
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "open",
+                                    "closed"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "label",
+                            "is_current",
+                            "status"
+                        ]
+                    },
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "level_code": {
+                                "type": "string"
+                            },
+                            "cycle_id": {
+                                "type": "string"
+                            },
+                            "cycle_code": {
+                                "type": "string"
+                            },
+                            "homeroom_teacher": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "level_code",
+                            "cycle_id",
+                            "cycle_code",
+                            "homeroom_teacher"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "status",
+                    "enrolled_on",
+                    "left_on",
+                    "leave_reason",
+                    "academic_year",
+                    "classroom"
+                ],
+                "title": "EnrollmentResource"
+            },
+            "Gender": {
+                "type": "string",
+                "enum": [
+                    "F",
+                    "M"
+                ],
+                "title": "Gender"
+            },
+            "GuardianLinkResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "profession": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "relation": {
+                        "type": "string",
+                        "enum": [
+                            "father",
+                            "mother",
+                            "guardian",
+                            "other"
+                        ]
+                    },
+                    "is_primary_contact": {
+                        "type": "boolean"
+                    },
+                    "is_payer": {
+                        "type": "boolean"
+                    },
+                    "can_pick_up": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "phone",
+                    "email",
+                    "profession",
+                    "relation",
+                    "is_primary_contact",
+                    "is_payer",
+                    "can_pick_up"
+                ],
+                "title": "GuardianLinkResource"
+            },
+            "GuardianRelation": {
+                "type": "string",
+                "description": "Lien entre un tuteur et l'\u00e9l\u00e8ve.\n",
+                "enum": [
+                    "father",
+                    "mother",
+                    "guardian",
+                    "other"
+                ],
+                "title": "GuardianRelation"
             },
             "HealthResource": {
                 "type": "object",
@@ -2814,6 +3804,12 @@
                     "slug": {
                         "type": "string"
                     },
+                    "code": {
+                        "type": "string"
+                    },
+                    "code_locked": {
+                        "type": "boolean"
+                    },
                     "type": {
                         "type": "string",
                         "enum": [
@@ -2866,6 +3862,8 @@
                     "id",
                     "name",
                     "slug",
+                    "code",
+                    "code_locked",
                     "type",
                     "city",
                     "address",
@@ -3039,6 +4037,77 @@
                 ],
                 "title": "SchoolUserResource"
             },
+            "SiblingResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "classroom_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "full_name",
+                    "classroom_name"
+                ],
+                "title": "SiblingResource"
+            },
+            "StoreGuardianRequest": {
+                "type": "object",
+                "description": "Ajouter un tuteur au dossier (t\u00e9l\u00e9phone d'un tuteur connu de l'\u00e9cole : il est r\u00e9utilis\u00e9). `is_payer` ou\n`is_primary_contact` : la qualit\u00e9 passe \u00e0 ce tuteur.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 30
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "profession": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 80
+                    },
+                    "relation": {
+                        "$ref": "#/components/schemas/GuardianRelation"
+                    },
+                    "is_primary_contact": {
+                        "type": "boolean"
+                    },
+                    "is_payer": {
+                        "type": "boolean"
+                    },
+                    "can_pick_up": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name",
+                    "phone",
+                    "relation"
+                ],
+                "title": "StoreGuardianRequest"
+            },
             "StoreSchoolRoleRequest": {
                 "type": "object",
                 "properties": {
@@ -3122,6 +4191,237 @@
                 ],
                 "title": "StoreSchoolUserRequest"
             },
+            "StudentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "matricule": {
+                        "type": "string"
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "last_name": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "gender": {
+                        "type": "string",
+                        "enum": [
+                            "F",
+                            "M"
+                        ]
+                    },
+                    "birth_date": {
+                        "type": "string"
+                    },
+                    "birth_place": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "medical": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "blood_type": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "enum": [
+                                    "A+",
+                                    "A-",
+                                    "B+",
+                                    "B-",
+                                    "AB+",
+                                    "AB-",
+                                    "O+",
+                                    "O-",
+                                    null
+                                ]
+                            },
+                            "allergies": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "medical_notes": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "blood_type",
+                            "allergies",
+                            "medical_notes"
+                        ]
+                    },
+                    "guardians": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GuardianLinkResource"
+                        }
+                    },
+                    "enrollments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EnrollmentResource"
+                        }
+                    },
+                    "siblings": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SiblingResource"
+                        }
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    },
+                    "can_view_medical": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "matricule",
+                    "first_name",
+                    "last_name",
+                    "full_name",
+                    "gender",
+                    "birth_date",
+                    "birth_place",
+                    "address",
+                    "medical",
+                    "guardians",
+                    "enrollments",
+                    "siblings",
+                    "can_manage",
+                    "can_view_medical",
+                    "created_at"
+                ],
+                "title": "StudentResource"
+            },
+            "StudentRowResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "matricule": {
+                        "type": "string"
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "last_name": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "gender": {
+                        "type": "string",
+                        "enum": [
+                            "F",
+                            "M"
+                        ]
+                    },
+                    "birth_date": {
+                        "type": "string"
+                    },
+                    "enrollment": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "active",
+                                    "left"
+                                ]
+                            },
+                            "classroom_id": {
+                                "type": "string"
+                            },
+                            "classroom_name": {
+                                "type": "string"
+                            },
+                            "cycle_id": {
+                                "type": "string"
+                            },
+                            "cycle_code": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "status",
+                            "classroom_id",
+                            "classroom_name",
+                            "cycle_id",
+                            "cycle_code"
+                        ]
+                    },
+                    "primary_contact": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "phone": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "phone"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "matricule",
+                    "first_name",
+                    "last_name",
+                    "full_name",
+                    "gender",
+                    "birth_date",
+                    "enrollment",
+                    "primary_contact"
+                ],
+                "title": "StudentRowResource"
+            },
             "UpdateCycleRequest": {
                 "type": "object",
                 "properties": {
@@ -3156,6 +4456,78 @@
                 },
                 "title": "UpdateCycleRequest"
             },
+            "UpdateEnrollmentRequest": {
+                "type": "object",
+                "description": "Inscription d'un \u00e9l\u00e8ve : `classroom_id` (changement de classe, m\u00eame ann\u00e9e) ou `status` (`left` avec `left_on` et\n`leave_reason` facultatif ; `active` pour un retour). Droits : g\u00e9rer l'\u00e9l\u00e8ve, et inscrire dans la nouvelle classe.",
+                "properties": {
+                    "classroom_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "left"
+                        ]
+                    },
+                    "left_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "leave_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    }
+                },
+                "title": "UpdateEnrollmentRequest"
+            },
+            "UpdateGuardianRequest": {
+                "type": "object",
+                "description": "Modifier un tuteur (nom, t\u00e9l\u00e9phone, e-mail, profession : partag\u00e9s par la fratrie) et son lien avec l'\u00e9l\u00e8ve\n(parent\u00e9, payeur, contact principal, autoris\u00e9 \u00e0 r\u00e9cup\u00e9rer). Champs envoy\u00e9s seulement.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 30
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "profession": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 80
+                    },
+                    "relation": {
+                        "$ref": "#/components/schemas/GuardianRelation"
+                    },
+                    "is_primary_contact": {
+                        "type": "boolean"
+                    },
+                    "is_payer": {
+                        "type": "boolean"
+                    },
+                    "can_pick_up": {
+                        "type": "boolean"
+                    }
+                },
+                "title": "UpdateGuardianRequest"
+            },
             "UpdateSchoolProfileRequest": {
                 "type": "object",
                 "properties": {
@@ -3163,6 +4535,10 @@
                         "type": "string",
                         "minLength": 2,
                         "maxLength": 120
+                    },
+                    "code": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{2,5}$"
                     },
                     "city": {
                         "type": [
@@ -3251,6 +4627,68 @@
                     }
                 },
                 "title": "UpdateSchoolUserRequest"
+            },
+            "UpdateStudentRequest": {
+                "type": "object",
+                "description": "Modification du dossier (champs envoy\u00e9s seulement ; cha\u00eene vide = effacer un champ facultatif). Les champs m\u00e9dicaux\nsont refus\u00e9s (422) sans students.medical.view sur l'\u00e9l\u00e8ve.",
+                "properties": {
+                    "first_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                    },
+                    "gender": {
+                        "$ref": "#/components/schemas/Gender"
+                    },
+                    "birth_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "birth_place": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 80
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 160
+                    },
+                    "blood_type": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/BloodType"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "allergies": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 1000
+                    },
+                    "medical_notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    }
+                },
+                "title": "UpdateStudentRequest"
             },
             "UploadSchoolLogoRequest": {
                 "type": "object",

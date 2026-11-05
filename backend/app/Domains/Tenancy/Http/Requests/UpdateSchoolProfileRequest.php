@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Tenancy\Http\Requests;
 
+use App\Domains\Tenancy\Support\SchoolCode;
 use App\Support\Phone\Phone;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -18,7 +19,7 @@ final class UpdateSchoolProfileRequest extends FormRequest
     }
 
     /**
-     * Champs envoyés seulement ; chaîne vide = effacer (sauf le nom, obligatoire).
+     * Champs envoyés seulement ; chaîne vide = effacer (sauf le nom, obligatoire). `code` : 2 à 5 lettres majuscules.
      *
      * @return array<string, list<mixed>>
      */
@@ -26,6 +27,7 @@ final class UpdateSchoolProfileRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'min:2', 'max:120'],
+            'code' => ['sometimes', 'string', 'regex:'.SchoolCode::PATTERN],
             'city' => ['sometimes', 'nullable', 'string', 'max:80'],
             'address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:30', static function (string $attribute, mixed $value, Closure $fail): void {
@@ -39,7 +41,7 @@ final class UpdateSchoolProfileRequest extends FormRequest
     }
 
     /**
-     * @return array{name?: string, city?: string|null, address?: string|null, phone?: string|null, email?: string|null, motto?: string|null}
+     * @return array{name?: string, code?: string, city?: string|null, address?: string|null, phone?: string|null, email?: string|null, motto?: string|null}
      */
     public function profileAttributes(): array
     {
@@ -47,6 +49,10 @@ final class UpdateSchoolProfileRequest extends FormRequest
 
         if ($this->has('name')) {
             $attributes['name'] = trim($this->string('name')->toString());
+        }
+
+        if ($this->has('code')) {
+            $attributes['code'] = $this->string('code')->toString();
         }
 
         foreach (['city', 'address', 'email', 'motto'] as $field) {

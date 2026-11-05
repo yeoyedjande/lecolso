@@ -9,6 +9,7 @@ use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Policies\ClassroomPolicy;
 use App\Domains\Identity\Authorization\Authorizer;
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Enums\EnrollmentStatus;
 use App\Domains\Tenancy\Models\School;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -36,6 +37,9 @@ final readonly class ListClassrooms
 
         return Classroom::query()
             ->with(['level.cycle', 'homeroomTeacher'])
+            ->withCount(['enrollments as enrolled_count' => static fn (Builder $enrollment) => $enrollment
+                ->where('status', EnrollmentStatus::Active)
+                ->whereHas('student')])
             ->where('academic_year_id', $yearId)
             ->when($scope !== null, static fn (Builder $query) => $query->whereHas(
                 'level',

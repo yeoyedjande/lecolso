@@ -2,11 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Domains\Academic\Models\AcademicYear;
+use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
+use App\Domains\Academic\Models\Level;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Actions\EnrollStudent;
+use App\Domains\Students\Data\GuardianInput;
+use App\Domains\Students\Data\NewEnrollment;
+use App\Domains\Students\Enums\Gender;
+use App\Domains\Students\Enums\GuardianRelation;
+use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Models\School;
 use App\Support\Tenancy\Platform;
 use App\Support\Tenancy\TenantContext;
@@ -153,4 +162,69 @@ function assignRole(User $user, School $school, Role|string $role = Role::Direct
         'role' => $role,
         'cycle_id' => $cycle?->id,
     ]));
+}
+
+function levelOf(School $school, string $code): Level
+{
+    return inSchool($school, static fn (): Level => Level::query()->where('code', $code)->firstOrFail());
+}
+
+function currentYearOf(School $school): AcademicYear
+{
+    return inSchool($school, static fn (): AcademicYear => AcademicYear::query()->where('is_current', true)->first()
+        ?? AcademicYear::factory()->createOne());
+}
+
+/**
+ * Classe de l'année en cours.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function classroomOf(School $school, string $levelCode, string $section = 'A', array $attributes = []): Classroom
+{
+    $year = currentYearOf($school);
+    $level = levelOf($school, $levelCode);
+
+    return inSchool($school, static fn (): Classroom => Classroom::factory()->createOne([
+        'academic_year_id' => $year->id,
+        'level_id' => $level->id,
+        'section' => $section,
+        ...$attributes,
+    ]));
+}
+
+/**
+ * Élève inscrit dans une classe par l'Action d'inscription (matricule, tuteur payeur et contact principal).
+ *
+ * @param  array<string, mixed>  $overrides  first_name, last_name, gender, birth_date, guardian_phone, guardian_name,
+ *                                           allergies, blood_type
+ */
+function enrollStudent(School $school, Classroom $classroom, array $overrides = []): Student
+{
+    $text = static fn (string $key, string $default): string => is_string($overrides[$key] ?? null) ? $overrides[$key] : $default;
+    $nullable = static fn (string $key): ?string => is_string($overrides[$key] ?? null) ? $overrides[$key] : null;
+
+    return inSchool($school, static fn (): Student => app(EnrollStudent::class)->handle($school, new NewEnrollment(
+        firstName: $text('first_name', 'Awa'),
+        lastName: $text('last_name', 'Koné'),
+        gender: Gender::from($text('gender', 'F')),
+        birthDate: $text('birth_date', '2019-03-14'),
+        birthPlace: null,
+        address: null,
+        bloodType: null,
+        allergies: $nullable('allergies'),
+        medicalNotes: null,
+        classroom: $classroom->load(['level', 'academicYear']),
+        enrolledOn: '2026-09-07',
+        guardians: [new GuardianInput(
+            name: $text('guardian_name', 'Mariam Koné'),
+            phone: $text('guardian_phone', '+2250701020304'),
+            email: null,
+            profession: null,
+            relation: GuardianRelation::Mother,
+            isPrimaryContact: true,
+            isPayer: true,
+            canPickUp: true,
+        )],
+    )));
 }

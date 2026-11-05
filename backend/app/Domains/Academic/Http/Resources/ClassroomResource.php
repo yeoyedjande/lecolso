@@ -6,6 +6,7 @@ namespace App\Domains\Academic\Http\Resources;
 
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Support\ClassroomSeats;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,7 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class ClassroomResource extends JsonResource
 {
     /**
-     * @return array{id: string, academic_year_id: string, name: string, section: string, capacity: int|null, room: string|null, level: array{id: string, code: string, name: string, cycle_id: string, cycle_code: string}, homeroom_teacher: array{id: string, name: string}|null, can_manage: bool}
+     * @return array{id: string, academic_year_id: string, name: string, section: string, capacity: int|null, enrolled_count: int, room: string|null, level: array{id: string, code: string, name: string, cycle_id: string, cycle_code: string}, homeroom_teacher: array{id: string, name: string}|null, can_manage: bool}
      */
     public function toArray(Request $request): array
     {
@@ -31,6 +32,7 @@ final class ClassroomResource extends JsonResource
             'name' => $classroom->name(),
             'section' => $classroom->section,
             'capacity' => $classroom->capacity,
+            'enrolled_count' => $classroom->enrolled_count ?? ClassroomSeats::taken($classroom),
             'room' => $classroom->room,
             'level' => [
                 'id' => $classroom->level->id,
