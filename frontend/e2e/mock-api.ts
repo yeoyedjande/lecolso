@@ -479,6 +479,275 @@ export async function mockApi(
       ) ?? false
     )
   }
+  // Années scolaires et classes (comme le DemoSeeder : 2025-2026 clôturée, 2026-2027 en cours)
+  interface MockYear {
+    id: string
+    label: string
+    starts_on: string
+    ends_on: string
+    status: 'open' | 'closed'
+    is_current: boolean
+  }
+  interface MockClassroom {
+    id: string
+    academic_year_id: string
+    level_id: string
+    section: string
+    capacity: number | null
+    room: string | null
+    homeroom_teacher_id: string | null
+  }
+  const SEEDED_CLASSROOMS: Record<string, [string, string[]][]> = {
+    lauriers: [
+      ['CRECHE', ['A']],
+      ['PS', ['A']],
+      ['MS', ['A']],
+      ['GS', ['A']],
+      ['CP1', ['A']],
+      ['CP2', ['A']],
+      ['CE1', ['A', 'B']],
+      ['CE2', ['A']],
+      ['CM1', ['A']],
+      ['CM2', ['A']],
+    ],
+    genies: [
+      ['CRECHE', ['A', 'B']],
+      ['PS', ['A', 'B']],
+      ['MS', ['A']],
+      ['GS', ['A']],
+    ],
+  }
+  const HOMEROOM = ['CE1 A', 'CM1 A']
+  let academicCounter = 0
+  const nextAcademicId = () => {
+    academicCounter += 1
+    return `0195f000-0000-7000-8000-0000000b${String(academicCounter).padStart(4, '0')}`
+  }
+  const cyclesOf = (schoolId: string) =>
+    schoolId === SCHOOLS.genies.id ? CYCLES.slice(0, 2) : CYCLES
+  const levelOf = (schoolId: string, levelId: string) => {
+    for (const cycle of cyclesOf(schoolId)) {
+      const level = cycle.levels.find((candidate) => candidate.id === levelId)
+      if (level !== undefined) return { level, cycle }
+    }
+    return undefined
+  }
+  const schoolYears = new Map<string, MockYear[]>()
+  const schoolClassrooms = new Map<string, MockClassroom[]>()
+  const yearsOf = (schoolId: string): MockYear[] => {
+    const existing = schoolYears.get(schoolId)
+    if (existing !== undefined) return existing
+    const years: MockYear[] = [
+      {
+        id: nextAcademicId(),
+        label: '2026-2027',
+        starts_on: '2026-09-07',
+        ends_on: '2027-07-16',
+        status: 'open',
+        is_current: true,
+      },
+      {
+        id: nextAcademicId(),
+        label: '2025-2026',
+        starts_on: '2025-09-08',
+        ends_on: '2026-07-17',
+        status: 'closed',
+        is_current: false,
+      },
+    ]
+    schoolYears.set(schoolId, years)
+    return years
+  }
+  const classroomsOf = (schoolId: string): MockClassroom[] => {
+    const existing = schoolClassrooms.get(schoolId)
+    if (existing !== undefined) return existing
+    const year = yearsOf(schoolId).find((candidate) => candidate.label === '2026-2027')
+    const schoolKey = schoolKeyOf(schoolId)
+    const classrooms: MockClassroom[] = []
+    for (const [code, sections] of schoolKey === undefined
+      ? []
+      : (SEEDED_CLASSROOMS[schoolKey] ?? [])) {
+      const level = cyclesOf(schoolId)
+        .flatMap((cycle) => cycle.levels)
+        .find((candidate) => candidate.code === code)
+      if (level === undefined || year === undefined) continue
+      for (const section of sections) {
+        classrooms.push({
+          id: nextAcademicId(),
+          academic_year_id: year.id,
+          level_id: level.id,
+          section,
+          capacity: 35,
+          room: null,
+          homeroom_teacher_id:
+            schoolKey === 'lauriers' && HOMEROOM.includes(`${code} ${section}`)
+              ? userId(ACCOUNTS.teacher.phone)
+              : null,
+        })
+      }
+    }
+    schoolClassrooms.set(schoolId, classrooms)
+    return classrooms
+  }
+  /** Comme Authorizer : la permission sur toute l'école, ou sur le cycle donné. */
+  const holds = (schoolId: string, permission: string, cycleId: string | null) => {
+    const schoolKey = schoolKeyOf(schoolId)
+    return (
+      current?.roles.some(
+        (assignment) =>
+          assignment.school === schoolKey &&
+          (assignment.cycle === undefined || assignment.cycle === cycleId) &&
+          PERMISSIONS[permission]?.includes(assignment.role) === true,
+      ) ?? false
+    )
+  }
+  const classroomResource = (schoolId: string, classroom: MockClassroom) => {
+    const found = levelOf(schoolId, classroom.level_id)
+    const teacher = usersOf(schoolId).find((user) => user.id === classroom.homeroom_teacher_id)
+    return {
+      id: classroom.id,
+      academic_year_id: classroom.academic_year_id,
+      name: `${found?.level.code ?? '?'} ${classroom.section}`,
+      section: classroom.section,
+      capacity: classroom.capacity,
+      room: classroom.room,
+      level: {
+        id: classroom.level_id,
+        code: found?.level.code ?? '',
+        name: found?.level.name ?? '',
+        cycle_id: found?.cycle.id ?? '',
+        cycle_code: found?.cycle.code ?? '',
+      },
+      homeroom_teacher: teacher === undefined ? null : { id: teacher.id, name: teacher.name },
+      can_manage: holds(schoolId, 'school.settings.manage', found?.cycle.id ?? null),
+    }
+  }
+  const yearBody = z.object({
+    label: z.optional(z.string()),
+    starts_on: z.optional(z.string()),
+    ends_on: z.optional(z.string()),
+    status: z.optional(z.enum(['open', 'closed'])),
+    is_current: z.optional(z.boolean()),
+  })
+  /** Comme SaveAcademicYear : unicité du libellé, une seule année en cours, pas de clôture de l'année en cours. */
+  const saveYear = (schoolId: string, year: MockYear | null, body: z.infer<typeof yearBody>) => {
+    const years = yearsOf(schoolId)
+    const label = body.label ?? year?.label ?? ''
+    if (years.some((candidate) => candidate.label === label && candidate !== year)) {
+      return {
+        status: 422,
+        json: {
+          message: 'Libellé déjà utilisé.',
+          errors: { label: ['Cette année scolaire existe déjà.'] },
+        },
+      }
+    }
+    const target = year ?? {
+      id: nextAcademicId(),
+      label,
+      starts_on: '',
+      ends_on: '',
+      status: 'open' as const,
+      is_current: false,
+    }
+    const closing = body.status === 'closed' && (body.is_current ?? target.is_current)
+    if (closing) {
+      return { status: 409, json: { message: 'Année en cours.', code: 'current_year' } }
+    }
+    Object.assign(target, {
+      label,
+      starts_on: body.starts_on ?? target.starts_on,
+      ends_on: body.ends_on ?? target.ends_on,
+      status: body.status ?? target.status,
+    })
+    if (body.is_current === true) {
+      for (const candidate of years) candidate.is_current = candidate === target
+    }
+    if (year === null) years.unshift(target)
+    years.sort((a, b) => b.label.localeCompare(a.label))
+    return { status: year === null ? 201 : 200, json: { data: target } }
+  }
+  const classroomBody = z.object({
+    level_id: z.optional(z.string()),
+    academic_year_id: z.optional(z.string()),
+    section: z.optional(z.string()),
+    capacity: z.optional(z.nullable(z.number())),
+    room: z.optional(z.nullable(z.string())),
+    homeroom_teacher_id: z.optional(z.nullable(z.string())),
+  })
+  const forbidden = { status: 403, json: { message: 'This action is unauthorized.' } }
+  /** Comme SaveClassroom : droit sur le cycle du niveau, année ouverte, section unique. */
+  const saveClassroom = (
+    schoolId: string,
+    classroom: MockClassroom | null,
+    body: z.infer<typeof classroomBody>,
+  ) => {
+    const levelId = body.level_id ?? classroom?.level_id ?? ''
+    const found = levelOf(schoolId, levelId)
+    if (found === undefined) {
+      return {
+        status: 422,
+        json: { message: 'Niveau inconnu.', errors: { level_id: ['Niveau inconnu.'] } },
+      }
+    }
+    if (!holds(schoolId, 'school.settings.manage', found.cycle.id)) return forbidden
+    const yearId =
+      body.academic_year_id ??
+      classroom?.academic_year_id ??
+      yearsOf(schoolId).find((candidate) => candidate.is_current)?.id ??
+      ''
+    const year = yearsOf(schoolId).find((candidate) => candidate.id === yearId)
+    if (year?.status !== 'open') {
+      return {
+        status: 422,
+        json: {
+          message: 'Année clôturée.',
+          errors: { academic_year_id: ['Cette année scolaire est clôturée.'] },
+        },
+      }
+    }
+    const section = (body.section ?? classroom?.section ?? '').trim().toUpperCase()
+    const duplicate = classroomsOf(schoolId).some(
+      (candidate) =>
+        candidate !== classroom &&
+        candidate.academic_year_id === yearId &&
+        candidate.level_id === levelId &&
+        candidate.section === section,
+    )
+    if (duplicate) {
+      return {
+        status: 422,
+        json: {
+          message: 'Section déjà utilisée.',
+          errors: { section: ['Cette classe existe déjà pour ce niveau.'] },
+        },
+      }
+    }
+    const target = classroom ?? {
+      id: nextAcademicId(),
+      academic_year_id: yearId,
+      level_id: levelId,
+      section,
+      capacity: null,
+      room: null,
+      homeroom_teacher_id: null,
+    }
+    Object.assign(target, {
+      level_id: levelId,
+      section,
+      capacity: body.capacity === undefined ? target.capacity : body.capacity,
+      room: body.room === undefined ? target.room : body.room,
+      homeroom_teacher_id:
+        body.homeroom_teacher_id === undefined
+          ? target.homeroom_teacher_id
+          : body.homeroom_teacher_id,
+    })
+    if (classroom === null) classroomsOf(schoolId).push(target)
+    return {
+      status: classroom === null ? 201 : 200,
+      json: { data: classroomResource(schoolId, target) },
+    }
+  }
   const ordered = (permissions: string[]) =>
     Object.keys(PERMISSIONS).filter((permission) => permissions.includes(permission))
 
@@ -629,6 +898,42 @@ export async function mockApi(
             },
           },
         })
+      }
+      case 'GET /academic-years':
+        return route.fulfill({ json: { data: yearsOf(schoolHeader ?? '') } })
+      case 'POST /academic-years': {
+        const schoolId = schoolHeader ?? ''
+        if (!canEditSchool(schoolId)) return route.fulfill(forbidden)
+        return route.fulfill(saveYear(schoolId, null, yearBody.parse(request.postDataJSON())))
+      }
+      case 'GET /classrooms': {
+        const schoolId = schoolHeader ?? ''
+        const query = new URL(request.url()).searchParams
+        const yearId =
+          query.get('academic_year_id') ??
+          yearsOf(schoolId).find((candidate) => candidate.is_current)?.id
+        const order = (classroom: MockClassroom) => {
+          const found = levelOf(schoolId, classroom.level_id)
+          return (found?.cycle.position ?? 0) * 100 + (found?.level.position ?? 0)
+        }
+        const data = classroomsOf(schoolId)
+          .filter((classroom) => classroom.academic_year_id === yearId)
+          .filter((classroom) => {
+            const cycleId = levelOf(schoolId, classroom.level_id)?.cycle.id ?? null
+            return (
+              holds(schoolId, 'school.settings.view', cycleId) ||
+              holds(schoolId, 'students.view', cycleId)
+            )
+          })
+          .sort((a, b) => order(a) - order(b) || a.section.localeCompare(b.section))
+          .map((classroom) => classroomResource(schoolId, classroom))
+        return route.fulfill({ json: { data } })
+      }
+      case 'POST /classrooms': {
+        const schoolId = schoolHeader ?? ''
+        return route.fulfill(
+          saveClassroom(schoolId, null, classroomBody.parse(request.postDataJSON())),
+        )
       }
       case 'GET /school':
         return route.fulfill({ json: { data: schoolResource(schoolHeader ?? '') } })
@@ -930,6 +1235,32 @@ export async function mockApi(
               },
             },
           })
+        }
+        if (request.method() === 'PATCH' && path.startsWith('/academic-years/')) {
+          const schoolId = schoolHeader ?? ''
+          const year = yearsOf(schoolId).find((candidate) => path.endsWith(candidate.id))
+          if (year === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (!canEditSchool(schoolId)) return route.fulfill(forbidden)
+          return route.fulfill(saveYear(schoolId, year, yearBody.parse(request.postDataJSON())))
+        }
+        if (path.startsWith('/classrooms/')) {
+          const schoolId = schoolHeader ?? ''
+          const classrooms = classroomsOf(schoolId)
+          const classroom = classrooms.find((candidate) => path.endsWith(candidate.id))
+          if (classroom === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (request.method() === 'PATCH') {
+            return route.fulfill(
+              saveClassroom(schoolId, classroom, classroomBody.parse(request.postDataJSON())),
+            )
+          }
+          if (request.method() === 'DELETE') {
+            const cycleId = levelOf(schoolId, classroom.level_id)?.cycle.id ?? null
+            if (!holds(schoolId, 'school.settings.manage', cycleId)) return route.fulfill(forbidden)
+            classrooms.splice(classrooms.indexOf(classroom), 1)
+            return route.fulfill({ status: 204 })
+          }
         }
         if (request.method() === 'PATCH' && path.startsWith('/cycles/')) {
           const cycle = CYCLES.find((candidate) => path.endsWith(candidate.id))

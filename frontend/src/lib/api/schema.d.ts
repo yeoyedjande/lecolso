@@ -4,6 +4,50 @@
  */
 
 export interface paths {
+    "/academic-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Années scolaires de l'école
+         * @description La plus récente d'abord. Tout membre de l'école.
+         */
+        get: operations["academic-years.index"];
+        put?: never;
+        /**
+         * Créer une année scolaire
+         * @description Permission school.settings.manage sur toute l'école. `is_current` : en faire l'année en cours.
+         */
+        post: operations["academic-years.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/academic-years/{academicYear}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier une année scolaire
+         * @description Dates, statut (`open` / `closed`), année en cours. 409 `current_year` si l'on clôture l'année en cours.
+         */
+        patch: operations["academic-years.update"];
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -84,6 +128,52 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Classes de l'école
+         * @description Celles de l'année en cours (ou de `academic_year_id`), par cycle, niveau et section ; un utilisateur limité à des
+         *     cycles ne voit que les classes de ses cycles.
+         */
+        get: operations["classrooms.index"];
+        put?: never;
+        /**
+         * Créer une classe
+         * @description Niveau et section (« A ») ; année en cours par défaut. school.settings.manage sur le cycle du niveau.
+         */
+        post: operations["classrooms.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer une classe
+         * @description (Les inscriptions, à venir, empêcheront de supprimer une classe qui a des élèves.)
+         */
+        delete: operations["classrooms.destroy"];
+        options?: never;
+        head?: never;
+        /** Modifier une classe */
+        patch: operations["classrooms.update"];
         trace?: never;
     };
     "/platform/schools": {
@@ -494,6 +584,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AcademicYearResource */
+        AcademicYearResource: {
+            id: string;
+            label: string;
+            starts_on: string;
+            ends_on: string;
+            /** @enum {string} */
+            status: "open" | "closed";
+            is_current: boolean;
+        };
+        /**
+         * AcademicYearStatus
+         * @description Année scolaire ouverte (inscriptions, notes, présences) ou clôturée (consultation seulement).
+         * @enum {string}
+         */
+        AcademicYearStatus: "open" | "closed";
         /** AssignUserRoleRequest */
         AssignUserRoleRequest: {
             role: string;
@@ -505,6 +611,27 @@ export interface components {
             current_password: string;
             password: string;
             password_confirmation: string;
+        };
+        /** ClassroomResource */
+        ClassroomResource: {
+            id: string;
+            academic_year_id: string;
+            name: string;
+            section: string;
+            capacity: number | null;
+            room: string | null;
+            level: {
+                id: string;
+                code: string;
+                name: string;
+                cycle_id: string;
+                cycle_code: string;
+            };
+            homeroom_teacher: {
+                id: string;
+                name: string;
+            } | null;
+            can_manage: boolean;
         };
         /** CreateSchoolRequest */
         CreateSchoolRequest: {
@@ -611,6 +738,35 @@ export interface components {
             role: string;
             role_name: string | null;
             cycle_id: string | null;
+        };
+        /**
+         * SaveAcademicYearRequest
+         * @description Création (POST : libellé et dates obligatoires) ou modification (PATCH : champs envoyés seulement).
+         */
+        SaveAcademicYearRequest: {
+            label: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string;
+            status?: components["schemas"]["AcademicYearStatus"];
+            is_current?: boolean;
+        };
+        /**
+         * SaveClassroomRequest
+         * @description Création (POST : niveau et section obligatoires ; année en cours par défaut) ou modification (PATCH).
+         *     Droits : school.settings.manage sur le cycle du niveau, et sur celui du nouveau niveau en cas de changement.
+         */
+        SaveClassroomRequest: {
+            /** Format: uuid */
+            level_id: string;
+            /** Format: uuid */
+            academic_year_id?: string;
+            section: string;
+            capacity?: number | null;
+            room?: string | null;
+            /** Format: uuid */
+            homeroom_teacher_id?: string | null;
         };
         /** SchoolMembershipResource */
         SchoolMembershipResource: {
@@ -820,6 +976,93 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "academic-years.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `AcademicYearResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AcademicYearResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "academic-years.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAcademicYearRequest"];
+            };
+        };
+        responses: {
+            /** @description `AcademicYearResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AcademicYearResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "academic-years.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The academic year ID */
+                academicYear: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAcademicYearRequest"];
+            };
+        };
+        responses: {
+            /** @description `AcademicYearResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AcademicYearResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "auth.login": {
         parameters: {
             query?: never;
@@ -936,6 +1179,120 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "classrooms.index": {
+        parameters: {
+            query?: {
+                academic_year_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ClassroomResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClassroomResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "classrooms.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveClassroomRequest"];
+            };
+        };
+        responses: {
+            /** @description `ClassroomResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClassroomResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "classrooms.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "classrooms.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveClassroomRequest"];
+            };
+        };
+        responses: {
+            /** @description `ClassroomResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClassroomResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "platform.schools.index": {

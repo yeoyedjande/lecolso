@@ -47,7 +47,7 @@ export const SCREENS: Screen[] = [
       ['gestion-fiche-eleve', '/les-lauriers/eleves/lau-el-0001', 'Matricule'],
       ['gestion-inscription', '/les-lauriers/inscriptions', 'Étape 1 sur 4'],
       ['gestion-import', '/les-lauriers/import', 'Colonnes attendues (première ligne du fichier)'],
-      ['gestion-classes', '/les-lauriers/classes', 'Enseignant(e) titulaire'],
+      ['gestion-classes', '/les-lauriers/classes', 'CM2 A'],
       [
         'gestion-encaissement',
         '/les-lauriers/encaissements?eleve=lau-el-0001',

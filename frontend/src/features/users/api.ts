@@ -26,11 +26,11 @@ function useUsersKey() {
 const NO_CURSOR: string | null = null
 
 /** Comptes de l'école (vraie API), 25 par page, page suivante par curseur. */
-export function useSchoolUsers(filters: UserFilters) {
+export function useSchoolUsers(filters: UserFilters, enabled = true) {
   const { school, key } = useUsersKey()
   return useInfiniteQuery({
     queryKey: [...key, filters],
-    enabled: school !== null,
+    enabled: enabled && school !== null,
     initialPageParam: NO_CURSOR,
     queryFn: async ({ pageParam, signal }: { pageParam: string | null; signal: AbortSignal }) => {
       const { data, error } = await api.GET('/users', {
