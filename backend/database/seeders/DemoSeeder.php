@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Domains\Academic\Actions\ProvisionCycles;
+use App\Domains\Academic\Enums\AcademicYearStatus;
+use App\Domains\Academic\Models\AcademicYear;
+use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
+use App\Domains\Academic\Models\Level;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
@@ -97,6 +101,24 @@ final class DemoSeeder extends Seeder
         ]],
     ];
 
+    /**
+     * Classes de l'année 2026-2027 (mêmes que la démonstration du frontend) : niveau => sections.
+     *
+     * @var array<string, array<string, list<string>>>
+     */
+    public const array CLASSROOMS = [
+        'les-lauriers' => [
+            'CRECHE' => ['A'], 'PS' => ['A'], 'MS' => ['A'], 'GS' => ['A'], 'CP1' => ['A'], 'CP2' => ['A'],
+            'CE1' => ['A', 'B'], 'CE2' => ['A'], 'CM1' => ['A'], 'CM2' => ['A'],
+        ],
+        'petits-genies' => ['CRECHE' => ['A', 'B'], 'PS' => ['A', 'B'], 'MS' => ['A'], 'GS' => ['A']],
+    ];
+
+    /** Classes dont l'enseignante de démonstration est titulaire (école => noms « NIVEAU SECTION »). */
+    public const array HOMEROOM = ['les-lauriers' => ['CE1 A', 'CM1 A']];
+
+    public const string TEACHER_PHONE = '+2250700000007';
+
     public function run(Application $app, ProvisionCycles $provisionCycles): void
     {
         if ($app->environment('production')) {
@@ -124,7 +146,54 @@ final class DemoSeeder extends Seeder
                     $this->assign($user, $school, $assignment['role'], $assignment['cycle'] ?? null);
                 }
             }
+
+            $teacher = User::query()->where('phone', self::TEACHER_PHONE)->firstOrFail();
+            foreach ($schools as $slug => $school) {
+                $year = $this->academicYear($school);
+                foreach (self::CLASSROOMS[$slug] as $levelCode => $sections) {
+                    foreach ($sections as $section) {
+                        $homeroom = in_array($levelCode.' '.$section, self::HOMEROOM[$slug] ?? [], true) ? $teacher->id : null;
+                        $this->classroom($school, $year, $levelCode, $section, $homeroom);
+                    }
+                }
+            }
         });
+    }
+
+    private function academicYear(School $school): AcademicYear
+    {
+        $year = AcademicYear::query()->where('school_id', $school->id)->where('label', '2026-2027')->first() ?? new AcademicYear;
+        $year->forceFill([
+            'school_id' => $school->id,
+            'label' => '2026-2027',
+            'starts_on' => '2026-09-14',
+            'ends_on' => '2027-07-02',
+            'status' => AcademicYearStatus::Open,
+            'is_current' => true,
+        ])->save();
+
+        return $year;
+    }
+
+    private function classroom(School $school, AcademicYear $year, string $levelCode, string $section, ?string $teacherId): void
+    {
+        $level = Level::query()->where('school_id', $school->id)->where('code', $levelCode)->firstOrFail();
+        $classroom = Classroom::query()
+            ->where('school_id', $school->id)
+            ->where('academic_year_id', $year->id)
+            ->where('level_id', $level->id)
+            ->where('section', $section)
+            ->first() ?? new Classroom;
+
+        $classroom->forceFill([
+            'school_id' => $school->id,
+            'academic_year_id' => $year->id,
+            'level_id' => $level->id,
+            'section' => $section,
+            'capacity' => 30,
+            'room' => 'Salle '.$levelCode.' '.$section,
+            'homeroom_teacher_id' => $teacherId,
+        ])->save();
     }
 
     /**

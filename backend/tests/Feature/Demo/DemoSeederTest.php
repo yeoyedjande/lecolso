@@ -59,7 +59,11 @@ it('crée les deux écoles, leurs cycles, un compte par rôle et leurs affectati
         ->and(DB::connection('pgsql_owner')->scalar('select phone from users where is_super_admin'))->toBe('+2250700000001')
         // Rôle personnalisé de démonstration, une seule fois malgré deux exécutions
         ->and(DB::connection('pgsql_owner')->scalar('select name from school_roles where system_key is null'))->toBe('Surveillant général')
-        ->and(ownerCount('school_roles'))->toBe(1);
+        ->and(ownerCount('school_roles'))->toBe(1)
+        // Année 2026-2027 en cours et classes des deux écoles, une seule fois
+        ->and(ownerCount('academic_years'))->toBe(2)
+        ->and(ownerCount('classrooms'))->toBe(17)
+        ->and(DB::connection('pgsql_owner')->scalar('select count(*) from classrooms where homeroom_teacher_id is not null'))->toBe(2);
 });
 
 it('permet à la directrice de la maternelle de se connecter et de ne voir que la maternelle', function (): void {

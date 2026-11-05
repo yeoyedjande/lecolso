@@ -92,7 +92,10 @@ src/
 - Restent branchés sur la vraie API : authentification, `/me`, établissements, **cycles et leurs paramètres**
   (`features/cycles/api.ts`), **rôles et permissions** (`features/roles`, écran `/{slug}/roles`) et **comptes de l'école**
   (`features/users`, écran `/{slug}/utilisateurs` : liste par curseur, ajout, rôles, désactivation, suppression,
-  mot de passe provisoire). Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
+  mot de passe provisoire), **années scolaires** (`features/academic`, onglet des paramètres) et **classes**
+  (`features/classes` : `useClassroomList`, `useSaveClassroom`, `useDeleteClassroom` ; les hooks de démonstration
+  `useClassrooms` / `useClassroomOptions` servent encore aux élèves, notes et messages).
+  Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).
   **Identité de l'école** (`features/school` : `useSchoolProfile`, formulaire et logo dans Paramètres) ; logo dans
   l'en-tête (`ContextSwitcher`) et sur la page publique via `<SchoolLogo>`. `logo_url` est une URL signée de 30 minutes :

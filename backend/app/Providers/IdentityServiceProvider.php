@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domains\Academic\Models\AcademicYear;
+use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
+use App\Domains\Academic\Policies\AcademicYearPolicy;
+use App\Domains\Academic\Policies\ClassroomPolicy;
 use App\Domains\Academic\Policies\CyclePolicy;
 use App\Domains\Identity\Auth\RlsUserProvider;
 use App\Domains\Identity\Models\RoleAssignment;
@@ -53,10 +57,14 @@ final class IdentityServiceProvider extends ServiceProvider
         // courante (un modèle d'une autre école est introuvable : 404)
         Route::model('user', User::class);
         Route::model('cycle', Cycle::class);
+        Route::model('academicYear', AcademicYear::class);
+        Route::model('classroom', Classroom::class);
         Route::model('assignment', RoleAssignment::class);
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Cycle::class, CyclePolicy::class);
+        Gate::policy(AcademicYear::class, AcademicYearPolicy::class);
+        Gate::policy(Classroom::class, ClassroomPolicy::class);
         Gate::policy(SchoolRole::class, SchoolRolePolicy::class);
 
         // Connexion : 5 tentatives par minute pour un même identifiant ET 20 par minute pour une même adresse IP

@@ -665,15 +665,51 @@
   },
   "classes": {
     "title": "Classes et niveaux",
-    "description": "Organisation de l’année {{year}} : niveaux par cycle, classes, effectifs et enseignants.",
-    "students": "{{count}} élève(s)",
+    "description": "Organisation de l’année {{year}} : classes par niveau, salles, capacités et enseignants titulaires.",
     "capacity": "{{count}} places",
-    "fill": "Remplissage",
-    "girls": "{{count}} fille(s)",
-    "boys": "{{count}} garçon(s)",
-    "teacher": "Enseignant(e) titulaire",
-    "seeStudents": "Voir les élèves de {{name}}",
-    "noClass": "Aucune classe ouverte à ce niveau."
+    "descriptionNoYear": "Classes par niveau, salles, capacités et enseignants titulaires.",
+    "create": "Nouvelle classe",
+    "edit": "Modifier",
+    "editOf": "Modifier {{name}}",
+    "delete": "Supprimer",
+    "deleteOf": "Supprimer {{name}}",
+    "noTeacher": "Pas de titulaire",
+    "noRoom": "Salle non précisée",
+    "noCapacity": "Capacité non précisée",
+    "emptyTitle": "Aucune classe",
+    "emptyDescription": "Aucune classe n’est encore ouverte pour cette année scolaire.",
+    "noYearTitle": "Aucune année scolaire en cours",
+    "noYearDescription": "Créez l’année scolaire dans Paramètres → Années scolaires, puis ouvrez ses classes.",
+    "goToYears": "Ouvrir les paramètres",
+    "sheet": {
+      "createTitle": "Nouvelle classe",
+      "editTitle": "Modifier {{name}}",
+      "description": "Une classe réunit un niveau et une section (« CE1 A ») pour l’année scolaire.",
+      "level": "Niveau",
+      "pickLevel": "Choisir un niveau",
+      "section": "Section",
+      "sectionHint": "Lettre ou nom court : A, B, Rouge…",
+      "capacity": "Capacité",
+      "room": "Salle",
+      "teacher": "Enseignant(e) titulaire",
+      "noTeacher": "Aucun pour l’instant",
+      "optional": "Facultatif",
+      "save": "Enregistrer la classe",
+      "created": "Classe {{name}} créée",
+      "saved": "Classe {{name}} enregistrée",
+      "failed": "Enregistrement impossible. Réessayez.",
+      "errors": {
+        "level": "Choisissez un niveau.",
+        "section": "Indiquez une section.",
+        "capacity": "Entre 1 et 200 places."
+      }
+    },
+    "deleteDialog": {
+      "title": "Supprimer la classe {{name}} ?",
+      "description": "La classe disparaîtra de l’année scolaire. Cette action est définitive.",
+      "confirm": "Supprimer la classe",
+      "done": "Classe {{name}} supprimée"
+    }
   },
   "grades": {
     "title": "Notes",
@@ -877,7 +913,8 @@
     "tabs": {
       "identity": "Identité",
       "cycles": "Cycles",
-      "users": "Utilisateurs et rôles"
+      "users": "Utilisateurs et rôles",
+      "years": "Années scolaires"
     },
     "identity": {
       "name": "Nom de l’établissement",
@@ -1424,5 +1461,36 @@
   },
   "school": {
     "logoAlt": "Logo de {{name}}"
+  },
+  "academicYears": {
+    "title": "Années scolaires",
+    "description": "Une seule année est en cours : c’est elle qu’utilisent les classes, les inscriptions, les notes et les présences.",
+    "current": "En cours",
+    "open": "Ouverte",
+    "closed": "Clôturée",
+    "dates": "Du {{start}} au {{end}}",
+    "makeCurrent": "Définir comme année en cours",
+    "close": "Clôturer",
+    "reopen": "Rouvrir",
+    "madeCurrent": "{{label}} est l’année en cours",
+    "closedDone": "Année {{label}} clôturée",
+    "reopened": "Année {{label}} rouverte",
+    "currentLocked": "L’année en cours ne peut pas être clôturée : désignez d’abord une autre année en cours.",
+    "empty": "Aucune année scolaire. Créez la première ci-dessous.",
+    "createTitle": "Préparer une année scolaire",
+    "label": "Année",
+    "labelHint": "Par exemple 2027-2028",
+    "startsOn": "Rentrée",
+    "endsOn": "Fin des cours",
+    "setCurrent": "En faire l’année en cours",
+    "create": "Créer l’année",
+    "created": "Année {{label}} créée",
+    "failed": "Enregistrement impossible. Réessayez.",
+    "readOnly": "Seule la direction de tout l’établissement gère les années scolaires.",
+    "errors": {
+      "label": "Indiquez deux années qui se suivent, par exemple 2027-2028.",
+      "date": "Date obligatoire.",
+      "order": "La fin doit suivre la rentrée."
+    }
   }
 }
