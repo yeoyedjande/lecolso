@@ -342,6 +342,9 @@ final class DemoSeeder extends Seeder
                     $index % 5 === 0 ? 'transport' : null,
                 ]));
                 $invoice = $create->handle($enrollment, $options);
+                if ($invoice === null) {
+                    continue;
+                }
 
                 $isElder = $enrollment->student->first_name === 'Ange' && $slug === 'les-lauriers';
                 $hasDiscount = InvoiceLine::query()->where('invoice_id', $invoice->id)->where('kind', LineKind::Discount)->exists();

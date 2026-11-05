@@ -21,10 +21,12 @@ use Illuminate\Support\Carbon;
  */
 function invoiceOf(School $school, Student $student, array $options = []): Invoice
 {
-    return inSchool($school, static fn (): Invoice => app(CreateInvoice::class)->handle(
+    $invoice = inSchool($school, static fn (): ?Invoice => app(CreateInvoice::class)->handle(
         Enrollment::query()->where('student_id', $student->id)->firstOrFail(),
         $options,
     ));
+
+    return $invoice ?? throw new LogicException('Grille vide : aucune facture.');
 }
 
 /** Somme des échéances d'une facture, et somme des lignes : toujours égales. */
@@ -181,6 +183,7 @@ it('refuse un service sans montant dans la grille', function (): void {
 it('montre la facture au parent de l’enfant, pas aux autres', function (): void {
     $school = makeSchool(['primary']);
     setFees($school, 'CE1', ['tuition' => 90000]);
+    setFees($school, 'CE2', ['tuition' => 90000]);
     $child = enrollStudent($school, classroomOf($school, 'CE1'));
     $other = enrollStudent($school, classroomOf($school, 'CE2'), ['guardian_phone' => '+2250102030405']);
     invoiceOf($school, $child);
@@ -223,4 +226,36 @@ it('adresse la facture au nouveau payeur', function (): void {
     $father = inSchool($school, static fn (): Guardian => Guardian::query()->where('phone', '+2250501020304')->firstOrFail());
     spa('PATCH', '/api/v1/students/'.$student->id.'/guardians/'.$father->id, ['name' => 'Ibrahim Koné Traoré'], $school)->assertOk();
     spa('GET', '/api/v1/students/'.$student->id.'/invoices', [], $school)->assertJsonPath('data.0.payer.name', 'Ibrahim Koné Traoré');
+});
+
+it('accepte un libellé de ligne long', function (): void {
+    $school = makeSchool(['primary']);
+    setFees($school, 'CE1', ['tuition' => 90000]);
+    $invoice = invoiceOf($school, enrollStudent($school, classroomOf($school, 'CE1')));
+    actingAsRole(Role::Director, $school);
+    $label = str_repeat('Sortie pédagogique au musée ', 4);
+
+    spa('POST', '/api/v1/invoices/'.$invoice->id.'/lines', ['label' => trim($label), 'amount' => 3000], $school)
+        ->assertOk()->assertJsonPath('data.lines.1.label', trim($label));
+});
+
+it('ne crée pas de facture vide : l’élève inscrit avant la grille est facturé ensuite', function (): void {
+    $school = makeSchool(['primary']);
+    $classroom = classroomOf($school, 'CE1');
+    actingAsRole(Role::Director, $school);
+
+    $student = spa('POST', '/api/v1/enrollments', [
+        'classroom_id' => $classroom->id,
+        'student' => ['first_name' => 'Awa', 'last_name' => 'Koné', 'gender' => 'F', 'birth_date' => '2019-03-14'],
+        'guardians' => [['name' => 'Mariam Koné', 'phone' => '0701020304', 'relation' => 'mother']],
+        'enrolled_on' => '2026-09-14',
+    ], $school)->assertCreated()->json('data.id');
+    \assert(is_string($student));
+    spa('GET', '/api/v1/students/'.$student.'/invoices', [], $school)->assertOk()->assertJsonCount(0, 'data');
+    spa('POST', '/api/v1/billing/invoices/generate', [], $school)->assertJsonPath('created', 0);
+
+    setFees($school, 'CE1', ['tuition' => 90000]);
+    spa('GET', '/api/v1/billing/grid', [], $school)->assertJsonPath('data.pending_invoices', 1);
+    spa('POST', '/api/v1/billing/invoices/generate', [], $school)->assertJsonPath('created', 1);
+    spa('GET', '/api/v1/students/'.$student.'/invoices', [], $school)->assertJsonPath('data.0.total', 90000);
 });

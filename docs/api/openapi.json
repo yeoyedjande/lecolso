@@ -523,8 +523,7 @@
                                     "type": "object",
                                     "properties": {
                                         "created": {
-                                            "type": "integer",
-                                            "minimum": 0
+                                            "type": "integer"
                                         }
                                     },
                                     "required": [
