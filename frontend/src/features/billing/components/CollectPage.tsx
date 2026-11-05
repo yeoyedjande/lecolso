@@ -52,11 +52,17 @@ import {
 
 const CONFLICTS = ['nothing_due', 'amount_exceeds', 'cash_closed', 'reference_used'] as const
 
-/** Facture à encaisser : celle de l'année en cours, sinon la plus récente qui a un reste dû. */
-function invoiceToCollect(invoices: Invoice[]): Invoice | undefined {
+/**
+ * Facture à encaisser : celle choisie (lien « Encaisser » d'une facture), sinon celle de l'année en cours si elle a un
+ * reste dû, sinon la plus récente qui en a un (dette d'une année précédente), sinon celle de l'année en cours.
+ */
+function invoiceToCollect(invoices: Invoice[], chosen: string | undefined): Invoice | undefined {
+  const current = invoices.find((invoice) => invoice.academic_year.is_current)
   return (
-    invoices.find((invoice) => invoice.academic_year.is_current) ??
+    invoices.find((invoice) => invoice.id === chosen) ??
+    (current !== undefined && current.balance.remaining > 0 ? current : undefined) ??
     invoices.find((invoice) => invoice.balance.remaining > 0) ??
+    current ??
     invoices[0]
   )
 }
@@ -393,10 +399,14 @@ function PaymentForm({
 
 function StudentCollect({
   studentId,
+  invoiceId,
+  onSelect,
   onDone,
   onChange,
 }: {
   studentId: string
+  invoiceId: string | undefined
+  onSelect: (invoiceId: string) => void
   onDone: (receipt: Receipt) => void
   onChange: () => void
 }) {
@@ -420,7 +430,10 @@ function StudentCollect({
         ) : (
           <QueryState query={invoices}>
             {(list) => {
-              const invoice = list === null ? undefined : invoiceToCollect(list)
+              const invoice = list === null ? undefined : invoiceToCollect(list, invoiceId)
+              const others = (list ?? []).filter(
+                (candidate) => candidate.id !== invoice?.id && candidate.balance.remaining > 0,
+              )
               return invoice === undefined ? (
                 <EmptyState
                   title={t('billing.collect.noInvoiceTitle', { name: student.full_name })}
@@ -433,13 +446,35 @@ function StudentCollect({
                   }
                 />
               ) : (
-                <PaymentForm
-                  key={invoice.id}
-                  student={student}
-                  invoice={invoice}
-                  onDone={onDone}
-                  onChange={onChange}
-                />
+                <div className="grid gap-4">
+                  {others.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-muted/60 p-3 text-sm">
+                      <span>{t('billing.collect.otherInvoices')}</span>
+                      {others.map((candidate) => (
+                        <Button
+                          key={candidate.id}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            onSelect(candidate.id)
+                          }}
+                        >
+                          {t('billing.collect.otherInvoice', {
+                            year: candidate.academic_year.label,
+                            amount: formatMoney(candidate.balance.remaining),
+                          })}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  <PaymentForm
+                    key={invoice.id}
+                    student={student}
+                    invoice={invoice}
+                    onDone={onDone}
+                    onChange={onChange}
+                  />
+                </div>
               )
             }}
           </QueryState>
@@ -450,17 +485,23 @@ function StudentCollect({
 }
 
 /** Encaissement au guichet (vraie API) : élève → montant → moyen → confirmation → reçu numéroté. */
-export function CollectPage({ studentId }: { studentId: string | undefined }) {
+export function CollectPage({
+  studentId,
+  invoiceId,
+}: {
+  studentId: string | undefined
+  invoiceId?: string | undefined
+}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [done, setDone] = useState<Receipt | null>(null)
 
-  const pick = (id: string | undefined) => {
+  const pick = (id: string | undefined, invoice?: string) => {
     setDone(null)
     void navigate({
       from: '/$school',
       to: '/$school/encaissements',
-      search: { eleve: id },
+      search: { eleve: id, facture: invoice },
       replace: true,
     })
   }
@@ -513,6 +554,10 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
         <StudentCollect
           key={studentId}
           studentId={studentId}
+          invoiceId={invoiceId}
+          onSelect={(invoice) => {
+            pick(studentId, invoice)
+          }}
           onDone={setDone}
           onChange={() => {
             pick(undefined)

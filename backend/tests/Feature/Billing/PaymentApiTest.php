@@ -354,3 +354,21 @@ it('garde une facture équilibrée quand une remise précède le départ', funct
     spa('PATCH', '/api/v1/enrollments/'.$invoice->enrollment_id, ['status' => 'left', 'left_on' => '2026-12-01'], $school)->assertOk();
     expect(assertBalanced($school, $invoice))->toBe(90000);
 });
+
+it('recalcule la ligne de départ quand une ligne annulée par le départ est retirée', function (): void {
+    [$school, $invoice] = billedSchool();
+    actingAsRole(Role::Director, $school);
+    $line = spa('POST', '/api/v1/invoices/'.$invoice->id.'/lines', ['label' => 'Sortie de fin d’année', 'amount' => 5000, 'due_on' => '2027-03-01'], $school)
+        ->assertOk()->json('data.lines.2.id');
+    \assert(is_string($line));
+    spa('PATCH', '/api/v1/enrollments/'.$invoice->enrollment_id, ['status' => 'left', 'left_on' => '2027-02-10'], $school)->assertOk();
+    // Avril et la sortie de mars sont annulés
+    expect(assertBalanced($school, $invoice))->toBe(145000);
+
+    // Retirer la sortie ne réduit pas la facture une seconde fois
+    spa('DELETE', '/api/v1/invoices/'.$invoice->id.'/lines/'.$line, [], $school)->assertOk()
+        ->assertJsonPath('data.total', 145000)
+        ->assertJsonPath('data.balance.credit', 0)
+        ->assertJsonPath('data.schedule', static fn (mixed $rows): bool => is_array($rows) && array_column($rows, 'due_on') === ['2026-09-14', '2027-01-05']);
+    expect(assertBalanced($school, $invoice))->toBe(145000);
+});

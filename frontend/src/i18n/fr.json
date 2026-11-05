@@ -668,7 +668,9 @@
         "amount_exceeds": "Le montant dépasse le reste à payer de la facture.",
         "cash_closed": "Votre caisse du jour est clôturée : aucun encaissement ne peut plus y entrer aujourd’hui.",
         "reference_used": "Cette référence de paiement est déjà enregistrée."
-      }
+      },
+      "otherInvoices": "Autre facture avec un reste à payer :",
+      "otherInvoice": "{{year}} · reste {{amount}}"
     },
     "receipt": {
       "title": "Reçu de paiement",

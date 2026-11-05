@@ -299,7 +299,11 @@ function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoi
           <div className="flex flex-wrap gap-2">
             {invoice.can_collect && invoice.balance.remaining > 0 && (
               <Button asChild variant="accent">
-                <Link from="/$school" to="/$school/encaissements" search={{ eleve: studentId }}>
+                <Link
+                  from="/$school"
+                  to="/$school/encaissements"
+                  search={{ eleve: studentId, facture: invoice.id }}
+                >
                   <Wallet aria-hidden />
                   {t('billing.invoice.collect')}
                 </Link>

@@ -13,6 +13,7 @@ use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\InvoiceLine;
 use App\Domains\Billing\Support\Amount;
 use App\Domains\Billing\Support\BillingCalendar;
+use App\Domains\Billing\Support\DepartureAdjustment;
 use App\Domains\Billing\Support\InvoiceSchedule;
 use App\Domains\Identity\Models\User;
 use App\Domains\Students\Enums\EnrollmentStatus;
@@ -28,7 +29,10 @@ use Illuminate\Validation\ValidationException;
  */
 final readonly class ManageInvoiceLines
 {
-    public function __construct(private BillingCalendar $calendar) {}
+    public function __construct(
+        private BillingCalendar $calendar,
+        private DepartureAdjustment $departure,
+    ) {}
 
     /**
      * Ajoute un service optionnel à partir d'une date (aujourd'hui par défaut) : périodes restantes seulement.
@@ -58,12 +62,17 @@ final readonly class ManageInvoiceLines
         }
 
         return DB::transaction(function () use ($invoice, $type, $amount, $from, $level): Invoice {
+            // Élève parti : la ligne de départ est retirée puis recalculée sur les lignes modifiées
+            $departed = $this->departure->clear($invoice);
             $shares = $type->billing === FeeBilling::Once
                 ? [['due_on' => $from->toDateString(), 'label' => $type->name, 'amount' => $amount]]
                 : InvoiceSchedule::remainingShares($amount, $this->calendar->datesFor($invoice->academicYear, $level->cycle), $from);
 
             InvoiceSchedule::addLine($invoice, ['fee_type_id' => $type->id, 'kind' => LineKind::Fee, 'label' => $type->name], $shares);
             InvoiceSchedule::rebalanceDiscounts($invoice);
+            if ($departed) {
+                $this->departure->apply($invoice);
+            }
 
             return $invoice;
         });
@@ -86,12 +95,17 @@ final readonly class ManageInvoiceLines
             return $invoice;
         }
 
-        return DB::transaction(static function () use ($invoice, $line, $from): Invoice {
+        return DB::transaction(function () use ($invoice, $line, $from): Invoice {
+            // Élève parti : la ligne de départ est retirée puis recalculée sur les lignes modifiées
+            $departed = $this->departure->clear($invoice);
             Installment::query()->where('invoice_line_id', $line->id)->where('due_on', '>', $from->toDateString())->delete();
             $kept = Amount::of(Installment::query()->where('invoice_line_id', $line->id)->sum('amount'));
 
             $kept > 0 ? $line->fill(['amount' => $kept])->save() : $line->delete();
             InvoiceSchedule::rebalanceDiscounts($invoice);
+            if ($departed) {
+                $this->departure->apply($invoice);
+            }
 
             return $invoice;
         });
@@ -100,13 +114,18 @@ final readonly class ManageInvoiceLines
     /** Ligne ajoutée à la main (fournitures, sortie…), due à une date. */
     public function addManual(Invoice $invoice, User $author, string $label, int $amount, Carbon $dueOn): Invoice
     {
-        return DB::transaction(static function () use ($invoice, $author, $label, $amount, $dueOn): Invoice {
+        return DB::transaction(function () use ($invoice, $author, $label, $amount, $dueOn): Invoice {
+            // Élève parti : la ligne de départ est retirée puis recalculée sur les lignes modifiées
+            $departed = $this->departure->clear($invoice);
             InvoiceSchedule::addLine($invoice, [
                 'kind' => LineKind::Manual,
                 'label' => $label,
                 'created_by' => $author->id,
             ], [['due_on' => $dueOn->toDateString(), 'label' => $label, 'amount' => $amount]]);
             InvoiceSchedule::rebalanceDiscounts($invoice);
+            if ($departed) {
+                $this->departure->apply($invoice);
+            }
 
             return $invoice;
         });
@@ -119,7 +138,9 @@ final readonly class ManageInvoiceLines
      */
     public function addDiscount(Invoice $invoice, User $author, int $amount, string $reason): Invoice
     {
-        return DB::transaction(static function () use ($invoice, $author, $amount, $reason): Invoice {
+        return DB::transaction(function () use ($invoice, $author, $amount, $reason): Invoice {
+            // Élève parti : la ligne de départ est retirée puis recalculée sur les lignes modifiées
+            $departed = $this->departure->clear($invoice);
             InvoiceLine::query()->create([
                 'invoice_id' => $invoice->id,
                 'kind' => LineKind::Discount,
@@ -129,6 +150,9 @@ final readonly class ManageInvoiceLines
                 'created_by' => $author->id,
             ]);
             InvoiceSchedule::rebalanceDiscounts($invoice);
+            if ($departed) {
+                $this->departure->apply($invoice);
+            }
 
             return $invoice;
         });
@@ -148,9 +172,14 @@ final readonly class ManageInvoiceLines
             throw ValidationException::withMessages(['line' => 'La ligne de départ suit l’inscription : elle disparaît si l’élève revient.']);
         }
 
-        return DB::transaction(static function () use ($invoice, $line): Invoice {
+        return DB::transaction(function () use ($invoice, $line): Invoice {
+            // Élève parti : la ligne de départ est retirée puis recalculée sur les lignes modifiées
+            $departed = $this->departure->clear($invoice);
             $line->delete();
             InvoiceSchedule::rebalanceDiscounts($invoice);
+            if ($departed) {
+                $this->departure->apply($invoice);
+            }
 
             return $invoice;
         });
