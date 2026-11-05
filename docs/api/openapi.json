@@ -11,6 +11,159 @@
         }
     ],
     "paths": {
+        "/academic-years": {
+            "get": {
+                "operationId": "academic-years.index",
+                "description": "La plus r\u00e9cente d'abord. Tout membre de l'\u00e9cole.",
+                "summary": "Ann\u00e9es scolaires de l'\u00e9cole",
+                "tags": [
+                    "AcademicYear"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `AcademicYearResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AcademicYearResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "academic-years.store",
+                "description": "Permission school.settings.manage sur toute l'\u00e9cole. `is_current` : en faire l'ann\u00e9e en cours.",
+                "summary": "Cr\u00e9er une ann\u00e9e scolaire",
+                "tags": [
+                    "AcademicYear"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveAcademicYearRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`AcademicYearResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AcademicYearResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/academic-years/{academicYear}": {
+            "patch": {
+                "operationId": "academic-years.update",
+                "description": "Dates, statut (`open` / `closed`), ann\u00e9e en cours. 409 `current_year` si l'on cl\u00f4ture l'ann\u00e9e en cours.",
+                "summary": "Modifier une ann\u00e9e scolaire",
+                "tags": [
+                    "AcademicYear"
+                ],
+                "parameters": [
+                    {
+                        "name": "academicYear",
+                        "in": "path",
+                        "required": true,
+                        "description": "The academic year ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveAcademicYearRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AcademicYearResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AcademicYearResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "operationId": "auth.login",
@@ -177,6 +330,208 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms": {
+            "get": {
+                "operationId": "classrooms.index",
+                "description": "Celles de l'ann\u00e9e en cours (ou de `academic_year_id`), par cycle, niveau et section ; un utilisateur limit\u00e9 \u00e0 des\ncycles ne voit que les classes de ses cycles.",
+                "summary": "Classes de l'\u00e9cole",
+                "tags": [
+                    "Classroom"
+                ],
+                "parameters": [
+                    {
+                        "name": "academic_year_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ClassroomResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ClassroomResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "classrooms.store",
+                "description": "Niveau et section (\u00ab A \u00bb) ; ann\u00e9e en cours par d\u00e9faut. school.settings.manage sur le cycle du niveau.",
+                "summary": "Cr\u00e9er une classe",
+                "tags": [
+                    "Classroom"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveClassroomRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ClassroomResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ClassroomResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}": {
+            "patch": {
+                "operationId": "classrooms.update",
+                "summary": "Modifier une classe",
+                "tags": [
+                    "Classroom"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveClassroomRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ClassroomResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ClassroomResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "classrooms.destroy",
+                "description": "(Les inscriptions, \u00e0 venir, emp\u00eacheront de supprimer une classe qui a des \u00e9l\u00e8ves.)",
+                "summary": "Supprimer une classe",
+                "tags": [
+                    "Classroom"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -1726,6 +2081,51 @@
     },
     "components": {
         "schemas": {
+            "AcademicYearResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "starts_on": {
+                        "type": "string"
+                    },
+                    "ends_on": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "open",
+                            "closed"
+                        ]
+                    },
+                    "is_current": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "starts_on",
+                    "ends_on",
+                    "status",
+                    "is_current"
+                ],
+                "title": "AcademicYearResource"
+            },
+            "AcademicYearStatus": {
+                "type": "string",
+                "description": "Ann\u00e9e scolaire ouverte (inscriptions, notes, pr\u00e9sences) ou cl\u00f4tur\u00e9e (consultation seulement).\n",
+                "enum": [
+                    "open",
+                    "closed"
+                ],
+                "title": "AcademicYearStatus"
+            },
             "AssignUserRoleRequest": {
                 "type": "object",
                 "properties": {
@@ -1767,6 +2167,95 @@
                     "password_confirmation"
                 ],
                 "title": "ChangePasswordRequest"
+            },
+            "ClassroomResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "academic_year_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "section": {
+                        "type": "string"
+                    },
+                    "capacity": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "room": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "level": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "cycle_id": {
+                                "type": "string"
+                            },
+                            "cycle_code": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "code",
+                            "name",
+                            "cycle_id",
+                            "cycle_code"
+                        ]
+                    },
+                    "homeroom_teacher": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "academic_year_id",
+                    "name",
+                    "section",
+                    "capacity",
+                    "room",
+                    "level",
+                    "homeroom_teacher",
+                    "can_manage"
+                ],
+                "title": "ClassroomResource"
             },
             "CreateSchoolRequest": {
                 "type": "object",
@@ -2196,6 +2685,82 @@
                     "cycle_id"
                 ],
                 "title": "RoleAssignmentResource"
+            },
+            "SaveAcademicYearRequest": {
+                "type": "object",
+                "description": "Cr\u00e9ation (POST : libell\u00e9 et dates obligatoires) ou modification (PATCH : champs envoy\u00e9s seulement).",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{4}$"
+                    },
+                    "starts_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "ends_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/AcademicYearStatus"
+                    },
+                    "is_current": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "label",
+                    "starts_on",
+                    "ends_on"
+                ],
+                "title": "SaveAcademicYearRequest"
+            },
+            "SaveClassroomRequest": {
+                "type": "object",
+                "description": "Cr\u00e9ation (POST : niveau et section obligatoires ; ann\u00e9e en cours par d\u00e9faut) ou modification (PATCH).\nDroits : school.settings.manage sur le cycle du niveau, et sur celui du nouveau niveau en cas de changement.",
+                "properties": {
+                    "level_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "academic_year_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "section": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 10
+                    },
+                    "capacity": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 200
+                    },
+                    "room": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 40
+                    },
+                    "homeroom_teacher_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "level_id",
+                    "section"
+                ],
+                "title": "SaveClassroomRequest"
             },
             "SchoolMembershipResource": {
                 "type": "object",
