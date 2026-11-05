@@ -29,10 +29,24 @@ final class DemoSeeder extends Seeder
 {
     public const string PASSWORD = 'Demo2026!';
 
-    /** @var array<string, array{name: string, cycles: list<string>}> */
+    /** @var array<string, array{name: string, cycles: list<string>, address: string, phone: string, email: string, motto: string}> */
     public const array SCHOOLS = [
-        'les-lauriers' => ['name' => 'Les Lauriers', 'cycles' => ['daycare', 'kindergarten', 'primary']],
-        'petits-genies' => ['name' => 'Petits Génies', 'cycles' => ['daycare', 'kindergarten']],
+        'les-lauriers' => [
+            'name' => 'Les Lauriers',
+            'cycles' => ['daycare', 'kindergarten', 'primary'],
+            'address' => 'Cocody Angré, 8e tranche, Abidjan',
+            'phone' => '+2252722410000',
+            'email' => 'contact@leslauriers.ci',
+            'motto' => 'Grandir, apprendre, s’épanouir',
+        ],
+        'petits-genies' => [
+            'name' => 'Petits Génies',
+            'cycles' => ['daycare', 'kindergarten'],
+            'address' => 'Riviera Palmeraie, Abidjan',
+            'phone' => '+2252722550000',
+            'email' => 'bonjour@petitsgenies.ci',
+            'motto' => 'Chaque enfant est un génie',
+        ],
     ];
 
     /**
@@ -92,7 +106,7 @@ final class DemoSeeder extends Seeder
         Platform::run(function () use ($provisionCycles): void {
             $schools = [];
             foreach (self::SCHOOLS as $slug => $definition) {
-                $schools[$slug] = $this->school($slug, $definition['name']);
+                $schools[$slug] = $this->school($slug, $definition);
                 $provisionCycles->handle($schools[$slug], $definition['cycles']);
             }
 
@@ -113,14 +127,21 @@ final class DemoSeeder extends Seeder
         });
     }
 
-    private function school(string $slug, string $name): School
+    /**
+     * @param  array{name: string, address: string, phone: string, email: string, motto: string}  $definition
+     */
+    private function school(string $slug, array $definition): School
     {
         $school = School::query()->where('slug', $slug)->first() ?? new School;
         $school->forceFill([
-            'name' => $name,
+            'name' => $definition['name'],
             'slug' => $slug,
             'type' => SchoolType::PreschoolPrimary,
             'city' => 'Abidjan',
+            'address' => $definition['address'],
+            'phone' => $definition['phone'],
+            'email' => $definition['email'],
+            'motto' => $definition['motto'],
             'currency' => 'XOF',
         ])->save();
 

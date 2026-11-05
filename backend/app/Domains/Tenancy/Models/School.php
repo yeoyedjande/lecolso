@@ -27,6 +27,10 @@ use Illuminate\Support\Carbon;
  * @property string $slug
  * @property SchoolType $type
  * @property string|null $city
+ * @property string|null $address
+ * @property string|null $phone
+ * @property string|null $email
+ * @property string|null $motto
  * @property string $currency
  * @property string|null $logo_path
  * @property array<string, mixed> $settings
@@ -42,7 +46,10 @@ final class School extends Model
     use HasFactory, HasUuids, SoftDeletes;
 
     /** @var list<string> */
-    protected $fillable = ['organization_id', 'name', 'slug', 'type', 'city', 'currency', 'logo_path', 'settings', 'features'];
+    protected $fillable = [
+        'organization_id', 'name', 'slug', 'type', 'city', 'address', 'phone', 'email', 'motto',
+        'currency', 'logo_path', 'settings', 'features',
+    ];
 
     /** @var array<string, string> */
     protected $attributes = [

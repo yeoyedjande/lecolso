@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use Illuminate\Http\UploadedFile;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -51,17 +52,41 @@ final class SpaClient
      */
     public static function request(string $method, string $uri, array $data = [], array $headers = [], array $server = []): TestResponse
     {
+        $server['CONTENT_TYPE'] = 'application/json';
+
+        return self::send($method, $uri, $headers, $server, [], json_encode($data, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Envoi multipart/form-data (fichiers), avec les mêmes cookies et en-têtes que request().
+     *
+     * @param  array<string, UploadedFile>  $files
+     * @param  array<string, string>  $headers
+     * @return TestResponse<Response>
+     */
+    public static function upload(string $uri, array $files, array $headers = []): TestResponse
+    {
+        return self::send('POST', $uri, $headers, [], $files, null);
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     * @param  array<string, string>  $server
+     * @param  array<string, UploadedFile>  $files
+     * @return TestResponse<Response>
+     */
+    private static function send(string $method, string $uri, array $headers, array $server, array $files, ?string $content): TestResponse
+    {
         app('auth')->forgetGuards();
 
         $headers = ['Origin' => self::FRONTEND, 'Referer' => self::FRONTEND.'/', 'Accept' => 'application/json'] + $headers;
         foreach ($headers as $name => $value) {
             $server['HTTP_'.strtoupper(str_replace('-', '_', $name))] = $value;
         }
-        $server['CONTENT_TYPE'] = 'application/json';
 
         // Cookies gérés ici (et non par withCookies(), qui les cumule sur le test) : valeurs chiffrées renvoyées
         // telles quelles, comme le ferait un navigateur
-        $response = call($method, $uri, [], self::$cookies, [], $server, json_encode($data, JSON_THROW_ON_ERROR));
+        $response = call($method, $uri, [], self::$cookies, $files, $server, $content);
 
         foreach ($response->headers->getCookies() as $cookie) {
             $value = $cookie->getValue();

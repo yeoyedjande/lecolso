@@ -94,6 +94,10 @@ src/
   (`features/users`, écran `/{slug}/utilisateurs` : liste par curseur, ajout, rôles, désactivation, suppression,
   mot de passe provisoire). Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).
+  **Identité de l'école** (`features/school` : `useSchoolProfile`, formulaire et logo dans Paramètres) ; logo dans
+  l'en-tête (`ContextSwitcher`) et sur la page publique via `<SchoolLogo>`. `logo_url` est une URL signée de 30 minutes :
+  la requête est relue après 10 minutes, l'URL n'est jamais stockée. Téléphone d'un établissement : `normalizeCiAnyPhone`
+  (fixes acceptés) ; comptes et Mobile Money : `normalizeCiPhone` (mobiles seulement).
 - Rôles : clé système (`director`…) ou identifiant d'un rôle personnalisé de l'école (ADR 0006). Libellé par
   `useRoleLabel()` (`features/auth/roles.ts` : traduction `roles.<clé>`, ou `role_name` de `/me`), jamais une traduction
   directe de la clé (un rôle personnalisé n'a pas de traduction). Un rôle personnalisé ouvre le back-office. Libellés des permissions : `permissions.<clé>` ; modules :

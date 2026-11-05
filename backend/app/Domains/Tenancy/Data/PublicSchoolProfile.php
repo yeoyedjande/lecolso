@@ -16,5 +16,10 @@ final readonly class PublicSchoolProfile
         public ?string $city,
         public string $type,
         public array $cycles,
+        public ?string $address = null,
+        public ?string $phone = null,
+        public ?string $email = null,
+        public ?string $motto = null,
+        public ?string $logoPath = null,
     ) {}
 }

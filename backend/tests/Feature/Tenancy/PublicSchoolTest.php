@@ -17,6 +17,11 @@ it('renvoie la page publique d’une école sans authentification', function ():
                 'slug' => 'les-lauriers',
                 'city' => 'Abidjan',
                 'type' => 'preschool_primary',
+                'address' => null,
+                'phone' => null,
+                'email' => null,
+                'motto' => null,
+                'logo_url' => null,
                 'cycles' => [
                     ['code' => 'kindergarten', 'name' => 'Maternelle', 'levels' => ['Petite section', 'Moyenne section', 'Grande section']],
                     ['code' => 'primary', 'name' => 'Primaire', 'levels' => ['CP1', 'CP2', 'CE1', 'CE2', 'CM1', 'CM2']],

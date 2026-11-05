@@ -881,12 +881,33 @@
     },
     "identity": {
       "name": "Nom de l’établissement",
+      "city": "Ville",
       "address": "Adresse",
       "phone": "Téléphone",
       "email": "E-mail",
       "motto": "Devise",
-      "year": "Année scolaire en cours",
-      "saved": "Identité enregistrée"
+      "optional": "Facultatif",
+      "saved": "Identité enregistrée",
+      "failed": "Enregistrement impossible. Réessayez.",
+      "publicHint": "Le nom, le logo, l’adresse, le téléphone, l’e-mail et la devise apparaissent sur la page publique de l’établissement.",
+      "readOnly": "Seule la direction de tout l’établissement peut modifier son identité.",
+      "logo": "Logo",
+      "logoHint": "PNG, JPEG ou WebP, 2 Mo au plus. Affiché dans l’en-tête, sur la page publique, puis sur les reçus et bulletins.",
+      "noLogo": "Aucun logo",
+      "chooseLogo": "Choisir un logo",
+      "replaceLogo": "Remplacer le logo",
+      "removeLogo": "Retirer le logo",
+      "logoUploaded": "Logo enregistré",
+      "logoRemoved": "Logo retiré",
+      "logoType": "Format non accepté : choisissez une image PNG, JPEG ou WebP.",
+      "logoTooBig": "Image trop lourde : 2 Mo au plus.",
+      "logoFailed": "Envoi du logo impossible. Vérifiez le fichier et réessayez.",
+      "errors": {
+        "nameMin": "Le nom doit compter au moins 2 caractères.",
+        "phone": "Saisissez un numéro de téléphone valide.",
+        "email": "Adresse e-mail invalide.",
+        "mottoMax": "120 caractères au maximum."
+      }
     },
     "cycles": {
       "realApi": "Paramètres réels de l’établissement (enregistrés sur le serveur).",
@@ -1217,7 +1238,11 @@
         "email": "Adresse e-mail invalide.",
         "consent": "Votre accord est nécessaire pour être recontacté."
       }
-    }
+    },
+    "contact": "Nous contacter",
+    "address": "Adresse",
+    "phone": "Téléphone",
+    "email": "E-mail"
   },
   "permissions": {
     "school.settings.view": "Voir les paramètres de l’école",
@@ -1396,5 +1421,8 @@
       "erased": "Compte de {{name}} supprimé",
       "detached": "{{name}} retiré de l’établissement (son compte reste actif ailleurs)"
     }
+  },
+  "school": {
+    "logoAlt": "Logo de {{name}}"
   }
 }

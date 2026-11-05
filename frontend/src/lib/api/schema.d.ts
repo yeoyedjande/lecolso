@@ -196,6 +196,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files/school-logos/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire un logo d'école
+         * @description URL signée renvoyée par l'API (`logo_url`), valable 30 minutes ; sans signature valide : 403. Aucune session :
+         *     la page publique de l'école l'affiche aussi.
+         */
+        get: operations["files.school-logo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/school": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Identité de l'école courante
+         * @description Nom, coordonnées, devise et logo (URL signée de 30 minutes). Tout membre de l'école.
+         */
+        get: operations["school.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifier l'identité de l'école
+         * @description Champs envoyés seulement ; chaîne vide = effacer. Permission school.settings.manage sur toute l'école.
+         *     Ces coordonnées sont affichées sur la page publique de l'école.
+         */
+        patch: operations["school.update"];
+        trace?: never;
+    };
+    "/school/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer le logo
+         * @description multipart/form-data, champ `logo` : JPEG, PNG ou WebP, 2 Mo au plus. Converti en WebP de 512 px au plus,
+         *     sans métadonnées ; remplace le logo précédent.
+         */
+        post: operations["school.logo.store"];
+        /** Retirer le logo */
+        delete: operations["school.logo.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/roles": {
         parameters: {
             query?: never;
@@ -527,6 +595,11 @@ export interface components {
             slug: string;
             city: string | null;
             type: string;
+            address: string | null;
+            phone: string | null;
+            email: string | null;
+            motto: string | null;
+            logo_url: string | null;
             cycles: {
                 code: string;
                 name: string;
@@ -548,6 +621,21 @@ export interface components {
             permissions: {
                 [key: string]: string[] | null;
             };
+        };
+        /** SchoolProfileResource */
+        SchoolProfileResource: {
+            id: string;
+            name: string;
+            slug: string;
+            /** @enum {string} */
+            type: "preschool_primary" | "secondary" | "higher";
+            city: string | null;
+            address: string | null;
+            phone: string | null;
+            email: string | null;
+            motto: string | null;
+            currency: string;
+            logo_url: string | null;
         };
         /** SchoolResource */
         SchoolResource: {
@@ -620,6 +708,16 @@ export interface components {
                 daily_log?: string;
             };
         };
+        /** UpdateSchoolProfileRequest */
+        UpdateSchoolProfileRequest: {
+            name?: string;
+            city?: string | null;
+            address?: string | null;
+            phone?: string | null;
+            /** Format: email */
+            email?: string | null;
+            motto?: string | null;
+        };
         /** UpdateSchoolRoleRequest */
         UpdateSchoolRoleRequest: {
             name?: string;
@@ -632,6 +730,14 @@ export interface components {
             phone?: string;
             /** Format: email */
             email?: string | null;
+        };
+        /** UploadSchoolLogoRequest */
+        UploadSchoolLogoRequest: {
+            /**
+             * Format: binary
+             * @description Maximum file size: 2048 kilobytes.
+             */
+            logo: string;
         };
         /** UserAssignmentResource */
         UserAssignmentResource: {
@@ -684,6 +790,18 @@ export interface components {
         };
         /** @description Authorization error */
         AuthorizationException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
+        /** @description Not found */
+        NotFoundHttpException: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1026,6 +1144,139 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "files.school-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, max-age=1800";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Disposition"?: "inline";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": string | null;
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
+        };
+    };
+    "school.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "school.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UpdateSchoolProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "school.logo.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadSchoolLogoRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "school.logo.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SchoolProfileResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolProfileResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };

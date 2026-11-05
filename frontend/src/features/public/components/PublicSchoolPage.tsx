@@ -1,5 +1,14 @@
 import { Link } from '@tanstack/react-router'
-import { HeartHandshake, LogIn, MapPin, ShieldCheck, Smartphone, UserPlus } from 'lucide-react'
+import {
+  HeartHandshake,
+  LogIn,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Smartphone,
+  UserPlus,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Logo, LogoMark } from '@/components/brand/Logo'
@@ -12,8 +21,10 @@ import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SchoolLogo } from '@/features/school/components/SchoolLogo'
 import { CYCLE_CLASSES, cycleTone } from '@/lib/cycles'
 import { YEAR_LABEL } from '@/lib/demo/dates'
+import { formatPhone } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { usePublicFees, usePublicSchool, type PublicSchool } from '../api'
@@ -100,9 +111,13 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
             <header className="relative overflow-hidden bg-navy text-white">
               <HeroPattern className="pointer-events-none absolute inset-0 size-full opacity-90" />
               <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 pt-5">
-                <span className="flex items-center gap-3">
-                  <LogoMark className="size-10 ring-1 ring-white/20" />
-                  <span className="font-display text-lg font-bold">{school.name}</span>
+                <span className="flex min-w-0 items-center gap-3">
+                  {school.logo_url === null ? (
+                    <LogoMark className="size-10 ring-1 ring-white/20" />
+                  ) : (
+                    <SchoolLogo url={school.logo_url} name={school.name} className="size-12" />
+                  )}
+                  <span className="font-display text-lg font-bold break-words">{school.name}</span>
                 </span>
                 <Button asChild size="sm" variant="secondary">
                   <Link to="/connexion">
@@ -121,7 +136,9 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                 <h1 className="max-w-2xl font-display text-4xl leading-tight font-bold text-balance sm:text-5xl">
                   {t('publicSchool.hero', { name: school.name })}
                 </h1>
-                <p className="max-w-xl text-lg text-white/85">{t('publicSchool.heroText')}</p>
+                <p className="max-w-xl text-lg text-white/85">
+                  {school.motto ?? t('publicSchool.heroText')}
+                </p>
                 <Button asChild variant="accent" size="lg" className="w-fit">
                   <Link to="/$school/preinscription" params={{ school: slug }}>
                     <UserPlus aria-hidden />
@@ -184,6 +201,57 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                 </h2>
                 <Fees slug={slug} school={school} />
               </section>
+
+              {(school.address !== null || school.phone !== null || school.email !== null) && (
+                <section aria-labelledby="contact-title" className="grid gap-5">
+                  <h2 id="contact-title" className="font-display text-2xl font-bold">
+                    {t('publicSchool.contact')}
+                  </h2>
+                  <dl className="grid gap-4 sm:grid-cols-3">
+                    {school.address !== null && (
+                      <div className="grid gap-1 rounded-2xl border bg-card p-4">
+                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin aria-hidden className="size-4" />
+                          {t('publicSchool.address')}
+                        </dt>
+                        <dd className="font-medium break-words">{school.address}</dd>
+                      </div>
+                    )}
+                    {school.phone !== null && (
+                      <div className="grid gap-1 rounded-2xl border bg-card p-4">
+                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone aria-hidden className="size-4" />
+                          {t('publicSchool.phone')}
+                        </dt>
+                        <dd className="font-medium">
+                          <a
+                            className="tabular underline-offset-4 hover:underline"
+                            href={`tel:${school.phone}`}
+                          >
+                            {formatPhone(school.phone)}
+                          </a>
+                        </dd>
+                      </div>
+                    )}
+                    {school.email !== null && (
+                      <div className="grid gap-1 rounded-2xl border bg-card p-4">
+                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail aria-hidden className="size-4" />
+                          {t('publicSchool.email')}
+                        </dt>
+                        <dd className="font-medium break-words">
+                          <a
+                            className="underline-offset-4 hover:underline"
+                            href={`mailto:${school.email}`}
+                          >
+                            {school.email}
+                          </a>
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </section>
+              )}
 
               <section className="grid justify-items-center gap-4 rounded-3xl bg-navy px-6 py-10 text-center text-white">
                 <p className="font-display text-2xl font-bold">{t('publicSchool.heroText')}</p>
