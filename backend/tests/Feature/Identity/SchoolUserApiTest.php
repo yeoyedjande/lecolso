@@ -371,3 +371,20 @@ it('isole les désactivations entre écoles en SQL brut', function (): void {
     app(TenantContext::class)->setUser($teacher->id);
     expect(count(rows('select id from member_deactivations')))->toBe(1);
 });
+
+it('pagine par curseur au-delà de 25 comptes', function (): void {
+    $school = makeSchool();
+    foreach (range(1, 27) as $index) {
+        member($school, Role::Teacher, sprintf('Enseignant %02d', $index));
+    }
+    login(member($school, Role::Director, 'Zz Directeur'))->assertOk();
+
+    $first = spa('GET', '/api/v1/users', [], $school)->assertOk()->assertJsonCount(25, 'data');
+    $cursor = $first->json('meta.next_cursor');
+    \assert(is_string($cursor));
+
+    $second = spa('GET', '/api/v1/users?cursor='.urlencode($cursor), [], $school)->assertOk()
+        ->assertJsonPath('meta.next_cursor', null);
+
+    expect(array_column((array) $second->json('data'), 'name'))->toBe(['Enseignant 26', 'Enseignant 27', 'Zz Directeur']);
+});

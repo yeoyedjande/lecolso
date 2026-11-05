@@ -17,8 +17,9 @@ final readonly class SchoolRolePolicy
     ) {}
 
     /**
-     * Voir les rôles et le catalogue des permissions : qui gère les rôles, ou qui voit les utilisateurs
-     * (pour attribuer un rôle), même limité à un cycle.
+     * Voir les rôles et le catalogue des permissions : qui gère les rôles, ou qui voit les comptes de l'école
+     * (pour attribuer un rôle, ou filtrer la liste et retrouver un compte dont on réinitialise le mot de passe),
+     * même limité à un cycle. Lecture seule.
      */
     public function viewAny(User $user): bool
     {
@@ -30,7 +31,8 @@ final readonly class SchoolRolePolicy
 
         $permissions = $this->authorizer->permissionsFor($user, $schoolId);
 
-        return array_key_exists('roles.manage', $permissions) || array_key_exists('users.view', $permissions);
+        return array_key_exists('roles.manage', $permissions)
+            || array_intersect(UserPolicy::VIEW_PERMISSIONS, array_keys($permissions)) !== [];
     }
 
     /** Créer, modifier, supprimer un rôle : roles.manage sur toute l'école (un rôle vaut pour toute l'école). */
