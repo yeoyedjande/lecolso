@@ -12,7 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Factures des élèves déjà inscrits (mise en place de la facturation, ou grille saisie après les inscriptions) :
- * inscriptions actives de l'année, dans les cycles donnés, qui n'ont pas encore de facture. Sans service optionnel.
+ * inscriptions actives de l'année, dans les cycles donnés, qui n'ont pas encore de facture. Sans service optionnel ;
+ * un niveau dont la grille est vide ne crée pas de facture.
  */
 final readonly class GenerateInvoices
 {
@@ -24,13 +25,16 @@ final readonly class GenerateInvoices
      */
     public function handle(AcademicYear $year, ?array $cycleIds): int
     {
-        $enrollments = self::pending($year, $cycleIds)->with(['classroom.level.cycle', 'academicYear'])->get();
+        $created = 0;
 
-        foreach ($enrollments as $enrollment) {
-            $this->create->handle($enrollment);
+        foreach (self::pending($year, $cycleIds)->with(['classroom.level.cycle', 'academicYear'])->get() as $enrollment) {
+            // Niveau sans frais dans la grille : pas de facture, l'élève reste à facturer
+            if ($this->create->handle($enrollment) !== null) {
+                $created++;
+            }
         }
 
-        return $enrollments->count();
+        return $created;
     }
 
     /**

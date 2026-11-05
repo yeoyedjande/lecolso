@@ -22,7 +22,9 @@ use Illuminate\Validation\ValidationException;
  * - frais en une fois (inscription) : dus en entier à la date d'inscription ;
  * - frais répartis (scolarité, services choisis) : échéances restantes du calendrier du cycle (inscription en cours
  *   d'année : les périodes terminées ne sont pas facturées).
- * Idempotente : une inscription qui a déjà sa facture la garde. Un montant à 0 dans la grille ne crée pas de ligne.
+ * Idempotente : une inscription qui a déjà sa facture la garde. Un montant à 0 dans la grille ne crée pas de ligne ;
+ * sans aucune ligne (grille du niveau pas encore saisie), aucune facture n'est créée : l'élève reste « à facturer »
+ * et le sera depuis la grille (GenerateInvoices) une fois les montants saisis.
  */
 final readonly class CreateInvoice
 {
@@ -33,10 +35,11 @@ final readonly class CreateInvoice
 
     /**
      * @param  list<string>  $optionCodes  codes des services optionnels choisis (cantine, transport…)
+     * @return Invoice|null null si la grille du niveau ne donne aucun frais
      *
      * @throws ValidationException service inconnu ou non optionnel (champ `options`)
      */
-    public function handle(Enrollment $enrollment, array $optionCodes = []): Invoice
+    public function handle(Enrollment $enrollment, array $optionCodes = []): ?Invoice
     {
         $existing = Invoice::query()->where('enrollment_id', $enrollment->id)->first();
         if ($existing !== null) {
@@ -50,7 +53,7 @@ final readonly class CreateInvoice
             throw ValidationException::withMessages(['options' => 'Service inconnu : '.implode(', ', $unknown).'.']);
         }
 
-        return DB::transaction(function () use ($enrollment, $types, $optionCodes): Invoice {
+        return DB::transaction(function () use ($enrollment, $types, $optionCodes): ?Invoice {
             $enrollment->loadMissing(['classroom.level.cycle', 'academicYear']);
             $level = $enrollment->classroom->level;
             $invoice = Invoice::query()->create([
@@ -69,6 +72,7 @@ final readonly class CreateInvoice
                 ? $enrollment->enrolled_on
                 : $enrollment->academicYear->starts_on;
 
+            $lines = 0;
             foreach ($types as $type) {
                 $amount = $amounts[$type->id] ?? 0;
                 if ($amount <= 0 || ($type->is_optional && ! in_array($type->code, $optionCodes, true))) {
@@ -84,6 +88,13 @@ final readonly class CreateInvoice
                     'kind' => LineKind::Fee,
                     'label' => $type->name,
                 ], $shares);
+                $lines++;
+            }
+
+            if ($lines === 0) {
+                $invoice->delete();
+
+                return null;
             }
 
             return $invoice;
