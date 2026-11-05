@@ -22,7 +22,7 @@ import { useCurrentAcademicYear } from '@/features/academic/api'
 import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { useCycles } from '@/features/cycles/api'
-import { useSchoolUsers } from '@/features/users/api'
+import { useAllSchoolUsers } from '@/features/users/api'
 import { CYCLE_CLASSES, cycleTone } from '@/lib/cycles'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -60,17 +60,18 @@ export function ClassesPage() {
   const cycles = useCycles()
   const remove = useDeleteClassroom()
   const canListUsers = can(school, ['users.view', 'users.reset_password'])
-  const teachers = useSchoolUsers({ search: '', role: 'teacher', status: 'active' }, canListUsers)
+  const teachers = useAllSchoolUsers(
+    { search: '', role: 'teacher', status: 'active' },
+    canListUsers,
+  )
   const [editing, setEditing] = useState<Classroom | 'new' | null>(null)
   const [toDelete, setToDelete] = useState<Classroom | null>(null)
   const manageScope = school?.permissions['school.settings.manage']
   const canCreate = manageScope !== undefined
 
   const teacherOptions = (current: Classroom | null): TeacherOption[] | null => {
-    if (!canListUsers || teachers.data === undefined) return null
-    const options = teachers.data.pages.flatMap((page) =>
-      page.data.map((user) => ({ id: user.id, name: user.name })),
-    )
+    if (!canListUsers || teachers === undefined) return null
+    const options = teachers.map((user) => ({ id: user.id, name: user.name }))
     const kept = current?.homeroom_teacher
     return kept != null && !options.some((option) => option.id === kept.id)
       ? [kept, ...options]

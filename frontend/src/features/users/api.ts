@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 
 import { meQueryOptions } from '@/features/auth/api'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
@@ -49,6 +50,20 @@ export function useSchoolUsers(filters: UserFilters, enabled = true) {
     },
     getNextPageParam: (page) => page.meta.next_cursor,
   })
+}
+
+/**
+ * Tous les comptes correspondant aux filtres (listes de choix : titulaire d'une classe…) : enchaîne les pages
+ * du curseur. `undefined` tant que la dernière page n'est pas arrivée (ou en cas d'erreur).
+ */
+export function useAllSchoolUsers(filters: UserFilters, enabled = true): SchoolUser[] | undefined {
+  const query = useSchoolUsers(filters, enabled)
+  const { hasNextPage, isFetchingNextPage, isError, fetchNextPage } = query
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && !isError) void fetchNextPage()
+  }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage])
+  if (query.data === undefined || hasNextPage) return undefined
+  return query.data.pages.flatMap((page) => page.data)
 }
 
 /** Après une écriture : la liste, les rôles (nombre d'utilisateurs) et le profil (/me). */
