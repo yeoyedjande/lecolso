@@ -97,3 +97,12 @@ it('ne laisse pas un directeur modifier en base un utilisateur d’une autre éc
 
     expect($updated)->toBe(0);
 });
+
+it('ne laisse pas la direction réinitialiser le mot de passe du promoteur', function (): void {
+    $school = makeSchool();
+    $promoter = makeUser();
+    assignRole($promoter, $school, Role::Promoter);
+    actingAsRole(Role::Director, $school);
+
+    spa('POST', "/api/v1/users/{$promoter->id}/password-reset", [], $school)->assertForbidden();
+});

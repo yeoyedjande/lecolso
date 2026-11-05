@@ -65,7 +65,7 @@ it('refuse la liste des rôles à qui ne gère ni les rôles ni les utilisateurs
 
     spa('GET', '/api/v1/roles', [], $school)->assertForbidden();
     spa('GET', '/api/v1/permissions', [], $school)->assertForbidden();
-})->with([Role::Secretary, Role::Accountant, Role::Teacher, Role::Guardian]);
+})->with([Role::Accountant, Role::Teacher, Role::Guardian]);
 
 // --- Création --------------------------------------------------------------------------------------------------
 
@@ -305,4 +305,13 @@ it('ne laisse lire en SQL brut que les rôles des écoles de l’utilisateur', f
     // Hors école courante, avec l'utilisateur : uniquement les rôles de ses écoles (calcul de /me)
     $context->setUser($user->id);
     expect(distinctColumn('id', 'SELECT id FROM school_roles'))->toBe([$roleA->id]);
+});
+
+it('montre les rôles au secrétariat, qui réinitialise les mots de passe, sans les lui faire gérer', function (): void {
+    $school = makeSchool();
+    actingAsRole(Role::Secretary, $school);
+
+    spa('GET', '/api/v1/roles', [], $school)->assertOk();
+    spa('GET', '/api/v1/permissions', [], $school)->assertOk();
+    spa('POST', '/api/v1/roles', ['name' => 'Surveillant', 'permissions' => []], $school)->assertForbidden();
 });

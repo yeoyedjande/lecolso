@@ -7,6 +7,7 @@ declare(strict_types=1);
 use App\Domains\Identity\Http\Controllers\AuthController;
 use App\Domains\Identity\Http\Controllers\ResetUserPasswordController;
 use App\Domains\Identity\Http\Controllers\SchoolRoleController;
+use App\Domains\Identity\Http\Controllers\SchoolUserController;
 use Illuminate\Support\Facades\Route;
 
 // Authentification SPA par cookie httpOnly (Sanctum) : GET /sanctum/csrf-cookie avant toute requête qui écrit
@@ -30,4 +31,15 @@ Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::patch('roles/{role}', [SchoolRoleController::class, 'update'])->name('roles.update');
     Route::delete('roles/{role}', [SchoolRoleController::class, 'destroy'])->name('roles.destroy');
     Route::get('permissions', [SchoolRoleController::class, 'permissions'])->name('permissions.index');
+
+    // Comptes de l'école ({user} et {assignment} liés sous la RLS de l'école courante : autre école = 404)
+    Route::get('users', [SchoolUserController::class, 'index'])->name('users.index');
+    Route::post('users', [SchoolUserController::class, 'store'])->name('users.store');
+    Route::get('users/{user}', [SchoolUserController::class, 'show'])->name('users.show');
+    Route::patch('users/{user}', [SchoolUserController::class, 'update'])->name('users.update');
+    Route::delete('users/{user}', [SchoolUserController::class, 'destroy'])->name('users.destroy');
+    Route::post('users/{user}/deactivate', [SchoolUserController::class, 'deactivate'])->name('users.deactivate');
+    Route::post('users/{user}/reactivate', [SchoolUserController::class, 'reactivate'])->name('users.reactivate');
+    Route::post('users/{user}/roles', [SchoolUserController::class, 'assignRole'])->name('users.roles.store');
+    Route::delete('users/{user}/roles/{assignment}', [SchoolUserController::class, 'revokeRole'])->name('users.roles.destroy');
 });

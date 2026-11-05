@@ -59,7 +59,8 @@ final class RoleAssignment extends Model
     }
 
     /**
-     * Toutes les affectations d'un utilisateur, dans toutes ses écoles (/me, « se souvenir de moi »).
+     * Toutes les affectations actives d'un utilisateur, dans toutes ses écoles (/me, droits, « se souvenir de moi ») :
+     * celles des écoles où son compte est désactivé (member_deactivations) sont exclues.
      *
      * Seule exception au scope « école courante » (test d'architecture) : justifiée, car la RLS
      * (politique own_assignments_select) ne laisse lire hors de l'école courante que les lignes de
@@ -69,7 +70,10 @@ final class RoleAssignment extends Model
      */
     public static function ofUser(User $user): Builder
     {
-        return self::query()->withoutGlobalScope('school')->where('user_id', $user->id);
+        return self::query()->withoutGlobalScope('school')->where('user_id', $user->id)
+            // Écoles où le compte est désactivé : aucune affectation active (ses propres lignes, visibles par la RLS)
+            ->whereNotIn('school_id', MemberDeactivation::query()->withoutGlobalScope('school')
+                ->where('user_id', $user->id)->select('school_id'));
     }
 
     protected static function booted(): void

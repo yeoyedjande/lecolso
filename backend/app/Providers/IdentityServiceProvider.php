@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Academic\Policies\CyclePolicy;
 use App\Domains\Identity\Auth\RlsUserProvider;
+use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
 use App\Domains\Identity\Models\User;
 use App\Domains\Identity\Policies\SchoolRolePolicy;
@@ -52,6 +53,7 @@ final class IdentityServiceProvider extends ServiceProvider
         // courante (un modèle d'une autre école est introuvable : 404)
         Route::model('user', User::class);
         Route::model('cycle', Cycle::class);
+        Route::model('assignment', RoleAssignment::class);
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Cycle::class, CyclePolicy::class);

@@ -131,8 +131,15 @@ function redirectTo(target: RedirectTarget): Decision {
   return { kind: 'redirect', target }
 }
 
-/** Permission détenue dans l'établissement (sur au moins un cycle). */
-export function can(membership: Membership | null, permission: string): boolean {
+/**
+ * Permission détenue dans l'établissement (sur au moins un cycle). Avec une liste : l'une d'elles suffit
+ * (ex. la liste des comptes : les voir, ou réinitialiser leurs mots de passe).
+ */
+export function can(
+  membership: Membership | null,
+  permission: string | readonly string[],
+): boolean {
   if (membership === null) return false
-  return Object.hasOwn(membership.permissions, permission)
+  const permissions = typeof permission === 'string' ? [permission] : permission
+  return permissions.some((key) => Object.hasOwn(membership.permissions, key))
 }

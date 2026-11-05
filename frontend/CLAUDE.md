@@ -90,8 +90,10 @@ src/
   (`lib/demo/hooks.ts`, clé `['school', <id>, …]`). Quand un module backend existera, seul le `queryFn` du hook change.
   `VITE_DEMO_MODULES=false` : ces hooks lèvent `ModuleUnavailableError` et `<QueryState>` affiche « Bientôt disponible ».
 - Restent branchés sur la vraie API : authentification, `/me`, établissements, **cycles et leurs paramètres**
-  (`features/cycles/api.ts`), **rôles et permissions** (`features/roles`, écran `/{slug}/roles`) et la réinitialisation
-  de mot de passe d'un utilisateur réel.
+  (`features/cycles/api.ts`), **rôles et permissions** (`features/roles`, écran `/{slug}/roles`) et **comptes de l'école**
+  (`features/users`, écran `/{slug}/utilisateurs` : liste par curseur, ajout, rôles, désactivation, suppression,
+  mot de passe provisoire). Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
+  `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).
 - Rôles : clé système (`director`…) ou identifiant d'un rôle personnalisé de l'école (ADR 0006). Libellé par
   `useRoleLabel()` (`features/auth/roles.ts` : traduction `roles.<clé>`, ou `role_name` de `/me`), jamais une traduction
   directe de la clé (un rôle personnalisé n'a pas de traduction). Un rôle personnalisé ouvre le back-office. Libellés des permissions : `permissions.<clé>` ; modules :

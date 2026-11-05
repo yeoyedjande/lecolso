@@ -108,6 +108,13 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   de l'école courante : modèle d'une autre école = 404.
 - `RoleAssignment::ofUser($user)` et `SchoolRole::ofSchool($schoolId)` : seules exceptions autorisées au scope
   « école courante » (affectations de l'utilisateur, rôles de ses écoles : lecture garantie par la RLS).
+  `ofUser` exclut les écoles où le compte est désactivé (`member_deactivations`) ; `ResolveSchool` aussi (404).
+- **Comptes de l'école** (`/users`, `UserPolicy`) : `viewAny`/`view` (users.view ou users.reset_password, par cycle),
+  `create`, `manage` (users.manage sur chacune de ses affectations, jamais soi-même ni un super-admin, un promoteur
+  seulement par un promoteur), `grantRole` (cycle, Promoteur et Direction par le promoteur, pas d'élévation sauf
+  promoteur et permissions des parents), `revokeRole`. Un compte existant d'une autre école est retrouvé par
+  `auth_user_id(phone)` et rattaché. Suppression : affectations retirées, puis `forget_user(id)` (SECURITY DEFINER)
+  n'efface que les comptes sans aucune école et jamais un super-admin.
 - SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
   journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
 

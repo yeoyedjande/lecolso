@@ -199,6 +199,12 @@ describe('can', () => {
     expect(can(school, 'billing.manage')).toBe(false)
     expect(can(null, 'students.view')).toBe(false)
   })
+
+  it('liste de permissions : l’une d’elles suffit', () => {
+    const secretary = membership({ permissions: { 'users.reset_password': null } })
+    expect(can(secretary, ['users.view', 'users.reset_password'])).toBe(true)
+    expect(can(secretary, ['users.view', 'roles.manage'])).toBe(false)
+  })
 })
 
 describe('espace plateforme (super-admin)', () => {

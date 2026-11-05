@@ -203,7 +203,8 @@
     "schedules": "Échéanciers",
     "platformSchools": "Écoles",
     "platform": "Plateforme",
-    "roles": "Rôles et permissions"
+    "roles": "Rôles et permissions",
+    "users": "Utilisateurs"
   },
   "design": {
     "title": "Design system",
@@ -1312,5 +1313,88 @@
       "inUse": "Ce rôle est encore attribué. Retirez-le d’abord aux utilisateurs concernés."
     },
     "usersLabel": "Utilisateurs"
+  },
+  "usersAdmin": {
+    "title": "Utilisateurs",
+    "description": "Les comptes du personnel et des parents de l’établissement : identité, rôles par cycle, accès.",
+    "create": "Ajouter un utilisateur",
+    "searchLabel": "Rechercher un utilisateur",
+    "searchPlaceholder": "Nom, e-mail ou téléphone",
+    "roleFilter": "Rôle",
+    "allRoles": "Tous les rôles",
+    "statusFilter": "Statut",
+    "status": {
+      "all": "Tous",
+      "active": "Actifs",
+      "deactivated": "Désactivés"
+    },
+    "active": "Actif",
+    "deactivated": "Désactivé",
+    "provisional": "Mot de passe provisoire",
+    "lastLogin": "Dernière connexion : {{date}}",
+    "neverLoggedIn": "Jamais connecté",
+    "wholeSchool": "tout l’établissement",
+    "manage": "Gérer",
+    "view": "Voir",
+    "more": "Afficher plus",
+    "emptyTitle": "Aucun utilisateur",
+    "emptyDescription": "Aucun compte ne correspond à ces critères.",
+    "you": "Vous",
+    "sheet": {
+      "identity": "Identité",
+      "name": "Nom complet",
+      "phone": "Téléphone",
+      "email": "E-mail",
+      "emailHint": "Facultatif",
+      "saveIdentity": "Enregistrer",
+      "saved": "Compte de {{name}} enregistré",
+      "roles": "Rôles",
+      "removeRole": "Retirer le rôle {{role}}",
+      "lastRole": "C’est son dernier rôle : supprimez ou désactivez plutôt le compte.",
+      "addRole": "Attribuer un rôle",
+      "role": "Rôle",
+      "cycle": "Périmètre",
+      "pickRole": "Choisir un rôle",
+      "assign": "Attribuer",
+      "assigned": "Rôle attribué",
+      "noGrantableRole": "Aucun rôle que vous pouvez attribuer sur ce périmètre.",
+      "access": "Accès",
+      "resetPassword": "Nouveau mot de passe provisoire",
+      "resetDone": "Communiquez ce mot de passe à {{name}} : il devra le changer à sa prochaine connexion.",
+      "copy": "Copier",
+      "copied": "Mot de passe copié",
+      "deactivate": "Désactiver le compte",
+      "deactivateHint": "L’accès à l’établissement est coupé ; les rôles sont conservés.",
+      "deactivated": "Compte de {{name}} désactivé",
+      "reactivate": "Réactiver le compte",
+      "reactivated": "Compte de {{name}} réactivé",
+      "remove": "Supprimer de l’établissement",
+      "readOnly": "Vous pouvez consulter ce compte, pas le modifier (votre propre compte, un promoteur, ou un autre cycle que les vôtres).",
+      "forbidden": "Vous ne pouvez pas faire cette action sur ce compte.",
+      "failed": "Action impossible. Réessayez."
+    },
+    "createSheet": {
+      "title": "Ajouter un utilisateur",
+      "description": "Si ce téléphone a déjà un compte dans un autre établissement, il est rattaché et garde son mot de passe.",
+      "submit": "Ajouter",
+      "createdTitle": "Compte créé",
+      "createdDescription": "Communiquez ce mot de passe provisoire à {{name}} : il ne sera plus affiché. Il devra le changer à sa première connexion.",
+      "linkedTitle": "Compte rattaché",
+      "linkedDescription": "{{name}} avait déjà un compte EKALEWA : il se connecte avec son mot de passe habituel.",
+      "another": "Ajouter un autre utilisateur",
+      "errors": {
+        "nameMin": "Le nom doit compter au moins 2 caractères.",
+        "phone": "Saisissez un numéro de téléphone valide.",
+        "email": "Adresse e-mail invalide.",
+        "role": "Choisissez un rôle."
+      }
+    },
+    "removeDialog": {
+      "title": "Supprimer {{name}} de l’établissement ?",
+      "description": "Tous ses rôles dans l’établissement sont retirés. Son compte est effacé s’il n’appartient à aucun autre établissement. Pour couper l’accès sans rien perdre, désactivez plutôt le compte.",
+      "confirm": "Supprimer",
+      "erased": "Compte de {{name}} supprimé",
+      "detached": "{{name}} retiré de l’établissement (son compte reste actif ailleurs)"
+    }
   }
 }
