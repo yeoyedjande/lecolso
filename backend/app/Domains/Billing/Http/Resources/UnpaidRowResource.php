@@ -17,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class UnpaidRowResource extends JsonResource
 {
     /**
-     * @return array{invoice_id: string, student: array{id: string, full_name: string, matricule: string}, classroom_name: string, cycle: array{id: string, code: string}, academic_year_label: string, payer: array{name: string, phone: string|null}|null, overdue: int, remaining: int, oldest_due_on: string, days_late: int, last_reminder: array{at: string, status: string}|null, can_remind: bool}
+     * @return array{invoice_id: string, student: array{id: string, full_name: string, first_name: string, matricule: string}, classroom_name: string, cycle: array{id: string, code: string}, academic_year_label: string, payer: array{name: string, phone: string|null}|null, overdue: int, remaining: int, oldest_due_on: string, days_late: int, last_reminder: array{at: string, status: string}|null, can_remind: bool}
      */
     public function toArray(Request $request): array
     {
@@ -31,6 +31,7 @@ final class UnpaidRowResource extends JsonResource
             'student' => [
                 'id' => $invoice->student->id,
                 'full_name' => $invoice->student->fullName(),
+                'first_name' => $invoice->student->first_name,
                 'matricule' => $invoice->student->matricule,
             ],
             'classroom_name' => $invoice->enrollment->classroom->name(),

@@ -113,3 +113,31 @@ test('inscription avec un service optionnel facturé', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'Cantine', exact: true })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Scolarité', exact: true })).toBeVisible()
 })
+
+test('impayés : relance SMS d’un parent, une seule fois par semaine', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/impayes')
+
+  await expect(page.getByText('Total en retard')).toBeVisible()
+  await page.getByRole('checkbox', { name: /^Sélectionner / }).first().check()
+  await page.getByRole('button', { name: 'Relancer (1)' }).click()
+  const dialog = page.getByRole('dialog', { name: /Relancer par SMS/ })
+  await expect(dialog).toContainText('présente un retard de')
+  await dialog.getByRole('button', { name: 'Envoyer les SMS' }).click()
+  await expect(page.getByText('1 SMS de relance mis en envoi')).toBeVisible()
+  await expect(page.getByText(/Relancé le 04\/11\/2026/).first()).toBeVisible()
+
+  await page.getByRole('checkbox', { name: /^Sélectionner / }).first().check()
+  await page.getByRole('button', { name: 'Relancer (1)' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Envoyer les SMS' }).click()
+  await expect(page.getByText(/déjà relancé\(s\) depuis moins de 7 jours/)).toBeVisible()
+})
+
+test('tableau de bord : effectifs et encaissements réels', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.accountant })
+  await page.goto('/les-lauriers/tableau-de-bord')
+
+  await expect(page.getByText('Encaissé ce mois')).toBeVisible()
+  await expect(page.getByText('Derniers encaissements')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Voir le reçu REC-2026-000001' })).toBeVisible()
+})

@@ -5251,11 +5251,15 @@
                     },
                     "monthly": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "$ref": "#/components/schemas/DashboardMonthResource"
+                        }
                     },
                     "recent_payments": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "$ref": "#/components/schemas/DashboardPaymentResource"
+                        }
                     }
                 },
                 "required": [
@@ -5268,6 +5272,50 @@
                     "recent_payments"
                 ],
                 "title": "DashboardFinanceResource"
+            },
+            "DashboardMonthResource": {
+                "type": "object",
+                "properties": {
+                    "month": {
+                        "type": "string"
+                    },
+                    "collected": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "month",
+                    "collected"
+                ],
+                "title": "DashboardMonthResource"
+            },
+            "DashboardPaymentResource": {
+                "type": "object",
+                "properties": {
+                    "payment_id": {
+                        "type": "string"
+                    },
+                    "receipt_number": {
+                        "type": "string"
+                    },
+                    "paid_at": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "student_name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "payment_id",
+                    "receipt_number",
+                    "paid_at",
+                    "amount",
+                    "student_name"
+                ],
+                "title": "DashboardPaymentResource"
             },
             "DashboardResource": {
                 "type": "object",
@@ -7508,6 +7556,9 @@
                             "full_name": {
                                 "type": "string"
                             },
+                            "first_name": {
+                                "type": "string"
+                            },
                             "matricule": {
                                 "type": "string"
                             }
@@ -7515,6 +7566,7 @@
                         "required": [
                             "id",
                             "full_name",
+                            "first_name",
                             "matricule"
                         ]
                     },

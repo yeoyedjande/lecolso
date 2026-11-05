@@ -1455,8 +1455,21 @@ export interface components {
             expected_month: number;
             overdue: number;
             collection_rate: number;
-            monthly: unknown[];
-            recent_payments: unknown[];
+            monthly: components["schemas"]["DashboardMonthResource"][];
+            recent_payments: components["schemas"]["DashboardPaymentResource"][];
+        };
+        /** DashboardMonthResource */
+        DashboardMonthResource: {
+            month: string;
+            collected: number;
+        };
+        /** DashboardPaymentResource */
+        DashboardPaymentResource: {
+            payment_id: string;
+            receipt_number: string;
+            paid_at: string;
+            amount: number;
+            student_name: string;
         };
         /** DashboardResource */
         DashboardResource: {
@@ -2050,6 +2063,7 @@ export interface components {
             student: {
                 id: string;
                 full_name: string;
+                first_name: string;
                 matricule: string;
             };
             classroom_name: string;

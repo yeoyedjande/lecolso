@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Billing\Http\Resources;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -16,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class DashboardFinanceResource extends JsonResource
 {
     /**
-     * @return array{collected_month: int, payments_month: int, expected_month: int, overdue: int, collection_rate: int, monthly: list<array{month: string, collected: int}>, recent_payments: list<array{payment_id: string, receipt_number: string, paid_at: string, amount: int, student_name: string}>}
+     * @return array{collected_month: int, payments_month: int, expected_month: int, overdue: int, collection_rate: int, monthly: AnonymousResourceCollection<DashboardMonthResource>, recent_payments: AnonymousResourceCollection<DashboardPaymentResource>}
      */
     public function toArray(Request $request): array
     {
@@ -28,14 +29,8 @@ final class DashboardFinanceResource extends JsonResource
             'expected_month' => (int) $data['expected_month'],
             'overdue' => (int) $data['overdue'],
             'collection_rate' => (int) $data['collection_rate'],
-            'monthly' => array_map(static fn (array $row): array => ['month' => (string) $row['month'], 'collected' => (int) $row['collected']], $data['monthly']),
-            'recent_payments' => array_map(static fn (array $row): array => [
-                'payment_id' => (string) $row['payment_id'],
-                'receipt_number' => (string) $row['receipt_number'],
-                'paid_at' => (string) $row['paid_at'],
-                'amount' => (int) $row['amount'],
-                'student_name' => (string) $row['student_name'],
-            ], $data['recent_payments']),
+            'monthly' => DashboardMonthResource::collection($data['monthly']),
+            'recent_payments' => DashboardPaymentResource::collection($data['recent_payments']),
         ];
     }
 }

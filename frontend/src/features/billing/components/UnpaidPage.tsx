@@ -31,19 +31,41 @@ import {
 } from '@/components/ui/table'
 import { Can } from '@/features/auth/RequirePermission'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
-import { formatMoney, formatPhone } from '@/lib/format'
-import type { CycleCode } from '@/lib/demo/types'
+import { formatDate, formatMoney, formatPhone } from '@/lib/format'
 import { toast } from '@/lib/toast'
 
-import { useRemind, useUnpaid } from '../api'
+import { useRemind, useUnpaid, type UnpaidRow } from '../api'
 
-/** Impayés : retard par famille, relance groupée par SMS (simulée en démonstration). */
+/** Aperçu du SMS, identique au texte envoyé (SendPaymentReminderSms::message). */
+function smsPreview(rows: UnpaidRow[]): { names: string; amount: number } {
+  const names = [...new Set(rows.map((row) => row.student.first_name))]
+  const last = names.pop() ?? ''
+  return {
+    names: names.length === 0 ? last : `${names.join(', ')} et ${last}`,
+    amount: rows.reduce((sum, row) => sum + row.overdue, 0),
+  }
+}
+
+/**
+ * Impayés (vraie API) : factures en retard, relance SMS groupée par payeur (au plus tous les 7 jours, envoi en file).
+ */
+const CYCLE_KEYS = ['daycare', 'kindergarten', 'primary']
+type CycleKey = 'daycare' | 'kindergarten' | 'primary'
+
+function cycleKey(code: string): CycleKey {
+  return code === 'daycare' || code === 'kindergarten' ? code : 'primary'
+}
+
+function reminderStatus(status: string): 'queued' | 'sent' | 'failed' {
+  return status === 'sent' || status === 'failed' ? status : 'queued'
+}
+
 export function UnpaidPage() {
   const { t } = useTranslation()
   const school = useCurrentSchool()
   const query = useUnpaid()
   const remind = useRemind()
-  const [cycle, setCycle] = useState<CycleCode | ''>('')
+  const [cycle, setCycle] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirming, setConfirming] = useState(false)
 
@@ -52,11 +74,22 @@ export function UnpaidPage() {
       <ScreenHeader
         title={t('billing.unpaid.title')}
         description={t('billing.unpaid.description')}
+        demo={false}
       />
       <QueryState query={query}>
         {(all) => {
-          const rows = all.filter((row) => cycle === '' || row.cycle === cycle)
-          const first = rows.find((row) => selected.has(row.student.id)) ?? rows[0]
+          const rows = all.filter((row) => cycle === '' || row.cycle.id === cycle)
+          const cycles = [...new Map(all.map((row) => [row.cycle.id, row.cycle])).values()]
+          const remindable = rows.filter((row) => row.can_remind)
+          const chosen = all.filter((row) => selected.has(row.invoice_id))
+          const firstPayer = chosen[0]?.payer?.name
+          const preview = smsPreview(chosen.filter((row) => row.payer?.name === firstPayer))
+          // Année la plus récente des impayés : les dettes d'années antérieures portent leur année
+          const latestYear = all.reduce(
+            (max, row) => (row.academic_year_label > max ? row.academic_year_label : max),
+            '',
+          )
+          const families = new Set(rows.map((row) => row.payer?.name ?? row.invoice_id)).size
           if (all.length === 0) return <EmptyState title={t('billing.unpaid.empty')} />
           return (
             <div className="grid gap-4">
@@ -77,7 +110,7 @@ export function UnpaidPage() {
                     <span className="text-sm text-muted-foreground">
                       {t('billing.unpaid.count')}
                     </span>
-                    <span className="font-display text-3xl font-bold tabular">{rows.length}</span>
+                    <span className="font-display text-3xl font-bold tabular">{families}</span>
                   </CardContent>
                 </Card>
               </div>
@@ -87,18 +120,18 @@ export function UnpaidPage() {
                   className="w-56"
                   value={cycle}
                   onChange={(event) => {
-                    const value = event.target.value
-                    setCycle(
-                      value === 'daycare' || value === 'kindergarten' || value === 'primary'
-                        ? value
-                        : '',
-                    )
+                    setCycle(event.target.value)
+                    setSelected(new Set())
                   }}
                 >
                   <option value="">{t('common.allCycles')}</option>
-                  <option value="daycare">{t('cycles.daycare')}</option>
-                  <option value="kindergarten">{t('cycles.kindergarten')}</option>
-                  <option value="primary">{t('cycles.primary')}</option>
+                  {cycles.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {CYCLE_KEYS.includes(entry.code)
+                        ? t(`cycles.${cycleKey(entry.code)}`)
+                        : entry.code}
+                    </option>
+                  ))}
                 </NativeSelect>
                 <Button
                   variant="accent"
@@ -116,19 +149,19 @@ export function UnpaidPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-12">
-                        <Checkbox
-                          aria-label={t('billing.unpaid.selectAll')}
-                          checked={
-                            rows.length > 0 && rows.every((row) => selected.has(row.student.id))
-                          }
-                          onCheckedChange={(checked) => {
-                            setSelected(
-                              checked === true
-                                ? new Set(rows.map((row) => row.student.id))
-                                : new Set(),
-                            )
-                          }}
-                        />
+                        {remindable.length > 0 && (
+                          <Checkbox
+                            aria-label={t('billing.unpaid.selectAll')}
+                            checked={remindable.every((row) => selected.has(row.invoice_id))}
+                            onCheckedChange={(checked) => {
+                              setSelected(
+                                checked === true
+                                  ? new Set(remindable.map((row) => row.invoice_id))
+                                  : new Set(),
+                              )
+                            }}
+                          />
+                        )}
                       </TableHead>
                       <TableHead>{t('billing.unpaid.student')}</TableHead>
                       <TableHead>{t('billing.unpaid.payer')}</TableHead>
@@ -141,22 +174,24 @@ export function UnpaidPage() {
                   </TableHeader>
                   <TableBody>
                     {rows.map((row) => (
-                      <TableRow key={row.student.id}>
+                      <TableRow key={row.invoice_id}>
                         <TableCell>
-                          <Checkbox
-                            aria-label={t('billing.unpaid.select', {
-                              name: `${row.student.lastName} ${row.student.firstName}`,
-                            })}
-                            checked={selected.has(row.student.id)}
-                            onCheckedChange={(checked) => {
-                              setSelected((previous) => {
-                                const next = new Set(previous)
-                                if (checked === true) next.add(row.student.id)
-                                else next.delete(row.student.id)
-                                return next
-                              })
-                            }}
-                          />
+                          {row.can_remind && (
+                            <Checkbox
+                              aria-label={t('billing.unpaid.select', {
+                                name: row.student.full_name,
+                              })}
+                              checked={selected.has(row.invoice_id)}
+                              onCheckedChange={(checked) => {
+                                setSelected((previous) => {
+                                  const next = new Set(previous)
+                                  if (checked === true) next.add(row.invoice_id)
+                                  else next.delete(row.invoice_id)
+                                  return next
+                                })
+                              }}
+                            />
+                          )}
                         </TableCell>
                         <TableCell>
                           <Link
@@ -165,24 +200,47 @@ export function UnpaidPage() {
                             params={{ studentId: row.student.id }}
                             className="grid font-semibold hover:underline"
                           >
-                            {row.student.lastName} {row.student.firstName}
+                            {row.student.full_name}
                           </Link>
-                          <CycleBadge code={row.cycle} label={row.classroom} className="mt-1" />
+                          <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <CycleBadge code={row.cycle.code} label={row.classroom_name} />
+                            {row.academic_year_label !== latestYear && (
+                              <Badge variant="outline">{row.academic_year_label}</Badge>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell>
-                          <span className="grid">
-                            <span>{row.payerName}</span>
-                            <span className="tabular text-xs text-muted-foreground">
-                              {formatPhone(row.payerPhone)}
+                          {row.payer === null ? (
+                            <span className="text-sm text-muted-foreground">
+                              {t('billing.unpaid.noPayer')}
                             </span>
-                          </span>
+                          ) : (
+                            <span className="grid">
+                              <span>{row.payer.name}</span>
+                              {row.payer.phone !== null && (
+                                <span className="tabular text-xs text-muted-foreground">
+                                  {formatPhone(row.payer.phone)}
+                                </span>
+                              )}
+                              {row.last_reminder !== null && (
+                                <span className="text-xs text-muted-foreground">
+                                  {t(
+                                    `billing.unpaid.lastReminder.${reminderStatus(row.last_reminder.status)}`,
+                                    {
+                                      date: formatDate(row.last_reminder.at),
+                                    },
+                                  )}
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-semibold text-destructive-ink">
                           <MoneyAmount value={row.overdue} />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant={row.daysLate > 30 ? 'destructive' : 'accent'}>
-                            {t('billing.unpaid.days', { count: row.daysLate })}
+                          <Badge variant={row.days_late > 30 ? 'destructive' : 'accent'}>
+                            {t('billing.unpaid.days', { count: row.days_late })}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -191,7 +249,7 @@ export function UnpaidPage() {
                               <Link
                                 from="/$school"
                                 to="/$school/encaissements"
-                                search={{ eleve: row.student.id }}
+                                search={{ eleve: row.student.id, facture: row.invoice_id }}
                               >
                                 <Wallet aria-hidden />
                                 {t('students.detail.collect')}
@@ -210,27 +268,40 @@ export function UnpaidPage() {
                     {t('billing.unpaid.remindTitle', { count: selected.size })}
                   </DialogTitle>
                   <DialogDescription>{t('billing.unpaid.remindPreview')}</DialogDescription>
-                  {first !== undefined && (
+                  {chosen.length > 0 && (
                     <p className="rounded-2xl bg-muted p-4 text-sm">
                       {t('billing.unpaid.remindMessage', {
                         school: school?.name ?? '',
-                        student: first.student.firstName,
-                        amount: formatMoney(first.overdue),
+                        students: preview.names,
+                        amount: formatMoney(preview.amount),
                       })}
                     </p>
                   )}
+                  <p className="text-sm text-muted-foreground">{t('billing.unpaid.remindRule')}</p>
                   <DialogFooter>
                     <DialogClose asChild>
                       <Button variant="ghost">{t('common.cancel')}</Button>
                     </DialogClose>
                     <Button
                       variant="accent"
+                      disabled={remind.isPending}
                       onClick={() => {
-                        void remind.mutateAsync([...selected]).then((count) => {
-                          setConfirming(false)
-                          setSelected(new Set())
-                          toast(t('billing.unpaid.reminded', { count }), { tone: 'success' })
-                        })
+                        remind
+                          .mutateAsync([...selected])
+                          .then((outcome) => {
+                            setConfirming(false)
+                            setSelected(new Set())
+                            toast(t('billing.unpaid.reminded', { count: outcome.queued }), {
+                              tone: outcome.queued > 0 ? 'success' : 'default',
+                            })
+                            if (outcome.recent > 0)
+                              toast(t('billing.unpaid.skippedRecent', { count: outcome.recent }))
+                            if (outcome.no_phone > 0)
+                              toast(t('billing.unpaid.skippedNoPhone', { count: outcome.no_phone }))
+                          })
+                          .catch(() => {
+                            toast(t('common.error'), { tone: 'error' })
+                          })
                       }}
                     >
                       {t('billing.unpaid.remindConfirm')}

@@ -3,10 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
-import { useDemoMutation, useDemoQuery } from '@/lib/demo/hooks'
+import { useDemoQuery } from '@/lib/demo/hooks'
 import { fullName } from '@/lib/demo/lookup'
-
-import { unpaid } from './demo'
 
 export type BillingGrid = components['schemas']['BillingGridResource']
 export type FeeType = components['schemas']['FeeTypeResource']
@@ -20,6 +18,8 @@ export type Receipt = components['schemas']['ReceiptResource']
 export type CashDesk = components['schemas']['CashDeskResource']
 export type CashSession = components['schemas']['CashSessionResource']
 export type FinancialPolicy = components['schemas']['FinancialPolicyResource']
+export type UnpaidRow = components['schemas']['UnpaidRowResource']
+export type ReminderOutcome = components['schemas']['ReminderOutcomeResource']
 
 /** Moyens de paiement au guichet, dans l'ordre d'affichage. */
 export const PAYMENT_METHODS: readonly PaymentMethod[] = [
@@ -377,11 +377,49 @@ export function useSaveFinancialPolicy() {
   })
 }
 
-// --- Démonstration : impayés et relances (lot 5c), reçus de l'espace parent ---
+// --- Impayés et relances (vraie API) ---
 
-export function useUnpaid() {
-  return useDemoQuery(['billing', 'unpaid'], (school, today) => unpaid(school, today))
+export interface UnpaidFilters {
+  cycleId: string | null
+  classroomId: string | null
 }
+
+/** Factures en retard (toutes années), le plus gros retard d'abord, dans les cycles de l'utilisateur. */
+export function useUnpaid(filters: UnpaidFilters = { cycleId: null, classroomId: null }) {
+  const { school, key } = useBillingKey()
+  return useQuery({
+    queryKey: [...key, 'unpaid', filters],
+    enabled: school !== null,
+    queryFn: async ({ signal }): Promise<UnpaidRow[]> => {
+      const { data, error } = await api.GET('/billing/unpaid', {
+        params: { query: { cycle_id: filters.cycleId, classroom_id: filters.classroomId } },
+        signal,
+      })
+      if (data === undefined) throw new Error('Impayés indisponibles', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Relance SMS des payeurs des factures choisies (un SMS par payeur, au plus tous les 7 jours). */
+export function useRemind() {
+  const { key } = useBillingKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (invoiceIds: string[]): Promise<ReminderOutcome> => {
+      const { data, response } = await api.POST('/billing/reminders', {
+        body: { invoice_ids: invoiceIds },
+      })
+      if (data === undefined) throw new Error(`Relance impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [...key, 'unpaid'] })
+    },
+  })
+}
+
+// --- Démonstration : reçus de l'espace parent ---
 
 /** Reçu de démonstration (espace parent, encore sur les paiements de démonstration). */
 export function useDemoReceipt(paymentId: string) {
@@ -411,9 +449,4 @@ export function useDemoReceipt(paymentId: string) {
       },
     }
   })
-}
-
-/** Relance des impayés (simulée : SMS au payeur). */
-export function useRemind() {
-  return useDemoMutation((_school, studentIds: string[]) => studentIds.length)
 }
