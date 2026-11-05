@@ -10,13 +10,22 @@ use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Academic\Models\Level;
+use App\Domains\Billing\Actions\CancelPayment;
+use App\Domains\Billing\Actions\CloseCashSession;
 use App\Domains\Billing\Actions\CreateInvoice;
 use App\Domains\Billing\Actions\ManageInvoiceLines;
 use App\Domains\Billing\Actions\ProvisionFeeTypes;
+use App\Domains\Billing\Actions\RecordPayment;
 use App\Domains\Billing\Enums\LineKind;
+use App\Domains\Billing\Enums\PaymentMethod;
+use App\Domains\Billing\Models\CashSession;
 use App\Domains\Billing\Models\FeeSchedule;
 use App\Domains\Billing\Models\FeeType;
+use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\InvoiceLine;
+use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Support\CashRegister;
+use App\Domains\Billing\Support\InvoiceBalance;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
@@ -35,6 +44,7 @@ use App\Support\Tenancy\Platform;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -353,7 +363,74 @@ final class DemoSeeder extends Seeder
                     app(ManageInvoiceLines::class)->addDiscount($invoice, $director, 30000, 'Fratrie : deux enfants inscrits');
                 }
             }
+
+            if ($slug === 'les-lauriers') {
+                $this->payments($school, $enrollments->values()->all());
+            }
         });
+    }
+
+    /**
+     * Encaissements de la rentrée par le comptable (un élève sur deux, une annulation par la direction), caisses des
+     * jours passés clôturées sans écart, et deux encaissements du jour pour la caisse du jour. Idempotent : rien si
+     * l'école a déjà des paiements.
+     *
+     * @param  list<Enrollment>  $enrollments
+     */
+    private function payments(School $school, array $enrollments): void
+    {
+        // Compteur des reçus (Sequence) : il lit l'école dans la session PostgreSQL. La connexion super-admin du seeder
+        // ne la porte pas ; elle est posée pour la seule transaction de Platform::run (set_config local).
+        DB::select("SELECT set_config('app.school_id', ?, true)", [$school->id]);
+
+        $cashier = User::query()->where('phone', '+2250700000006')->first();
+        $director = User::query()->where('phone', '+2250700000003')->first();
+        if (! $cashier instanceof User || ! $director instanceof User || Payment::query()->exists()) {
+            return;
+        }
+
+        $record = app(RecordPayment::class);
+        $methods = [PaymentMethod::Cash, PaymentMethod::Cash, PaymentMethod::OrangeMoney, PaymentMethod::Wave, PaymentMethod::MtnMomo];
+        $today = Carbon::now();
+        $invoices = [];
+        foreach ($enrollments as $index => $enrollment) {
+            $invoice = Invoice::query()->where('enrollment_id', $enrollment->id)->first();
+            if ($invoice !== null) {
+                $invoices[$index] = $invoice;
+            }
+        }
+
+        foreach ($invoices as $index => $invoice) {
+            $next = InvoiceBalance::of($invoice, $today)->next;
+            if ($index % 2 !== 0 || $next === null) {
+                continue;
+            }
+            $method = $methods[intdiv($index, 2) % count($methods)];
+            $amount = $index % 6 === 2 ? intdiv($next['amount'], 2) : $next['amount'];
+            $paidAt = Carbon::parse('2026-09-14 08:00:00')->addDays($index % 12)->addMinutes($index * 7);
+            if ($paidAt->greaterThanOrEqualTo($today) || $amount <= 0) {
+                continue;
+            }
+            $payment = $record->handle($cashier, $invoice, $amount, $method, $method->needsReference() ? sprintf('DEMO-%s-%04d', strtoupper(substr($method->value, 0, 3)), $index) : null, $paidAt);
+            if ($index === 4) {
+                app(CancelPayment::class)->handle($director, $payment, 'Saisie en double', $paidAt->copy()->addMinutes(3));
+            }
+        }
+
+        foreach (CashSession::query()->where('business_date', '<', CashRegister::businessDate($today))->whereNull('closed_at')->get() as $session) {
+            $expected = CashRegister::totals($session)['expected_cash'];
+            $closer = $session->cashier_id === $director->id ? $director : $cashier;
+            app(CloseCashSession::class)->handle($closer, $session, $expected, null, $session->business_date->copy()->setTime(18, 0));
+        }
+
+        // Caisse du jour : deux encaissements en cours
+        foreach ([1, 3] as $index) {
+            $invoice = $invoices[$index] ?? null;
+            $next = $invoice === null ? null : InvoiceBalance::of($invoice, $today)->next;
+            if ($invoice !== null && $next !== null) {
+                $record->handle($cashier, $invoice, $next['amount'], $index === 1 ? PaymentMethod::Cash : PaymentMethod::OrangeMoney, $index === 1 ? null : 'DEMO-OM-JOUR', $today);
+            }
+        }
     }
 
     /**

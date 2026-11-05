@@ -216,6 +216,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/cash-desk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Caisse d'un jour
+         * @description `date` (AAAA-MM-JJ, aujourd'hui par défaut). Sa caisse ; toutes avec `billing.manage` sur toute l'école.
+         */
+        get: operations["billing.cash-desk.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/cash-sessions/{cashSession}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clôturer sa caisse
+         * @description Espèces comptées (`counted_cash`) ; `note` obligatoire en cas d'écart. Ensuite la caisse est figée.
+         *     409 `cash_closed`.
+         */
+        post: operations["billing.cash-sessions.close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Politique financière de l'école */
+        get: operations["billing.policy.show"];
+        /**
+         * Modifier la politique financière
+         * @description Direction de toute l'école (`school.settings.manage`). S'applique aux départs enregistrés ensuite.
+         */
+        put: operations["billing.policy.update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/classrooms": {
         parameters: {
             query?: never;
@@ -503,6 +565,110 @@ export interface paths {
         post?: never;
         /** Retirer une ligne manuelle ou une remise */
         delete: operations["invoices.lines.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Encaisser un paiement
+         * @description Dans la caisse du jour de l'utilisateur ; renvoie le reçu (numéro REC-2026-000123). 409 `nothing_due`,
+         *     `amount_exceeds` (au-delà du reste à payer), `cash_closed` (caisse du jour clôturée), `reference_used`.
+         */
+        post: operations["invoices.payments.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rembourser un trop-perçu
+         * @description Direction (`billing.refund`), motif obligatoire, sorti de sa caisse du jour. 409 `no_credit`,
+         *     `amount_exceeds_credit`, `cash_closed`. Renvoie la facture.
+         */
+        post: operations["invoices.refunds.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/credit-transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reporter un trop-perçu
+         * @description Vers une autre facture du même payeur (`to_invoice_id`). Direction (`billing.refund`), motif obligatoire.
+         *     409 `other_payer`, `no_credit`, `amount_exceeds_credit`, `target_not_due`. Renvoie la facture d'origine.
+         */
+        post: operations["invoices.credit-transfers.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/{payment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reçu d'un paiement
+         * @description Qui voit la facture de l'élève ; un paiement annulé porte la mention et le motif.
+         */
+        get: operations["payments.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/{payment}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Annuler un paiement
+         * @description Direction (`billing.cancel`), motif obligatoire ; le reçu reste, marqué annulé. 409 `already_cancelled`,
+         *     `cash_closed`.
+         */
+        post: operations["payments.cancel"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1067,6 +1233,56 @@ export interface components {
          * @enum {string}
          */
         BloodType: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+        /**
+         * CancelPaymentRequest
+         * @description Annulation d'un paiement (direction : billing.cancel sur le cycle) : motif obligatoire.
+         */
+        CancelPaymentRequest: {
+            reason: string;
+        };
+        /** CashDeskResource */
+        CashDeskResource: {
+            date: string;
+            all_cashiers: boolean;
+            net_total: number;
+            sessions: components["schemas"]["CashSessionResource"][];
+        };
+        /** CashMethodTotalResource */
+        CashMethodTotalResource: {
+            method: string;
+            collected: number;
+            cancelled: number;
+            refunded: number;
+            net: number;
+            count: number;
+        };
+        /** CashMovementResource */
+        CashMovementResource: {
+            kind: string;
+            at: string;
+            number: string;
+            amount: number;
+            method: string;
+            student_name: string;
+            payment_id: string | null;
+            reason: string | null;
+            cancelled: boolean;
+        };
+        /** CashSessionResource */
+        CashSessionResource: {
+            id: string;
+            cashier_name: string;
+            is_mine: boolean;
+            business_date: string;
+            closed_at: string | null;
+            expected_cash: number;
+            counted_cash: number | null;
+            difference: number | null;
+            note: string | null;
+            net_total: number;
+            methods: components["schemas"]["CashMethodTotalResource"][];
+            movements: components["schemas"]["CashMovementResource"][];
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             current_password: string;
@@ -1095,6 +1311,15 @@ export interface components {
             } | null;
             can_manage: boolean;
         };
+        /**
+         * CloseCashSessionRequest
+         * @description Clôture d'une caisse par son caissier (personne d'autre) : espèces comptées (FCFA), note obligatoire en cas d'écart
+         *     (contrôlée par l'Action, qui connaît le montant attendu).
+         */
+        CloseCashSessionRequest: {
+            counted_cash: number;
+            note?: string | null;
+        };
         /** CreateSchoolRequest */
         CreateSchoolRequest: {
             name: string;
@@ -1112,6 +1337,24 @@ export interface components {
                 /** Format: email */
                 email?: string | null;
             };
+        };
+        /** CreditTargetResource */
+        CreditTargetResource: {
+            invoice_id: string;
+            student_name: string;
+            academic_year_label: string;
+            remaining: number;
+        };
+        /** CreditTransferResource */
+        CreditTransferResource: {
+            id: string;
+            direction: string;
+            transferred_at: string;
+            amount: number;
+            reason: string;
+            created_by_name: string;
+            other_student_name: string;
+            other_year_label: string;
         };
         /** CycleResource */
         CycleResource: {
@@ -1136,6 +1379,12 @@ export interface components {
             };
             levels: components["schemas"]["LevelResource"][];
         };
+        /**
+         * DeparturePolicy
+         * @description Politique financière d'une école au départ d'un élève (schools.settings.billing_departure). Par défaut : les échéances des périodes non commencées à la date du départ sont annulées (décision du 05/11/2026).
+         * @enum {string}
+         */
+        DeparturePolicy: "cancel_unstarted" | "keep_all";
         /**
          * EnrollStudentRequest
          * @description Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
@@ -1205,6 +1454,11 @@ export interface components {
             billing: "once" | "recurring";
             is_optional: boolean;
         };
+        /** FinancialPolicyResource */
+        FinancialPolicyResource: {
+            /** @enum {string} */
+            departure: "cancel_unstarted" | "keep_all";
+        };
         /**
          * Gender
          * @enum {string}
@@ -1251,7 +1505,7 @@ export interface components {
         InvoiceLineResource: {
             id: string;
             /** @enum {string} */
-            kind: "fee" | "discount" | "manual";
+            kind: "fee" | "discount" | "manual" | "departure";
             fee_type_id: string | null;
             fee_type_code: string | null;
             is_optional: boolean;
@@ -1278,17 +1532,37 @@ export interface components {
             payer: {
                 name: string;
             } | null;
+            left_on: string | null;
             total: number;
             discount_total: number;
+            balance: {
+                settled: number;
+                remaining: number;
+                overdue: number;
+                credit: number;
+                next: {
+                    due_on: string;
+                    label: string;
+                    amount: number;
+                } | null;
+            };
             lines: components["schemas"]["InvoiceLineResource"][];
             schedule: {
                 due_on: string;
-                label: string | "";
+                label: string;
                 amount: number;
+                settled: number;
             }[];
+            payments: components["schemas"]["PaymentResource"][];
+            refunds: components["schemas"]["RefundResource"][];
+            transfers: components["schemas"]["CreditTransferResource"][];
+            credit_targets: components["schemas"]["CreditTargetResource"][];
             available_options: components["schemas"]["InvoiceOptionResource"][];
             can_manage: boolean;
+            can_collect: boolean;
             can_discount: boolean;
+            can_cancel: boolean;
+            can_refund: boolean;
         };
         /** LevelResource */
         LevelResource: {
@@ -1304,6 +1578,29 @@ export interface components {
             password: string;
             /** @description « Se souvenir de moi » (30 jours) : ignoré pour les comptes du personnel */
             remember?: boolean;
+        };
+        /**
+         * PaymentMethod
+         * @description Moyen de paiement au guichet. Seules les espèces se comptent dans la caisse ; les autres exigent une référence.
+         * @enum {string}
+         */
+        PaymentMethod: "cash" | "orange_money" | "mtn_momo" | "moov_money" | "wave" | "cheque" | "transfer";
+        /** PaymentResource */
+        PaymentResource: {
+            id: string;
+            receipt_number: string;
+            paid_at: string;
+            amount: number;
+            /** @enum {string} */
+            method: "cash" | "orange_money" | "mtn_momo" | "moov_money" | "wave" | "cheque" | "transfer";
+            reference: string | null;
+            payer_name: string;
+            cashier_name: string;
+            cancellation: {
+                reason: string;
+                cancelled_at: string;
+                cancelled_by_name: string;
+            } | null;
         };
         /** PermissionResource */
         PermissionResource: {
@@ -1339,6 +1636,59 @@ export interface components {
                 name: string;
                 levels: string[];
             }[];
+        };
+        /** ReceiptResource */
+        ReceiptResource: {
+            payment: components["schemas"]["PaymentResource"];
+            student: {
+                id: string;
+                full_name: string;
+                matricule: string;
+            };
+            classroom_name: string;
+            academic_year_label: string;
+            remaining: number;
+            school: {
+                name: string;
+                city: string | null;
+                address: string | null;
+                phone: string | null;
+                email: string | null;
+                logo_url: string | null;
+            };
+            can_cancel: boolean;
+        };
+        /**
+         * RecordPaymentRequest
+         * @description Encaissement (billing.manage sur le cycle) : montant en FCFA entiers, moyen de paiement, référence obligatoire hors
+         *     espèces (opérateur Mobile Money, chèque, virement).
+         */
+        RecordPaymentRequest: {
+            amount: number;
+            method: components["schemas"]["PaymentMethod"];
+            reference?: string | null;
+        };
+        /**
+         * RefundRequest
+         * @description Remboursement d'un trop-perçu (direction : billing.refund) : montant, moyen, référence hors espèces, motif.
+         */
+        RefundRequest: {
+            amount: number;
+            method: components["schemas"]["PaymentMethod"];
+            reference?: string | null;
+            reason: string;
+        };
+        /** RefundResource */
+        RefundResource: {
+            id: string;
+            number: string;
+            refunded_at: string;
+            amount: number;
+            /** @enum {string} */
+            method: "cash" | "orange_money" | "mtn_momo" | "moov_money" | "wave" | "cheque" | "transfer";
+            reference: string | null;
+            reason: string;
+            refunded_by_name: string;
         };
         /** RoleAssignmentResource */
         RoleAssignmentResource: {
@@ -1404,6 +1754,14 @@ export interface components {
                 fee_type_id: string;
                 amount: number;
             }[];
+        };
+        /**
+         * SaveFinancialPolicyRequest
+         * @description Politique financière de l'école (direction de toute l'école : school.settings.manage sans cycle).
+         *     `departure` : cancel_unstarted (défaut) ou keep_all.
+         */
+        SaveFinancialPolicyRequest: {
+            departure: components["schemas"]["DeparturePolicy"];
         };
         /** ScheduleRowResource */
         ScheduleRowResource: {
@@ -1571,6 +1929,17 @@ export interface components {
                 name: string;
                 phone: string;
             } | null;
+        };
+        /**
+         * TransferCreditRequest
+         * @description Report d'un trop-perçu (direction : billing.refund sur la facture d'origine) vers une autre facture du même payeur,
+         *     que l'utilisateur peut modifier (billing.manage sur son cycle) ; sinon 422, comme une facture inexistante.
+         */
+        TransferCreditRequest: {
+            /** Format: uuid */
+            to_invoice_id: string;
+            amount: number;
+            reason: string;
         };
         /** UpdateCycleRequest */
         UpdateCycleRequest: {
@@ -2115,6 +2484,120 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "billing.cash-desk.show": {
+        parameters: {
+            query?: {
+                date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `CashDeskResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CashDeskResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.cash-sessions.close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The cash session ID */
+                cashSession: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseCashSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description `CashSessionResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CashSessionResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.policy.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `FinancialPolicyResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FinancialPolicyResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.policy.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveFinancialPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description `FinancialPolicyResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FinancialPolicyResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "classrooms.index": {
         parameters: {
             query?: {
@@ -2651,6 +3134,167 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.payments.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description `ReceiptResource` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReceiptResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.refunds.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequest"];
+            };
+        };
+        responses: {
+            /** @description `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.credit-transfers.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferCreditRequest"];
+            };
+        };
+        responses: {
+            /** @description `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "payments.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The payment ID */
+                payment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ReceiptResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReceiptResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "payments.cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The payment ID */
+                payment: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description `ReceiptResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReceiptResource"];
                     };
                 };
             };

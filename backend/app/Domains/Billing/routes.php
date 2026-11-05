@@ -5,7 +5,9 @@ declare(strict_types=1);
 // Routes du domaine Billing, chargées sous /api/v1 par App\Support\Routing\DomainRoutes.
 
 use App\Domains\Billing\Http\Controllers\BillingGridController;
+use App\Domains\Billing\Http\Controllers\CashDeskController;
 use App\Domains\Billing\Http\Controllers\InvoiceController;
+use App\Domains\Billing\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 // Routes d'un établissement (en-tête X-School-Id)
@@ -22,4 +24,15 @@ Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::post('invoices/{invoice}/lines', [InvoiceController::class, 'addLine'])->name('invoices.lines.store');
     Route::post('invoices/{invoice}/discounts', [InvoiceController::class, 'addDiscount'])->name('invoices.discounts.store');
     Route::delete('invoices/{invoice}/lines/{line}', [InvoiceController::class, 'removeLine'])->name('invoices.lines.destroy');
+
+    Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('invoices.payments.store');
+    Route::post('invoices/{invoice}/refunds', [PaymentController::class, 'refund'])->name('invoices.refunds.store');
+    Route::post('invoices/{invoice}/credit-transfers', [PaymentController::class, 'transfer'])->name('invoices.credit-transfers.store');
+    Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::post('payments/{payment}/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
+
+    Route::get('billing/cash-desk', [CashDeskController::class, 'show'])->name('billing.cash-desk.show');
+    Route::post('billing/cash-sessions/{cashSession}/close', [CashDeskController::class, 'close'])->name('billing.cash-sessions.close');
+    Route::get('billing/policy', [CashDeskController::class, 'policy'])->name('billing.policy.show');
+    Route::put('billing/policy', [CashDeskController::class, 'savePolicy'])->name('billing.policy.update');
 });

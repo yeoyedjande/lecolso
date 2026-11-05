@@ -15,6 +15,7 @@ use App\Domains\Billing\Support\Amount;
 use App\Domains\Billing\Support\BillingCalendar;
 use App\Domains\Billing\Support\InvoiceSchedule;
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Enums\EnrollmentStatus;
 use App\Support\Http\BusinessConflict;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,10 +33,14 @@ final readonly class ManageInvoiceLines
     /**
      * Ajoute un service optionnel à partir d'une date (aujourd'hui par défaut) : périodes restantes seulement.
      *
-     * @throws BusinessConflict option_present, no_amount
+     * @throws BusinessConflict option_present, no_amount, student_left
      */
     public function addOption(Invoice $invoice, FeeType $type, Carbon $from): Invoice
     {
+        if ($invoice->enrollment->status === EnrollmentStatus::Left) {
+            throw new BusinessConflict('student_left', 'L’élève est parti : aucun service ne peut plus être ajouté.');
+        }
+
         if (InvoiceLine::query()->where('invoice_id', $invoice->id)->where('fee_type_id', $type->id)->exists()) {
             throw new BusinessConflict('option_present', 'Ce service figure déjà sur la facture.');
         }
@@ -138,6 +143,9 @@ final readonly class ManageInvoiceLines
     {
         if ($line->kind === LineKind::Fee) {
             throw ValidationException::withMessages(['line' => 'Les frais de la grille ne se retirent pas : retirez le service, ou ajoutez une remise.']);
+        }
+        if ($line->kind === LineKind::Departure) {
+            throw ValidationException::withMessages(['line' => 'La ligne de départ suit l’inscription : elle disparaît si l’élève revient.']);
         }
 
         return DB::transaction(static function () use ($invoice, $line): Invoice {
