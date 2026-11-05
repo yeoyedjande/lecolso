@@ -1782,10 +1782,10 @@ export interface components {
         DaycareChildResource: {
             student: components["schemas"]["AttendanceStudentResource"];
             visit: {
-                arrived_at: string;
-                left_at: string;
-                dropped_by: string;
-                picked_up_by: string;
+                arrived_at: string | null;
+                left_at: string | null;
+                dropped_by: string | null;
+                picked_up_by: string | null;
             } | null;
             logs: components["schemas"]["DaycareLogResource"][];
         };
@@ -2024,7 +2024,7 @@ export interface components {
             /** @enum {string} */
             source: "guardian" | "school";
             reason: string;
-            proof_url: string;
+            proof_url: string | null;
             submitted_by_name: string;
             submitted_at: string;
             decided_by_name: string | null;

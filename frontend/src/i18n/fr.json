@@ -63,7 +63,8 @@
       "description": "Le chargement n’a pas abouti. Vérifiez votre connexion internet puis réessayez."
     },
     "offline": {
-      "banner": "Vous êtes hors connexion. Les informations affichées peuvent ne pas être à jour."
+      "banner": "Vous êtes hors connexion. Les informations affichées peuvent ne pas être à jour.",
+      "pending": "{{count}} élément(s) en attente d’envoi"
     },
     "demo": "Données de démonstration",
     "soon": {
@@ -320,7 +321,7 @@
     },
     "attendance": {
       "title": "Taux de présence",
-      "description": "10 derniers jours de classe, toutes classes confondues",
+      "description": "10 derniers jours d’appel, classes qui font l’appel",
       "rate": "Présence"
     },
     "activity": {
@@ -1023,7 +1024,7 @@
   },
   "attendance": {
     "title": "Présences",
-    "description": "Appel de classe en quelques gestes, et historique des absences.",
+    "description": "Appel de chaque classe, absences, retards et justifications.",
     "tabs": {
       "rollCall": "Appel",
       "history": "Historique",
@@ -1031,14 +1032,14 @@
     },
     "date": "Date de l’appel",
     "allPresent": "Tous présents",
-    "taken": "Appel fait par {{by}} à {{time}}. Vous pouvez le corriger.",
+    "taken": "Appel enregistré par {{by}} à {{time}}.",
     "notTaken": "Appel pas encore fait pour cette classe.",
     "summary": "{{present}} présent(s) · {{absent}} absent(s) · {{late}} retard(s)",
     "statusFor": "{{status}} — {{name}}",
     "save": "Enregistrer l’appel",
     "saving": "Enregistrement…",
     "saved": "Appel enregistré : {{absent}} absent(s)",
-    "noClass": "Aucune classe ne fait l’appel (les cycles en arrivées/départs sont dans « Garderie »).",
+    "noClass": "Aucune classe ne fait l’appel pour vous (les cycles en arrivées et départs sont dans « Garderie »).",
     "month": "Mois",
     "day": "Jour",
     "present": "Présents",
@@ -1048,7 +1049,35 @@
     "rate": "Taux de présence du mois : {{rate}} %",
     "noAbsenceToday": "Aucune absence signalée aujourd’hui.",
     "justify": "Justifier",
-    "justified": "Justifiée"
+    "justified": "Justifiée",
+    "queued": "Hors connexion : enregistré sur cet appareil, envoyé au retour du réseau.",
+    "noStudent": "Aucun élève inscrit dans cette classe ce jour-là.",
+    "correctionHint": "Journée passée : la correction est tracée avec son motif.",
+    "dayClosed": "Journée passée : seule la direction peut corriger cet appel.",
+    "correctedBy": "Corrigé par {{name}} le {{date}} : {{reason}}",
+    "reason": "Motif de la correction",
+    "reasonHint": "Obligatoire pour modifier une journée passée.",
+    "noDay": "Aucun jour de classe sur cette période.",
+    "status": "Statut",
+    "justificationTitle": "Justification",
+    "justification": {
+      "pending": "Justification à valider",
+      "accepted": "Absence excusée",
+      "refused": "Justification refusée"
+    },
+    "pendingOnly": "Justifications à traiter",
+    "noPending": "Aucune justification à traiter.",
+    "seeProof": "Voir le justificatif",
+    "accept": "Accepter",
+    "refuse": "Refuser",
+    "accepted": "Justification acceptée",
+    "refused": "Justification refusée",
+    "justifyTitle": "Justifier l’absence de {{name}}",
+    "justifyHint": "Saisie par l’école (mot écrit, appel du parent) : l’absence est excusée aussitôt.",
+    "justifyReason": "Motif",
+    "proof": "Justificatif (photo, facultatif)",
+    "proofHint": "Certificat médical ou mot du parent : JPEG, PNG ou WebP, 5 Mo au plus.",
+    "justifiedDone": "Absence justifiée"
   },
   "daycare": {
     "title": "Garderie",
@@ -1555,7 +1584,8 @@
     "students.medical.view": "Voir les données médicales des élèves",
     "billing.discount": "Accorder des remises sur les factures",
     "billing.cancel": "Annuler un paiement encaissé (avec motif)",
-    "billing.refund": "Rembourser ou reporter un trop-perçu"
+    "billing.refund": "Rembourser ou reporter un trop-perçu",
+    "attendance.correct": "Corriger un appel après sa journée (avec motif)"
   },
   "permissionGroups": {
     "school": "Établissement",
@@ -1746,5 +1776,9 @@
       "date": "Date obligatoire.",
       "order": "La fin doit suivre la rentrée."
     }
+  },
+  "sync": {
+    "done": "{{count}} saisie(s) hors connexion envoyée(s)",
+    "rejected": "Saisie hors connexion refusée : {{message}}"
   }
 }

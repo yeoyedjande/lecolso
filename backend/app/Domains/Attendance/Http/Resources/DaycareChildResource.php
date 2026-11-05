@@ -28,10 +28,10 @@ final class DaycareChildResource extends JsonResource
         return [
             'student' => new AttendanceStudentResource($this->resource['student']),
             'visit' => $visit === null ? null : [
-                'arrived_at' => $visit->arrived_at,
-                'left_at' => $visit->left_at,
-                'dropped_by' => $visit->dropped_by,
-                'picked_up_by' => $visit->picked_up_by,
+                'arrived_at' => $visit->arrived_at === null ? null : (string) $visit->arrived_at,
+                'left_at' => $visit->left_at === null ? null : (string) $visit->left_at,
+                'dropped_by' => $visit->dropped_by === null ? null : (string) $visit->dropped_by,
+                'picked_up_by' => $visit->picked_up_by === null ? null : (string) $visit->picked_up_by,
             ],
             'logs' => DaycareLogResource::collection($this->resource['logs']),
         ];

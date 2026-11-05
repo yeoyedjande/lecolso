@@ -23,13 +23,14 @@ final class JustificationResource extends JsonResource
     public function toArray(Request $request): array
     {
         $justification = $this->resource;
+        $proof = $justification->proof_path === null ? null : app(AbsenceProof::class)->url($justification->proof_path);
 
         return [
             'id' => $justification->id,
             'status' => $justification->status->value,
             'source' => $justification->source->value,
             'reason' => $justification->reason,
-            'proof_url' => app(AbsenceProof::class)->url($justification->proof_path),
+            'proof_url' => $proof === null ? null : (string) $proof,
             'submitted_by_name' => $justification->submitted_by_name,
             'submitted_at' => $justification->created_at->toIso8601String(),
             'decided_by_name' => $justification->decided_by_name,

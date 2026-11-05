@@ -127,7 +127,7 @@ test('impayés : relance SMS d’un parent, une seule fois par semaine', async (
   const dialog = page.getByRole('dialog', { name: /Relancer par SMS/ })
   await expect(dialog).toContainText('présente un retard de')
   await dialog.getByRole('button', { name: 'Envoyer les SMS' }).click()
-  await expect(page.getByText('1 SMS de relance mis en envoi')).toBeVisible()
+  await expect(page.getByText('1 SMS de relance mis en envoi').first()).toBeVisible()
   await expect(page.getByText(/Relancé le 04\/11\/2026/).first()).toBeVisible()
 
   await page

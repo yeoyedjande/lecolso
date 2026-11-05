@@ -1,13 +1,27 @@
+import { Check, FileCheck2, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ScreenHeader } from '@/components/ScreenHeader'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ListSkeleton, QueryState } from '@/components/states/QueryState'
+import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect } from '@/components/ui/native-select'
 import {
   Table,
   TableBody,
@@ -17,25 +31,30 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { can } from '@/features/auth/access'
-import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
-import { ClassPicker } from '@/components/ClassPicker'
-import { usePedagogyClasses } from '@/features/cycles/usePedagogyClasses'
-import { demoToday, YEAR_START } from '@/lib/demo/dates'
-import { formatLongDate } from '@/lib/format'
+import { ConflictError } from '@/lib/api/errors'
+import { formatDate, formatLongDate } from '@/lib/format'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
-import { useAbsences, useAttendanceHistory, useRollCall } from '../api'
+import {
+  useAbsences,
+  useAttendanceClassrooms,
+  useAttendanceHistory,
+  useDecideJustification,
+  useJustifyAbsence,
+  useRollCall,
+  type Absence,
+} from '../api'
+import { justificationKey, monthEnd, schoolToday } from '../status'
 
 import { RollCallPanel } from './RollCallPanel'
 
 function History({ classroomId }: { classroomId: string }) {
   const { t } = useTranslation()
-  const today = demoToday()
+  const today = schoolToday()
   const [month, setMonth] = useState(today.slice(0, 7))
-  const from = `${month}-01` < YEAR_START ? YEAR_START : `${month}-01`
-  const to = `${month}-31` > today ? today : `${month}-31`
-  const query = useAttendanceHistory(classroomId, from, to)
+  const end = monthEnd(month)
+  const query = useAttendanceHistory(classroomId, `${month}-01`, end > today ? today : end)
 
   return (
     <div className="grid gap-4">
@@ -44,7 +63,6 @@ function History({ classroomId }: { classroomId: string }) {
           <Input
             {...control}
             type="month"
-            min={YEAR_START.slice(0, 7)}
             max={today.slice(0, 7)}
             value={month}
             onChange={(event) => {
@@ -58,14 +76,16 @@ function History({ classroomId }: { classroomId: string }) {
           const taken = days.filter((day) => day.taken)
           const totalPresent = taken.reduce((sum, day) => sum + day.present, 0)
           const total = taken.reduce((sum, day) => sum + day.present + day.absent, 0)
-          return (
+          return days.length === 0 ? (
+            <EmptyState title={t('attendance.noDay')} />
+          ) : (
             <div className="grid gap-3">
               <p className="font-semibold">
                 {t('attendance.rate', {
                   rate: total === 0 ? 100 : Math.round((totalPresent / total) * 1000) / 10,
                 })}
               </p>
-              <Card className="overflow-hidden p-0">
+              <Card className="overflow-x-auto p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -112,46 +132,262 @@ function History({ classroomId }: { classroomId: string }) {
   )
 }
 
-function TodayAbsences() {
+function JustifyDialog({ absence, onClose }: { absence: Absence; onClose: () => void }) {
   const { t } = useTranslation()
-  const query = useAbsences()
+  const justify = useJustifyAbsence()
+  const [reason, setReason] = useState('')
+  const [proof, setProof] = useState<File | null>(null)
   return (
-    <QueryState query={query}>
-      {(rows) =>
-        rows.length === 0 ? (
-          <EmptyState title={t('attendance.noAbsenceToday')} />
-        ) : (
-          <Card className="overflow-hidden p-0">
-            <Table>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.student.id}>
-                    <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell>{row.classroom}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === 'late' ? 'accent' : 'destructive'}>
-                        {t(`attendanceStatus.${row.status}`)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
-                      {row.justified
-                        ? t('attendance.justified')
-                        : t('students.detail.notJustified')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )
-      }
-    </QueryState>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      <DialogContent closeLabel={t('common.close')}>
+        <DialogTitle>
+          {t('attendance.justifyTitle', { name: absence.student.full_name })}
+        </DialogTitle>
+        <DialogDescription>{t('attendance.justifyHint')}</DialogDescription>
+        <Field label={t('attendance.justifyReason')}>
+          {(control) => (
+            <Input
+              {...control}
+              value={reason}
+              maxLength={300}
+              onChange={(event) => {
+                setReason(event.target.value)
+              }}
+            />
+          )}
+        </Field>
+        <Field label={t('attendance.proof')} hint={t('attendance.proofHint')}>
+          {(control) => (
+            <Input
+              {...control}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => {
+                setProof(event.target.files?.[0] ?? null)
+              }}
+            />
+          )}
+        </Field>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="ghost">{t('common.cancel')}</Button>
+          </DialogClose>
+          <Button
+            variant="accent"
+            disabled={reason.trim().length < 3 || justify.isPending}
+            onClick={() => {
+              justify
+                .mutateAsync({ markId: absence.id, reason: reason.trim(), proof })
+                .then(() => {
+                  toast(t('attendance.justifiedDone'), { tone: 'success' })
+                  onClose()
+                })
+                .catch(() => {
+                  toast(t('common.error'), { tone: 'error' })
+                })
+            }}
+          >
+            <FileCheck2 aria-hidden />
+            {t('attendance.justify')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function RollCallTab({ classroomId, editable }: { classroomId: string; editable: boolean }) {
+function Absences() {
   const { t } = useTranslation()
-  const today = demoToday()
+  const today = schoolToday()
+  const [date, setDate] = useState(today)
+  const [pending, setPending] = useState(false)
+  const [justifying, setJustifying] = useState<Absence | null>(null)
+  const query = useAbsences({ date: pending ? null : date, pending })
+  const decide = useDecideJustification()
+
+  const onDecide = (absence: Absence, accepted: boolean) => {
+    if (absence.justification === null) return
+    decide
+      .mutateAsync({ justificationId: absence.justification.id, accepted, note: null })
+      .then(() => {
+        toast(accepted ? t('attendance.accepted') : t('attendance.refused'), { tone: 'success' })
+      })
+      .catch((caught: unknown) => {
+        toast(caught instanceof ConflictError ? caught.message : t('common.error'), {
+          tone: 'error',
+        })
+      })
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-end gap-4">
+        <Field label={t('attendance.date')} className="max-w-xs">
+          {(control) => (
+            <Input
+              {...control}
+              type="date"
+              max={today}
+              disabled={pending}
+              value={date}
+              onChange={(event) => {
+                if (event.target.value !== '') setDate(event.target.value)
+              }}
+            />
+          )}
+        </Field>
+        <div className="flex min-h-11 items-center gap-2">
+          <Checkbox
+            id="absences-pending"
+            checked={pending}
+            onCheckedChange={(checked) => {
+              setPending(checked === true)
+            }}
+          />
+          <Label htmlFor="absences-pending">{t('attendance.pendingOnly')}</Label>
+        </div>
+      </div>
+      <QueryState query={query}>
+        {(rows) =>
+          rows.length === 0 ? (
+            <EmptyState
+              title={pending ? t('attendance.noPending') : t('attendance.noAbsenceToday')}
+            />
+          ) : (
+            <Card className="overflow-x-auto p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('students.student')}</TableHead>
+                    <TableHead>{t('attendance.status')}</TableHead>
+                    <TableHead>{t('attendance.justificationTitle')}</TableHead>
+                    <TableHead className="text-right">
+                      <span className="sr-only">{t('common.actions')}</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <span className="flex items-center gap-2">
+                          <Avatar
+                            name={row.student.full_name}
+                            photoUrl={row.student.photo_url}
+                            size="sm"
+                          />
+                          <span className="grid">
+                            <span className="font-medium">{row.student.full_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {row.classroom.name}
+                              {pending && ` · ${formatDate(row.date)}`}
+                            </span>
+                          </span>
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={row.status === 'late' ? 'accent' : 'destructive'}>
+                          {t(`attendanceStatus.${row.status === 'late' ? 'late' : 'absent'}`)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {row.justification === null ? (
+                          <span className="text-muted-foreground">
+                            {t('students.detail.notJustified')}
+                          </span>
+                        ) : (
+                          <span className="grid gap-0.5">
+                            <span className="font-medium">
+                              {t(
+                                `attendance.justification.${justificationKey(row.justification.status)}`,
+                              )}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {row.justification.reason}
+                            </span>
+                            {row.justification.proof_url !== null && (
+                              <a
+                                href={row.justification.proof_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-accent-ink underline"
+                              >
+                                {t('attendance.seeProof')}
+                              </a>
+                            )}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.can_decide && row.justification?.status === 'pending' && (
+                          <span className="inline-flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={decide.isPending}
+                              onClick={() => {
+                                onDecide(row, true)
+                              }}
+                            >
+                              <Check aria-hidden />
+                              {t('attendance.accept')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={decide.isPending}
+                              onClick={() => {
+                                onDecide(row, false)
+                              }}
+                            >
+                              <X aria-hidden />
+                              {t('attendance.refuse')}
+                            </Button>
+                          </span>
+                        )}
+                        {row.can_decide &&
+                          (row.justification === null ||
+                            row.justification.status === 'refused') && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setJustifying(row)
+                              }}
+                            >
+                              <FileCheck2 aria-hidden />
+                              {t('attendance.justify')}
+                            </Button>
+                          )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )
+        }
+      </QueryState>
+      {justifying !== null && (
+        <JustifyDialog
+          absence={justifying}
+          onClose={() => {
+            setJustifying(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function RollCallTab({ classroomId }: { classroomId: string }) {
+  const { t } = useTranslation()
+  const today = schoolToday()
   const [date, setDate] = useState(today)
   const query = useRollCall(classroomId, date)
   return (
@@ -161,7 +397,6 @@ function RollCallTab({ classroomId, editable }: { classroomId: string; editable:
           <Input
             {...control}
             type="date"
-            min={YEAR_START}
             max={today}
             value={date}
             onChange={(event) => {
@@ -172,33 +407,34 @@ function RollCallTab({ classroomId, editable }: { classroomId: string; editable:
       </Field>
       <p className="text-sm text-muted-foreground first-letter:uppercase">{formatLongDate(date)}</p>
       <QueryState query={query}>
-        {(call) => (
-          <RollCallPanel
-            key={`${classroomId}-${date}-${call.taken?.at ?? ''}`}
-            call={call}
-            editable={editable}
-          />
-        )}
+        {(call) =>
+          call === null ? (
+            <EmptyState title={t('attendance.noClass')} />
+          ) : (
+            <RollCallPanel key={`${classroomId}-${date}-${call.taken?.at ?? ''}`} call={call} />
+          )
+        }
       </QueryState>
     </div>
   )
 }
 
-/** Présences : appel (classes en « roll_call »), historique et absents du jour. */
+/** Présences (vraie API) : appel des classes en « roll_call », historique, absences et justifications. */
 export function AttendancePage() {
   const { t } = useTranslation()
-  const school = useCurrentSchool()
-  const { classrooms, loading } = usePedagogyClasses(
-    'attendance.view',
-    (settings) => settings.attendance_mode === 'roll_call',
-  )
+  const query = useAttendanceClassrooms()
   const [classroomId, setClassroomId] = useState('')
+  const classrooms = (query.data ?? []).filter((candidate) => candidate.mode === 'roll_call')
   const classroom = classrooms.find((candidate) => candidate.id === classroomId) ?? classrooms[0]
 
   return (
-    <div className="grid gap-6">
-      <ScreenHeader title={t('attendance.title')} description={t('attendance.description')} />
-      {loading ? (
+    <div className="grid grid-cols-1 gap-6">
+      <ScreenHeader
+        title={t('attendance.title')}
+        description={t('attendance.description')}
+        demo={false}
+      />
+      {query.isPending ? (
         <ListSkeleton />
       ) : classroom === undefined ? (
         <EmptyState title={t('attendance.noClass')} />
@@ -211,17 +447,29 @@ export function AttendancePage() {
               <TabsTrigger value="today">{t('attendance.tabs.today')}</TabsTrigger>
             </TabsList>
             <div className="w-full sm:w-56">
-              <ClassPicker classrooms={classrooms} value={classroom.id} onChange={setClassroomId} />
+              <NativeSelect
+                aria-label={t('grades.classroom')}
+                value={classroom.id}
+                onChange={(event) => {
+                  setClassroomId(event.target.value)
+                }}
+              >
+                {classrooms.map((candidate) => (
+                  <option key={candidate.id} value={candidate.id}>
+                    {candidate.name}
+                  </option>
+                ))}
+              </NativeSelect>
             </div>
           </div>
           <TabsContent value="rollCall" className="mt-4">
-            <RollCallTab classroomId={classroom.id} editable={can(school, 'attendance.manage')} />
+            <RollCallTab classroomId={classroom.id} />
           </TabsContent>
           <TabsContent value="history" className="mt-4">
             <History classroomId={classroom.id} />
           </TabsContent>
           <TabsContent value="today" className="mt-4">
-            <TodayAbsences />
+            <Absences />
           </TabsContent>
         </Tabs>
       )}

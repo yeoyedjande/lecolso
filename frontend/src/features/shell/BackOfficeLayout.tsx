@@ -16,6 +16,7 @@ import { ContextSwitcher } from './ContextSwitcher'
 import { BACK_OFFICE_NAV, visibleSections } from './nav'
 import { SpaceLink } from './SpaceLink'
 import { UserMenu } from './UserMenu'
+import { OutboxSync } from '@/features/sync/OutboxSync'
 
 /** Menu replié : préférence d'affichage conservée hors du préfixe des données (survit à la déconnexion). */
 const COLLAPSED_KEY = 'lecolso-ui.sidebar-collapsed'
@@ -113,6 +114,7 @@ export function BackOfficeLayout() {
 
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
+      <OutboxSync />
       <a
         href="#contenu"
         className="sr-only z-50 rounded-xl bg-accent px-4 py-2 font-semibold text-accent-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
