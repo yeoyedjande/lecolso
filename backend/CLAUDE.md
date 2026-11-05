@@ -118,6 +118,16 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
   journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
 
+## Fichiers
+
+- Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).
+  Jamais d'URL de bucket envoyée au client : l'API sert le fichier par une **URL signée relative** (`signed:relative`,
+  préfixée par `APP_URL`), courte, et sans identifiant d'école dans le chemin si elle apparaît sur une page publique.
+  Exemple : logo d'école (`Tenancy\Support\SchoolLogo`, route `files.school-logo`, 30 minutes).
+- Images envoyées par les utilisateurs : `Support\Images\WebpImage::fromBytes()` (GD, aucune dépendance) — JPEG, PNG
+  ou WebP seulement, réduction, réencodage WebP qui retire les métadonnées (EXIF, position GPS). Jamais de SVG.
+- Tests multipart : `SpaClient::upload($uri, ['champ' => $fichier], $entêtes)`.
+
 ## Journal d'audit
 
 - spatie/laravel-activitylog, modèle `App\Support\Audit\Activity` : table `activity_log` avec `school_id` obligatoire et RLS.

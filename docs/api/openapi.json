@@ -585,6 +585,234 @@
                 }
             }
         },
+        "/files/school-logos/{file}": {
+            "get": {
+                "operationId": "files.school-logo",
+                "description": "URL sign\u00e9e renvoy\u00e9e par l'API (`logo_url`), valable 30 minutes ; sans signature valide : 403. Aucune session :\nla page publique de l'\u00e9cole l'affiche aussi.",
+                "summary": "Lire un logo d'\u00e9cole",
+                "tags": [
+                    "SchoolLogoFile"
+                ],
+                "parameters": [
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "image/webp": {
+                                "schema": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "private, max-age=1800"
+                                }
+                            },
+                            "X-Content-Type-Options": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "nosniff"
+                                }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "inline"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    }
+                }
+            }
+        },
+        "/school": {
+            "get": {
+                "operationId": "school.show",
+                "description": "Nom, coordonn\u00e9es, devise et logo (URL sign\u00e9e de 30 minutes). Tout membre de l'\u00e9cole.",
+                "summary": "Identit\u00e9 de l'\u00e9cole courante",
+                "tags": [
+                    "SchoolProfile"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`SchoolProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "school.update",
+                "description": "Champs envoy\u00e9s seulement ; cha\u00eene vide = effacer. Permission school.settings.manage sur toute l'\u00e9cole.\nCes coordonn\u00e9es sont affich\u00e9es sur la page publique de l'\u00e9cole.",
+                "summary": "Modifier l'identit\u00e9 de l'\u00e9cole",
+                "tags": [
+                    "SchoolProfile"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSchoolProfileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`SchoolProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/school/logo": {
+            "post": {
+                "operationId": "school.logo.store",
+                "description": "multipart/form-data, champ `logo` : JPEG, PNG ou WebP, 2 Mo au plus. Converti en WebP de 512 px au plus,\nsans m\u00e9tadonn\u00e9es ; remplace le logo pr\u00e9c\u00e9dent.",
+                "summary": "Envoyer le logo",
+                "tags": [
+                    "SchoolProfile"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UploadSchoolLogoRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`SchoolProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "school.logo.destroy",
+                "summary": "Retirer le logo",
+                "tags": [
+                    "SchoolProfile"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`SchoolProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/roles": {
             "get": {
                 "operationId": "roles.index",
@@ -1873,6 +2101,36 @@
                     "type": {
                         "type": "string"
                     },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "motto": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "logo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "cycles": {
                         "type": "array",
                         "items": {
@@ -1904,6 +2162,11 @@
                     "slug",
                     "city",
                     "type",
+                    "address",
+                    "phone",
+                    "email",
+                    "motto",
+                    "logo_url",
                     "cycles"
                 ],
                 "title": "PublicSchoolResource"
@@ -1973,6 +2236,81 @@
                     "permissions"
                 ],
                 "title": "SchoolMembershipResource"
+            },
+            "SchoolProfileResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "preschool_primary",
+                            "secondary",
+                            "higher"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "motto": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "logo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "type",
+                    "city",
+                    "address",
+                    "phone",
+                    "email",
+                    "motto",
+                    "currency",
+                    "logo_url"
+                ],
+                "title": "SchoolProfileResource"
             },
             "SchoolResource": {
                 "type": "object",
@@ -2253,6 +2591,53 @@
                 },
                 "title": "UpdateCycleRequest"
             },
+            "UpdateSchoolProfileRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 80
+                    },
+                    "address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 30
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "motto": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    }
+                },
+                "title": "UpdateSchoolProfileRequest"
+            },
             "UpdateSchoolRoleRequest": {
                 "type": "object",
                 "properties": {
@@ -2301,6 +2686,21 @@
                     }
                 },
                 "title": "UpdateSchoolUserRequest"
+            },
+            "UploadSchoolLogoRequest": {
+                "type": "object",
+                "properties": {
+                    "logo": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "description": "Maximum file size: 2048 kilobytes."
+                    }
+                },
+                "required": [
+                    "logo"
+                ],
+                "title": "UploadSchoolLogoRequest"
             },
             "UserAssignmentResource": {
                 "type": "object",
@@ -2404,6 +2804,25 @@
             },
             "AuthorizationException": {
                 "description": "Authorization error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "NotFoundHttpException": {
+                "description": "Not found",
                 "content": {
                     "application/json": {
                         "schema": {

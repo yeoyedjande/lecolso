@@ -430,6 +430,55 @@ export async function mockApi(
     ...user,
     can_manage: canManage(schoolId, user),
   })
+  // Identité des écoles (GET/PATCH /school, logo) : modifiée par les écritures, lue aussi par la page publique
+  interface MockSchoolProfile {
+    name: string
+    city: string | null
+    address: string | null
+    phone: string | null
+    email: string | null
+    motto: string | null
+    logo_url: string | null
+  }
+  const profiles = new Map<string, MockSchoolProfile>()
+  const schoolProfileOf = (schoolId: string): MockSchoolProfile => {
+    const existing = profiles.get(schoolId)
+    if (existing !== undefined) return existing
+    const schoolKey = schoolKeyOf(schoolId) ?? 'lauriers'
+    const profile: MockSchoolProfile = {
+      name: SCHOOLS[schoolKey].name,
+      city: 'Abidjan',
+      address: schoolKey === 'lauriers' ? 'Cocody Angré, 8e tranche, Abidjan' : null,
+      phone: schoolKey === 'lauriers' ? '+2252722410000' : null,
+      email: schoolKey === 'lauriers' ? 'contact@leslauriers.ci' : null,
+      motto: schoolKey === 'lauriers' ? 'Grandir, apprendre, s’épanouir' : null,
+      logo_url: null,
+    }
+    profiles.set(schoolId, profile)
+    return profile
+  }
+  const schoolResource = (schoolId: string) => {
+    const schoolKey = schoolKeyOf(schoolId) ?? 'lauriers'
+    return {
+      id: schoolId,
+      slug: SCHOOLS[schoolKey].slug,
+      type: 'preschool_primary',
+      currency: 'XOF',
+      ...schoolProfileOf(schoolId),
+    }
+  }
+  /** Comme SchoolPolicy::update : paramètres de l'école sur toute l'école. */
+  const canEditSchool = (schoolId: string) => {
+    const schoolKey = schoolKeyOf(schoolId)
+    return (
+      current?.roles.some(
+        (assignment) =>
+          assignment.school === schoolKey &&
+          assignment.cycle === undefined &&
+          PERMISSIONS['school.settings.manage']?.includes(assignment.role) === true,
+      ) ?? false
+    )
+  }
   const ordered = (permissions: string[]) =>
     Object.keys(PERMISSIONS).filter((permission) => permissions.includes(permission))
 
@@ -469,10 +518,18 @@ export async function mockApi(
       }
       case 'GET /health':
         return route.fulfill({ json: { status: 'ok', database: 'ok', redis: 'ok' } })
-      case 'GET /me':
-        return current === null
-          ? route.fulfill({ status: 401, json: { message: 'Unauthenticated.' } })
-          : route.fulfill({ json: { data: profileOf(current, mustChange) } })
+      case 'GET /me': {
+        if (current === null) {
+          return route.fulfill({ status: 401, json: { message: 'Unauthenticated.' } })
+        }
+        // Nom des écoles renommées par PATCH /school (comme l'API, qui lit schools.name)
+        const me = profileOf(current, mustChange)
+        const schools = me.schools.map((school) => ({
+          ...school,
+          name: profiles.get(school.id)?.name ?? school.name,
+        }))
+        return route.fulfill({ json: { data: { ...me, schools } } })
+      }
       case 'POST /auth/login': {
         const body = z
           .object({ login: z.string(), password: z.string() })
@@ -572,6 +629,46 @@ export async function mockApi(
             },
           },
         })
+      }
+      case 'GET /school':
+        return route.fulfill({ json: { data: schoolResource(schoolHeader ?? '') } })
+      case 'PATCH /school': {
+        const schoolId = schoolHeader ?? ''
+        if (!canEditSchool(schoolId)) {
+          return route.fulfill({ status: 403, json: { message: 'This action is unauthorized.' } })
+        }
+        const body = z.record(z.string(), z.nullable(z.string())).parse(request.postDataJSON())
+        const profile = schoolProfileOf(schoolId)
+        if (body.phone !== undefined && body.phone !== null && body.phone !== '') {
+          // Comme Support\Phone\Phone : tout numéro ivoirien à 10 chiffres (fixe ou mobile)
+          const digits = body.phone.replace(/[\s.-]/g, '')
+          body.phone = /^\d{10}$/.test(digits) ? `+225${digits}` : digits
+        }
+        for (const field of ['name', 'city', 'address', 'phone', 'email', 'motto'] as const) {
+          const value = body[field]
+          if (value === undefined) continue
+          if (field === 'name') profile.name = value ?? profile.name
+          else profile[field] = value === null || value === '' ? null : value
+        }
+        return route.fulfill({ json: { data: schoolResource(schoolId) } })
+      }
+      case 'POST /school/logo': {
+        const schoolId = schoolHeader ?? ''
+        if (!canEditSchool(schoolId)) {
+          return route.fulfill({ status: 403, json: { message: 'This action is unauthorized.' } })
+        }
+        // Image de test (1 × 1, orange) : l'API réelle renverrait une URL signée de lecture
+        schoolProfileOf(schoolId).logo_url =
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg=='
+        return route.fulfill({ json: { data: schoolResource(schoolId) } })
+      }
+      case 'DELETE /school/logo': {
+        const schoolId = schoolHeader ?? ''
+        if (!canEditSchool(schoolId)) {
+          return route.fulfill({ status: 403, json: { message: 'This action is unauthorized.' } })
+        }
+        schoolProfileOf(schoolId).logo_url = null
+        return route.fulfill({ json: { data: schoolResource(schoolId) } })
       }
       case 'GET /users': {
         const schoolId = schoolHeader ?? ''
@@ -818,10 +915,17 @@ export async function mockApi(
           return route.fulfill({
             json: {
               data: {
-                name: school.name,
                 slug: school.slug,
-                city: 'Abidjan',
                 type: 'preschool_primary',
+                ...(({ name, city, address, phone, email, motto, logo_url }) => ({
+                  name,
+                  city,
+                  address,
+                  phone,
+                  email,
+                  motto,
+                  logo_url,
+                }))(schoolProfileOf(school.id)),
                 cycles,
               },
             },

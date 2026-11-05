@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { normalizeCiPhone } from './phone'
+import { normalizeCiAnyPhone, normalizeCiPhone } from './phone'
 
 describe('normalizeCiPhone', () => {
   it.each([
@@ -13,5 +13,17 @@ describe('normalizeCiPhone', () => {
     ['+33612345678', null],
   ])('%s → %s', (input, expected) => {
     expect(normalizeCiPhone(input)).toBe(expected)
+  })
+})
+
+describe('normalizeCiAnyPhone (fixes et mobiles, coordonnées d’un établissement)', () => {
+  it.each([
+    ['27 22 41 00 00', '+2252722410000'],
+    ['+225 21 35 00 00 00', '+2252135000000'],
+    ['07 00 00 00 00', '+2250700000000'],
+    ['0700', null],
+    ['+33612345678', null],
+  ])('%s → %s', (input, expected) => {
+    expect(normalizeCiAnyPhone(input)).toBe(expected)
   })
 })
