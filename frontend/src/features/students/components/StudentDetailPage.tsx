@@ -30,6 +30,9 @@ import {
 } from '@/components/ui/dialog'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { can } from '@/features/auth/access'
+import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
+import { InvoicePanel } from '@/features/billing/components/InvoicePanel'
 import { ConflictError } from '@/lib/api/errors'
 import { formatDay, formatPhone } from '@/lib/format'
 import { toast } from '@/lib/toast'
@@ -73,6 +76,10 @@ function Detail({ file }: { file: StudentFile }) {
   const enrollment = file.enrollments[0]
   const today = new Date().toISOString().slice(0, 10)
   const editable = enrollment?.academic_year.status !== 'closed'
+  const school = useCurrentSchool()
+  const tabs = can(school, 'billing.view')
+    ? (['identity', 'guardians', 'schooling', 'fees'] as const)
+    : (['identity', 'guardians', 'schooling'] as const)
   const close = () => {
     setPanel(null)
   }
@@ -165,7 +172,7 @@ function Detail({ file }: { file: StudentFile }) {
       <Tabs defaultValue="identity">
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
           <TabsList className="w-max">
-            {(['identity', 'guardians', 'schooling'] as const).map((tab) => (
+            {tabs.map((tab) => (
               <TabsTrigger key={tab} value={tab}>
                 {t(`students.detail.tabs.${tab}`)}
               </TabsTrigger>
@@ -409,6 +416,11 @@ function Detail({ file }: { file: StudentFile }) {
             ))}
           </ul>
         </TabsContent>
+        {can(school, 'billing.view') && (
+          <TabsContent value="fees" className="mt-4">
+            <InvoicePanel studentId={file.id} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <Sheet

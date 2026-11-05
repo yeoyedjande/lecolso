@@ -3867,7 +3867,7 @@
                                         "type": "object",
                                         "properties": {
                                             "position": {
-                                                "type": "string"
+                                                "type": "integer"
                                             },
                                             "due_on": {
                                                 "type": "string"
@@ -3906,7 +3906,7 @@
                                                             "type": "string"
                                                         },
                                                         "amount": {
-                                                            "type": "string"
+                                                            "type": "integer"
                                                         }
                                                     },
                                                     "required": [
@@ -4658,6 +4658,84 @@
                 ],
                 "title": "HealthResource"
             },
+            "InvoiceLineResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "fee",
+                            "discount",
+                            "manual"
+                        ]
+                    },
+                    "fee_type_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "fee_type_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_optional": {
+                        "type": "boolean"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "kind",
+                    "fee_type_id",
+                    "fee_type_code",
+                    "is_optional",
+                    "label",
+                    "amount",
+                    "reason"
+                ],
+                "title": "InvoiceLineResource"
+            },
+            "InvoiceOptionResource": {
+                "type": "object",
+                "properties": {
+                    "fee_type_id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "fee_type_id",
+                    "code",
+                    "name",
+                    "amount"
+                ],
+                "title": "InvoiceOptionResource"
+            },
             "InvoiceResource": {
                 "type": "object",
                 "properties": {
@@ -4701,15 +4779,16 @@
                         ]
                     },
                     "total": {
-                        "type": "integer",
-                        "const": 0
+                        "type": "integer"
                     },
                     "discount_total": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "lines": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "$ref": "#/components/schemas/InvoiceLineResource"
+                        }
                     },
                     "schedule": {
                         "type": "array",
@@ -4733,8 +4812,7 @@
                                     ]
                                 },
                                 "amount": {
-                                    "type": "integer",
-                                    "const": 0
+                                    "type": "integer"
                                 }
                             },
                             "required": [
@@ -4746,7 +4824,9 @@
                     },
                     "available_options": {
                         "type": "array",
-                        "items": {}
+                        "items": {
+                            "$ref": "#/components/schemas/InvoiceOptionResource"
+                        }
                     },
                     "can_manage": {
                         "type": "boolean"

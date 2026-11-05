@@ -26,6 +26,7 @@ const valid: EnrollmentValues = {
     },
   ],
   classroomId: '0195f000-0000-7000-8000-0000000b0003',
+  options: ['canteen'],
 }
 
 function codes(input: unknown): string[] {

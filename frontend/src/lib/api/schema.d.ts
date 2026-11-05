@@ -1045,7 +1045,7 @@ export interface components {
                 billing_period: string;
                 can_manage: boolean;
                 dates: {
-                    position: string;
+                    position: number;
                     due_on: string;
                     label: string;
                 }[];
@@ -1055,7 +1055,7 @@ export interface components {
                     name: string;
                     amounts: {
                         fee_type_id: string;
-                        amount: string;
+                        amount: number;
                     }[];
                 }[];
             }[];
@@ -1247,6 +1247,25 @@ export interface components {
             /** @enum {string} */
             redis: "ok" | "error";
         };
+        /** InvoiceLineResource */
+        InvoiceLineResource: {
+            id: string;
+            /** @enum {string} */
+            kind: "fee" | "discount" | "manual";
+            fee_type_id: string | null;
+            fee_type_code: string | null;
+            is_optional: boolean;
+            label: string;
+            amount: number;
+            reason: string | null;
+        };
+        /** InvoiceOptionResource */
+        InvoiceOptionResource: {
+            fee_type_id: string;
+            code: string;
+            name: string;
+            amount: number;
+        };
         /** InvoiceResource */
         InvoiceResource: {
             id: string;
@@ -1259,17 +1278,15 @@ export interface components {
             payer: {
                 name: string;
             } | null;
-            /** @constant */
-            total: 0;
-            discount_total: string;
-            lines: unknown[];
+            total: number;
+            discount_total: number;
+            lines: components["schemas"]["InvoiceLineResource"][];
             schedule: {
                 due_on: string;
                 label: string | "";
-                /** @constant */
-                amount: 0;
+                amount: number;
             }[];
-            available_options: unknown[];
+            available_options: components["schemas"]["InvoiceOptionResource"][];
             can_manage: boolean;
             can_discount: boolean;
         };

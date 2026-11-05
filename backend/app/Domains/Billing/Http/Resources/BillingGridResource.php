@@ -28,7 +28,7 @@ final class BillingGridResource extends JsonResource
         foreach ($grid->cycles as $cycle) {
             $dates = [];
             foreach ($grid->calendars[$cycle->id] ?? [] as $date) {
-                $dates[] = ['position' => $date->position, 'due_on' => $date->due_on->toDateString(), 'label' => $date->label];
+                $dates[] = ['position' => (int) $date->position, 'due_on' => $date->due_on->toDateString(), 'label' => $date->label];
             }
 
             $levels = [];
@@ -36,7 +36,7 @@ final class BillingGridResource extends JsonResource
                 $amounts = [];
                 foreach ($grid->amounts as $schedule) {
                     if ($schedule->level_id === $level->id) {
-                        $amounts[] = ['fee_type_id' => $schedule->fee_type_id, 'amount' => $schedule->amount];
+                        $amounts[] = ['fee_type_id' => $schedule->fee_type_id, 'amount' => (int) $schedule->amount];
                     }
                 }
                 $levels[] = ['id' => $level->id, 'code' => $level->code, 'name' => $level->name, 'amounts' => $amounts];

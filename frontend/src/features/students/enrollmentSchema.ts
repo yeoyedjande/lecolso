@@ -57,6 +57,8 @@ export const enrollmentSchema = z.object({
     z.refine((list) => list.filter((guardian) => guardian.isPayer).length === 1, 'payer'),
   ),
   classroomId: z.string().check(z.minLength(1, 'classroom')),
+  /** Codes des services optionnels choisis (cantine, transport…), facturés avec l'inscription. */
+  options: z.array(z.string()),
 })
 
 export type StudentFieldsValues = z.infer<typeof studentFieldsSchema>
@@ -103,6 +105,7 @@ export function enrollmentPayload(
 ): EnrollStudentInput {
   return {
     classroom_id: values.classroomId,
+    options: values.options,
     student: studentPayload(values.student, withMedical),
     guardians: values.guardians.map((guardian, index) => ({
       ...guardianPayload(guardian),

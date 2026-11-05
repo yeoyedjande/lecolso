@@ -353,7 +353,8 @@
       "tabs": {
         "identity": "Identité",
         "guardians": "Parents",
-        "schooling": "Scolarité"
+        "schooling": "Scolarité",
+        "fees": "Frais"
       },
       "matricule": "Matricule",
       "born": "Né(e) le",
@@ -522,7 +523,7 @@
     "title": "Inscrire un élève",
     "description": "Quatre étapes : la classe, l’élève, ses parents, puis la vérification. Le matricule est attribué automatiquement.",
     "steps": {
-      "schooling": "Classe",
+      "schooling": "Classe et services",
       "student": "Élève",
       "guardians": "Parents",
       "review": "Vérification"
@@ -588,7 +589,9 @@
       "classroom_full": "Cette classe est complète : choisissez-en une autre.",
       "year_closed": "Cette année scolaire est clôturée.",
       "other_year": "La nouvelle classe doit appartenir à la même année scolaire."
-    }
+    },
+    "services": "Services optionnels (facturés avec l’inscription)",
+    "perYear": "par an"
   },
   "import": {
     "title": "Importer des élèves",
@@ -713,24 +716,82 @@
     },
     "schedules": {
       "title": "Échéanciers",
-      "description": "Montants attendus et encaissés pour chaque échéance de l’année.",
+      "description": "Montant attendu à chaque échéance de l’année, toutes classes confondues.",
       "installment": "Échéance",
       "dueDate": "Date limite",
       "expected": "Attendu",
-      "collected": "Encaissé",
-      "rate": "Recouvrement",
-      "students": "{{count}} élève(s)"
+      "students": "{{count}} élève(s)",
+      "total": "Total de l’année",
+      "emptyTitle": "Aucune échéance",
+      "emptyDescription": "Les échéances apparaissent dès que des élèves sont facturés (grille de frais)."
     },
     "fees": {
       "title": "Grille de frais",
-      "description": "Montants annuels par niveau, pour l’année {{year}}. Les échéances des nouveaux inscrits suivent cette grille.",
+      "description": "Montants annuels par niveau pour l’année {{year}}. Ils s’appliquent aux nouvelles inscriptions : les factures déjà émises ne changent pas.",
       "level": "Niveau",
       "optional": "Optionnel",
-      "installments": "en {{count}} fois",
       "edit": "Modifier le montant {{kind}} — {{level}}",
       "editTitle": "{{kind}} — {{level}}",
       "amount": "Montant annuel (FCFA)",
-      "saved": "Montant mis à jour"
+      "saved": "Montant mis à jour",
+      "descriptionNoYear": "Montants annuels par niveau, et calendrier des échéances de chaque cycle.",
+      "once": "en une fois",
+      "recurring": "réparti",
+      "period": "Facturation {{period}} · {{count}} échéance",
+      "period_other": "Facturation {{period}} · {{count}} échéances",
+      "editHint": "Montant annuel en FCFA. Laissez vide ou saisissez 0 pour ne pas facturer ce frais à ce niveau.",
+      "invalid": "Saisissez un montant entier, sans centimes.",
+      "yearClosed": "Année clôturée : la grille ne peut plus changer.",
+      "calendar": "Calendrier des échéances",
+      "dateLabel": "Libellé de l’échéance {{index}}",
+      "dueOn": "Date de l’échéance {{index}}",
+      "saveCalendar": "Enregistrer le calendrier ({{cycle}})",
+      "calendarSaved": "Calendrier de {{cycle}} enregistré",
+      "pending": "{{count}} élève inscrit n’a pas encore de facture pour cette année.",
+      "pending_other": "{{count}} élèves inscrits n’ont pas encore de facture pour cette année.",
+      "generate": "Facturer {{count}} élève",
+      "generate_other": "Facturer {{count}} élèves",
+      "generated": "{{count}} facture créée",
+      "generated_other": "{{count}} factures créées"
+    },
+    "invoice": {
+      "title": "Frais {{year}}",
+      "payer": "Facture adressée à {{name}}",
+      "noPayer": "Aucun parent payeur désigné",
+      "empty": "Aucun frais : la grille de frais de ce niveau était vide à l’inscription.",
+      "line": "Frais",
+      "amount": "Montant",
+      "actions": "Actions",
+      "total": "Total de l’année",
+      "schedule": "Échéances",
+      "removeOf": "Retirer {{label}}",
+      "removed": "{{label}} retiré",
+      "addOption": "Ajouter un service",
+      "chooseOption": "Choisir un service",
+      "add": "Ajouter",
+      "optionAdded": "Service ajouté à partir d’aujourd’hui",
+      "addLine": "Ajouter une ligne",
+      "addDiscount": "Accorder une remise",
+      "lineTitle": "Ajouter une ligne à la facture",
+      "lineHint": "Fournitures, tenue, sortie… Un montant dû à la date choisie.",
+      "discountTitle": "Accorder une remise",
+      "discountHint": "La remise réduit d’abord les dernières échéances. Le motif est conservé sur la facture.",
+      "label": "Libellé",
+      "reason": "Motif",
+      "amountFcfa": "Montant (FCFA)",
+      "dueOn": "Date d’échéance",
+      "dueOnHint": "Aujourd’hui si vous ne choisissez pas de date.",
+      "confirmLine": "Ajouter la ligne",
+      "confirmDiscount": "Accorder la remise",
+      "lineAdded": "Ligne ajoutée",
+      "discountAdded": "Remise accordée",
+      "noneTitle": "Aucune facture",
+      "noneDescription": "Cet élève n’a pas encore de facture : elle est créée à l’inscription, ou depuis la grille de frais.",
+      "conflicts": {
+        "discount_exceeds": "La remise dépasse le montant restant de la facture.",
+        "option_present": "Ce service figure déjà sur la facture.",
+        "no_amount": "Aucun montant n’est fixé pour ce service à ce niveau dans la grille de frais."
+      }
     }
   },
   "classes": {
@@ -1377,7 +1438,8 @@
     "users.view": "Voir les utilisateurs",
     "users.manage": "Créer, modifier et désactiver des utilisateurs",
     "roles.manage": "Créer et modifier les rôles",
-    "students.medical.view": "Voir les données médicales des élèves"
+    "students.medical.view": "Voir les données médicales des élèves",
+    "billing.discount": "Accorder des remises sur les factures"
   },
   "permissionGroups": {
     "school": "Établissement",

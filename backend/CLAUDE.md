@@ -135,6 +135,19 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   `medical: null` dans la réponse sinon, et champs `prohibited` dans les requêtes. Jamais dans la liste.
 - Places : `ClassroomSeats::reserve()` (verrou sur la classe, année ouverte, capacité) avant toute inscription active.
 
+## Facturation (domaine Billing)
+
+- `fee_types` (catalogue `config/billing.php`, créés avec l'école par `ProvisionFeeTypes`), `fee_schedules` (montant
+  annuel par niveau et par année), `installment_dates` (calendrier par cycle et par année, créé par `BillingCalendar`
+  d'après `CycleSettings::billingPeriod`), `payers`, `invoices` (une par inscription), `invoice_lines` (remise négative)
+  et `installments` (somme des échéances d'une ligne = son montant). Montants `bigInteger`, FCFA entiers.
+- Facture : `CreateInvoice` (appelée par l'inscription, dans la même transaction, et par `GenerateInvoices`) ; prorata
+  par `InvoiceSchedule::remainingShares` ; remises réparties depuis la dernière échéance (`rebalanceDiscounts`, 409
+  `discount_exceeds`). La grille n'est jamais réappliquée à une facture émise (`ManageInvoiceLines` pour la modifier).
+- Solde : aucune répartition stockée ; les paiements (lot 5b) s'imputeront aux échéances par date.
+- Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` et `billing.discount` sur le
+  cycle de la classe (`InvoicePolicy`, `BillingScope`). Payeur suivi par l'événement `Students\Events\StudentPayerChanged`.
+
 ## Fichiers
 
 - Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).
