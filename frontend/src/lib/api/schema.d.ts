@@ -392,6 +392,26 @@ export interface paths {
         patch: operations["cycles.update"];
         trace?: never;
     };
+    "/billing/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chiffres du tableau de bord
+         * @description Année en cours, cycles de l'utilisateur : effectifs ; finances avec `billing.view` (sinon `finance` null).
+         */
+        get: operations["billing.dashboard.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/enrollments": {
         parameters: {
             query?: never;
@@ -1143,6 +1163,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/unpaid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impayés
+         * @description Factures dont l'échu à aujourd'hui n'est pas réglé, toutes années, dans les cycles de l'utilisateur ; le plus
+         *     gros retard d'abord. Filtres `cycle_id`, `classroom_id`.
+         */
+        get: operations["billing.unpaid.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Relancer par SMS
+         * @description Un SMS par payeur pour les factures choisies en retard, au plus une fois tous les 7 jours ; envoi en file.
+         */
+        post: operations["billing.reminders.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1378,6 +1439,45 @@ export interface components {
                 daily_log: "none" | "optional" | "required";
             };
             levels: components["schemas"]["LevelResource"][];
+        };
+        /** DashboardCycleResource */
+        DashboardCycleResource: {
+            cycle_id: string;
+            code: string;
+            name: string;
+            students: number;
+            classrooms: number;
+        };
+        /** DashboardFinanceResource */
+        DashboardFinanceResource: {
+            collected_month: number;
+            payments_month: number;
+            expected_month: number;
+            overdue: number;
+            collection_rate: number;
+            monthly: components["schemas"]["DashboardMonthResource"][];
+            recent_payments: components["schemas"]["DashboardPaymentResource"][];
+        };
+        /** DashboardMonthResource */
+        DashboardMonthResource: {
+            month: string;
+            collected: number;
+        };
+        /** DashboardPaymentResource */
+        DashboardPaymentResource: {
+            payment_id: string;
+            receipt_number: string;
+            paid_at: string;
+            amount: number;
+            student_name: string;
+        };
+        /** DashboardResource */
+        DashboardResource: {
+            today: string;
+            academic_year_label: string | null;
+            students: number;
+            by_cycle: components["schemas"]["DashboardCycleResource"][];
+            finance: components["schemas"]["DashboardFinanceResource"] | null;
         };
         /**
          * DeparturePolicy
@@ -1690,6 +1790,22 @@ export interface components {
             reason: string;
             refunded_by_name: string;
         };
+        /**
+         * RemindRequest
+         * @description Relance SMS des payeurs de factures en retard (billing.manage sur le cycle de chaque facture). `invoice_ids` : 1 à
+         *     1 000 factures (toute une école en une demande, pour garder un SMS par payeur) ; une facture inconnue ou hors du
+         *     périmètre est refusée comme inexistante (422), une facture vue mais non relançable donne 403.
+         */
+        RemindRequest: {
+            invoice_ids: string[];
+        };
+        /** ReminderOutcomeResource */
+        ReminderOutcomeResource: {
+            queued: number;
+            recent: number;
+            no_phone: number;
+            not_overdue: number;
+        };
         /** RoleAssignmentResource */
         RoleAssignmentResource: {
             role: string;
@@ -1940,6 +2056,36 @@ export interface components {
             to_invoice_id: string;
             amount: number;
             reason: string;
+        };
+        /** UnpaidRowResource */
+        UnpaidRowResource: {
+            invoice_id: string;
+            student: {
+                id: string;
+                full_name: string;
+                first_name: string;
+                matricule: string;
+            };
+            classroom_name: string;
+            cycle: {
+                id: string;
+                code: string;
+            };
+            academic_year_label: string;
+            payer: {
+                name: string;
+                phone: string | null;
+            } | null;
+            overdue: number;
+            remaining: number;
+            oldest_due_on: string;
+            days_late: number;
+            last_reminder: {
+                at: string;
+                /** @enum {string} */
+                status: "queued" | "sent" | "failed";
+            } | null;
+            can_remind: boolean;
         };
         /** UpdateCycleRequest */
         UpdateCycleRequest: {
@@ -2860,6 +3006,31 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.dashboard.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `DashboardResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DashboardResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };
@@ -4309,6 +4480,63 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.unpaid.index": {
+        parameters: {
+            query?: {
+                cycle_id?: string | null;
+                classroom_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `UnpaidRowResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["UnpaidRowResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.reminders.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemindRequest"];
+            };
+        };
+        responses: {
+            /** @description `ReminderOutcomeResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReminderOutcomeResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };

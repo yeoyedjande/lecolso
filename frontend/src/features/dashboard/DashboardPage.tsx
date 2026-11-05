@@ -1,13 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import {
-  AlertTriangle,
-  CalendarCheck,
-  ClipboardCheck,
-  CreditCard,
-  UserPlus,
-  Users,
-  Wallet,
-} from 'lucide-react'
+import { AlertTriangle, CalendarCheck, ClipboardCheck, Printer, Users, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   Bar,
@@ -27,6 +19,7 @@ import { useChartTheme } from '@/components/charts/chartTheme'
 import { KpiCard } from '@/components/KpiCard'
 import { Reveal } from '@/components/motion/Reveal'
 import { ScreenHeader } from '@/components/ScreenHeader'
+import { DemoBanner } from '@/components/states/DemoBanner'
 import { CardsSkeleton, QueryState } from '@/components/states/QueryState'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -34,8 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Can } from '@/features/auth/RequirePermission'
 import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
-import { CYCLE_CHART } from '@/lib/cycles'
-import { YEAR_LABEL } from '@/lib/demo/dates'
+import { CYCLE_CHART, cycleTone } from '@/lib/cycles'
 import {
   formatDayMonth,
   formatLongDate,
@@ -44,16 +36,7 @@ import {
   formatTime,
 } from '@/lib/format'
 
-import { useDashboard } from './api'
-import type { DashboardSummary } from './demo'
-
-const ACTIVITY_ICONS = {
-  payment: Wallet,
-  enrollment: UserPlus,
-  absence: CalendarCheck,
-  grade: ClipboardCheck,
-  message: CreditCard,
-}
+import { useDashboard, useDashboardAttendance, type DashboardData } from './api'
 
 function compactMoney(value: number): string {
   if (value >= 1_000_000)
@@ -62,12 +45,14 @@ function compactMoney(value: number): string {
   return String(value)
 }
 
-function Dashboard({ data }: { data: DashboardSummary }) {
+function Dashboard({ data }: { data: DashboardData }) {
   const { t } = useTranslation()
   const chart = useChartTheme()
   const school = useCurrentSchool()
-  const finance = can(school, 'billing.view')
-  const cycleData = data.byCycle.map((entry) => ({ ...entry, label: t(`cycles.${entry.cycle}`) }))
+  const presence = useDashboardAttendance()
+  const attendance = can(school, 'attendance.view') ? presence.data : undefined
+  const { finance } = data
+  const cycleData = data.by_cycle.map((entry) => ({ ...entry, cycle: cycleTone(entry.code) }))
 
   return (
     <div className="grid gap-6">
@@ -79,68 +64,73 @@ function Dashboard({ data }: { data: DashboardSummary }) {
             format={(value) => value.toLocaleString('fr-FR')}
             icon={Users}
             hint={t('dashboard.kpi.studentsHint', {
-              count: data.byCycle.reduce((sum, c) => sum + c.classrooms, 0),
+              count: data.by_cycle.reduce((sum, c) => sum + c.classrooms, 0),
             })}
           />
         </Reveal>
-        {finance && (
+        {finance !== null && (
           <>
             <Reveal index={1}>
               <KpiCard
                 label={t('dashboard.kpi.collected')}
-                value={data.month.collected}
+                value={finance.collected_month}
                 format={formatMoney}
                 icon={Wallet}
                 tone="accent"
-                hint={t('dashboard.kpi.collectedHint', { count: data.monthPayments })}
+                hint={t('dashboard.kpi.collectedHint', {
+                  count: finance.payments_month,
+                  expected: formatMoney(finance.expected_month),
+                })}
               />
             </Reveal>
             <Reveal index={2}>
               <KpiCard
                 label={t('dashboard.kpi.overdue')}
-                value={data.month.overdue}
+                value={finance.overdue}
                 format={formatMoney}
                 icon={AlertTriangle}
                 tone="danger"
-                hint={t('dashboard.kpi.overdueHint', { rate: data.collectionRate })}
+                hint={t('dashboard.kpi.overdueHint', { rate: finance.collection_rate })}
               />
             </Reveal>
           </>
         )}
-        <Reveal index={3}>
-          <KpiCard
-            label={t('dashboard.kpi.absences')}
-            value={data.absentToday}
-            format={String}
-            icon={CalendarCheck}
-            tone="success"
-            hint={
-              data.rollCallsMissing > 0
-                ? t('dashboard.kpi.absencesHint', {
-                    late: data.lateToday,
-                    missing: data.rollCallsMissing,
-                  })
-                : t('dashboard.kpi.absencesHintDone', { late: data.lateToday })
-            }
-          />
-        </Reveal>
+        {attendance !== undefined && (
+          <Reveal index={3}>
+            <KpiCard
+              label={t('dashboard.kpi.absences')}
+              value={attendance.absentToday}
+              format={String}
+              icon={CalendarCheck}
+              tone="success"
+              hint={
+                attendance.rollCallsMissing > 0
+                  ? t('dashboard.kpi.absencesHint', {
+                      late: attendance.lateToday,
+                      missing: attendance.rollCallsMissing,
+                    })
+                  : t('dashboard.kpi.absencesHintDone', { late: attendance.lateToday })
+              }
+            />
+          </Reveal>
+        )}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        {finance && (
+        {finance !== null && (
           <Reveal index={4} className="xl:col-span-2">
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>{t('dashboard.monthly.title')}</CardTitle>
                 <CardDescription>
-                  {t('dashboard.monthly.description', { year: YEAR_LABEL })}
+                  {t('dashboard.monthly.description', { year: data.academic_year_label ?? '' })}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={data.monthly}
+                      data={finance.monthly}
                       margin={{ top: 24, right: 8, left: 0, bottom: 0 }}
                       barCategoryGap="28%"
                     >
@@ -193,7 +183,7 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                 <table className="sr-only">
                   <caption>{t('dashboard.monthly.title')}</caption>
                   <tbody>
-                    {data.monthly.map((entry) => (
+                    {finance.monthly.map((entry) => (
                       <tr key={entry.month}>
                         <th scope="row">{formatShortMonth(entry.month)}</th>
                         <td>{formatMoney(entry.collected)}</td>
@@ -206,7 +196,7 @@ function Dashboard({ data }: { data: DashboardSummary }) {
           </Reveal>
         )}
 
-        <Reveal index={5} className={finance ? '' : 'xl:col-span-3'}>
+        <Reveal index={5} className={finance !== null ? '' : 'xl:col-span-3'}>
           <Card className="h-full">
             <CardHeader>
               <CardTitle>{t('dashboard.cycles.title')}</CardTitle>
@@ -219,9 +209,9 @@ function Dashboard({ data }: { data: DashboardSummary }) {
                 const share =
                   data.students === 0 ? 0 : Math.round((entry.students / data.students) * 100)
                 return (
-                  <div key={entry.cycle} className="grid gap-1.5">
+                  <div key={entry.cycle_id} className="grid gap-1.5">
                     <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className="font-semibold">{entry.label}</span>
+                      <span className="font-semibold">{entry.name}</span>
                       <span className="text-muted-foreground">
                         <span className="tabular font-display text-base font-bold text-foreground">
                           {entry.students}
@@ -248,121 +238,126 @@ function Dashboard({ data }: { data: DashboardSummary }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <Reveal index={6} className="xl:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>{t('dashboard.attendance.title')}</CardTitle>
-              <CardDescription>{t('dashboard.attendance.description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={data.attendance}
-                    margin={{ top: 16, right: 16, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid vertical={false} stroke={chart.grid} />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={formatDayMonth}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: chart.axis, fontSize: 12 }}
-                    />
-                    <YAxis
-                      domain={[80, 100]}
-                      tickFormatter={(value: number) => `${String(value)} %`}
-                      tickLine={false}
-                      axisLine={false}
-                      width={48}
-                      tick={{ fill: chart.axis, fontSize: 12 }}
-                    />
-                    <Tooltip
-                      cursor={{ stroke: chart.axis, strokeDasharray: '4 4' }}
-                      content={({ active, payload, label }) => (
-                        <ChartTooltip
-                          active={active}
-                          title={typeof label === 'string' ? formatDayMonth(label) : ''}
-                          rows={[
-                            {
-                              label: t('dashboard.attendance.rate'),
-                              value: `${String(payload[0]?.value ?? '')} %`,
-                            },
-                          ]}
-                        />
-                      )}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="rate"
-                      stroke={chart.line}
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: chart.line, stroke: chart.surface, strokeWidth: 2 }}
-                      activeDot={{ r: 6, stroke: chart.surface, strokeWidth: 2 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <table className="sr-only">
-                <caption>{t('dashboard.attendance.title')}</caption>
-                <tbody>
-                  {data.attendance.map((entry) => (
-                    <tr key={entry.date}>
-                      <th scope="row">{formatDayMonth(entry.date)}</th>
-                      <td>{`${String(entry.rate)} %`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </Reveal>
-
-        <Reveal index={7}>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>{t('dashboard.activity.title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {data.activity.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('dashboard.activity.empty')}</p>
-              ) : (
-                <ul className="grid gap-3">
-                  {data.activity.map((entry) => {
-                    const Icon = ACTIVITY_ICONS[entry.kind]
-                    const student = entry.studentName ?? ''
-                    const text =
-                      entry.kind === 'payment'
-                        ? t('dashboard.activity.payment', {
-                            amount: formatMoney(entry.amount ?? 0),
-                            student,
-                          })
-                        : t(`dashboard.activity.${entry.kind}`, { student })
-                    return (
-                      <li key={entry.id} className="flex items-start gap-3">
-                        {entry.studentName !== null ? (
-                          <Avatar name={entry.studentName} size="sm" />
-                        ) : (
-                          <span className="grid size-8 place-items-center rounded-full bg-muted">
-                            <Icon aria-hidden className="size-4" />
-                          </span>
+        {attendance !== undefined && (
+          <Reveal index={6} className="xl:col-span-2">
+            <Card className="h-full">
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle>{t('dashboard.attendance.title')}</CardTitle>
+                  <DemoBanner />
+                </div>
+                <CardDescription>{t('dashboard.attendance.description')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={attendance.attendance}
+                      margin={{ top: 16, right: 16, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid vertical={false} stroke={chart.grid} />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={formatDayMonth}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: chart.axis, fontSize: 12 }}
+                      />
+                      <YAxis
+                        domain={[80, 100]}
+                        tickFormatter={(value: number) => `${String(value)} %`}
+                        tickLine={false}
+                        axisLine={false}
+                        width={48}
+                        tick={{ fill: chart.axis, fontSize: 12 }}
+                      />
+                      <Tooltip
+                        cursor={{ stroke: chart.axis, strokeDasharray: '4 4' }}
+                        content={({ active, payload, label }) => (
+                          <ChartTooltip
+                            active={active}
+                            title={typeof label === 'string' ? formatDayMonth(label) : ''}
+                            rows={[
+                              {
+                                label: t('dashboard.attendance.rate'),
+                                value: `${String(payload[0]?.value ?? '')} %`,
+                              },
+                            ]}
+                          />
                         )}
-                        <div className="grid min-w-0 gap-0.5">
-                          <p className="text-sm leading-snug">{text}</p>
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="rate"
+                        stroke={chart.line}
+                        strokeWidth={2}
+                        dot={{ r: 4, fill: chart.line, stroke: chart.surface, strokeWidth: 2 }}
+                        activeDot={{ r: 6, stroke: chart.surface, strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <table className="sr-only">
+                  <caption>{t('dashboard.attendance.title')}</caption>
+                  <tbody>
+                    {attendance.attendance.map((entry) => (
+                      <tr key={entry.date}>
+                        <th scope="row">{formatDayMonth(entry.date)}</th>
+                        <td>{`${String(entry.rate)} %`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </Reveal>
+        )}
+
+        {finance !== null && (
+          <Reveal index={7} className={attendance === undefined ? 'xl:col-span-3' : ''}>
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>{t('dashboard.activity.title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {finance.recent_payments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('dashboard.activity.empty')}</p>
+                ) : (
+                  <ul className="grid gap-3">
+                    {finance.recent_payments.map((entry) => (
+                      <li key={entry.payment_id} className="flex items-start gap-3">
+                        <Avatar name={entry.student_name} size="sm" />
+                        <div className="grid min-w-0 flex-1 gap-0.5">
+                          <p className="text-sm leading-snug">
+                            {t('dashboard.activity.payment', {
+                              amount: formatMoney(entry.amount),
+                              student: entry.student_name,
+                            })}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {entry.classroom}
-                            {' · '}
-                            {formatDayMonth(entry.at.slice(0, 10))} {formatTime(entry.at)}
+                            {formatDayMonth(entry.paid_at.slice(0, 10))} {formatTime(entry.paid_at)}
                           </p>
                         </div>
+                        <Button asChild variant="ghost" size="icon-sm">
+                          <Link
+                            from="/$school"
+                            to="/$school/recus/$paymentId"
+                            params={{ paymentId: entry.payment_id }}
+                            aria-label={t('dashboard.activity.receipt', {
+                              number: entry.receipt_number,
+                            })}
+                          >
+                            <Printer aria-hidden />
+                          </Link>
+                        </Button>
                       </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </Reveal>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </Reveal>
+        )}
       </div>
     </div>
   )
@@ -377,6 +372,7 @@ export function DashboardPage() {
     <div className="grid gap-6">
       <ScreenHeader
         title={t('dashboard.title')}
+        demo={false}
         description={
           query.data === undefined
             ? undefined

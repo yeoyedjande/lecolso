@@ -108,8 +108,9 @@ src/
   trouvé par `useStudentList`), **reçus** (`useReceipt`, `<ReceiptSheet>` ; annulation par la direction,
   `useCancelPayment`), **caisse du jour** (`useCashDesk`, `useCloseCashSession`), situation, paiements, remboursement et
   report d'un trop-perçu dans l'onglet « Frais » (`useChangeInvoice` : `refund`, `transfer`), politique de départ dans
-  l'écran Frais (`useFinancialPolicy`). Impayés et relances restent en démonstration (lot 5c), comme les paiements et
-  reçus de l'espace parent (`useDemoReceipt`).
+  l'écran Frais (`useFinancialPolicy`), **impayés et relances SMS** (`useUnpaid`, `useRemind`), **tableau de bord**
+  (`features/dashboard` : `useDashboard`, effectifs et finances ; présences en démonstration, `useDashboardAttendance`).
+  Les paiements et reçus de l'espace parent restent en démonstration (`useDemoReceipt`).
   Espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).

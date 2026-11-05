@@ -1554,6 +1554,50 @@ export async function mockApi(
       can_refund: holds(schoolId, 'billing.refund', cycleId),
     }
   }
+  const reminders = new Map<string, { at: string; status: string }>()
+  /** Comme ListUnpaid : factures dont l'échu au 04/11/2026 n'est pas réglé, le plus gros retard d'abord. */
+  const unpaidRows = (schoolId: string) =>
+    invoicesOf(schoolId)
+      .flatMap((invoice) => {
+        const student = studentsOf(schoolId).find(
+          (candidate) => candidate.id === invoice.student_id,
+        )
+        if (student === undefined || !canSee(schoolId, student, 'billing.view')) return []
+        const resource = invoiceResource(schoolId, invoice)
+        if (resource.balance.overdue <= 0) return []
+        const row = studentRow(schoolId, student)
+        const found = levelOfStudent(schoolId, student)
+        const oldest =
+          resource.schedule.find(
+            (item) => item.due_on <= '2026-11-04' && item.settled < item.amount,
+          )?.due_on ?? '2026-11-04'
+        const payerName = resource.payer?.name ?? null
+        return [
+          {
+            invoice_id: invoice.id,
+            student: {
+              id: student.id,
+              full_name: row.full_name,
+              first_name: student.first_name,
+              matricule: student.matricule,
+            },
+            classroom_name: row.enrollment?.classroom_name ?? '',
+            cycle: { id: found?.cycle.id ?? '', code: found?.cycle.code ?? '' },
+            academic_year_label: '2026-2027',
+            payer:
+              payerName === null
+                ? null
+                : { name: payerName, phone: row.primary_contact?.phone ?? null },
+            overdue: resource.balance.overdue,
+            remaining: resource.balance.remaining,
+            oldest_due_on: oldest,
+            days_late: Math.round((Date.parse('2026-11-04') - Date.parse(oldest)) / 86_400_000),
+            last_reminder: reminders.get(`${schoolId}:${payerName ?? ''}`) ?? null,
+            can_remind: resource.can_collect,
+          },
+        ]
+      })
+      .sort((a, b) => b.overdue - a.overdue)
   const studentOfInvoice = (schoolId: string, invoiceId: string) => {
     const invoice = invoicesOf(schoolId).find((candidate) => candidate.id === invoiceId)
     return studentsOf(schoolId).find((candidate) => candidate.id === invoice?.student_id)
@@ -2687,6 +2731,126 @@ export async function mockApi(
             (candidate) => candidate.id === sessionId,
           )
           return route.fulfill({ json: { data: closed } })
+        }
+        if (request.method() === 'GET' && path === '/billing/unpaid') {
+          const schoolId = schoolHeader ?? ''
+          const cycles = cyclesOf(schoolId).filter((cycle) =>
+            holds(schoolId, 'billing.view', cycle.id),
+          )
+          if (
+            cycles.length === 0 ||
+            (current?.roles.every((role) => role.role === 'guardian' || role.role === 'teacher') ??
+              true)
+          )
+            return route.fulfill(forbidden)
+          return route.fulfill({ json: { data: unpaidRows(schoolId) } })
+        }
+        if (request.method() === 'POST' && path === '/billing/reminders') {
+          const schoolId = schoolHeader ?? ''
+          const body = z.object({ invoice_ids: z.array(z.string()) }).parse(request.postDataJSON())
+          const rows = unpaidRows(schoolId).filter((row) =>
+            body.invoice_ids.includes(row.invoice_id),
+          )
+          if (rows.some((row) => !row.can_remind)) return route.fulfill(forbidden)
+          let queued = 0
+          let recent = 0
+          for (const payer of new Set(rows.map((row) => row.payer?.name ?? ''))) {
+            if (reminders.has(`${schoolId}:${payer}`)) {
+              recent += 1
+              continue
+            }
+            reminders.set(`${schoolId}:${payer}`, {
+              at: '2026-11-04T10:00:00+00:00',
+              status: 'sent',
+            })
+            queued += 1
+          }
+          return route.fulfill({ json: { data: { queued, recent, no_phone: 0, not_overdue: 0 } } })
+        }
+        if (request.method() === 'GET' && path === '/billing/dashboard') {
+          const schoolId = schoolHeader ?? ''
+          const staff =
+            current?.roles.some((role) => role.role !== 'guardian' && role.role !== 'teacher') ??
+            false
+          if (!staff) return route.fulfill(forbidden)
+          const students = studentsOf(schoolId)
+          const byCycle = cyclesOf(schoolId).map((cycle) => ({
+            cycle_id: cycle.id,
+            code: cycle.code,
+            name: cycle.name,
+            students: students.filter(
+              (student) => levelOfStudent(schoolId, student)?.cycle.id === cycle.id,
+            ).length,
+            classrooms: classroomsOf(schoolId).filter(
+              (classroom) => levelOf(schoolId, classroom.level_id)?.cycle.id === cycle.id,
+            ).length,
+          }))
+          const live = paymentsOf(schoolId).filter((payment) => payment.cancellation === null)
+          const invoicesNow = invoicesOf(schoolId).map((invoice) =>
+            invoiceResource(schoolId, invoice),
+          )
+          const due = invoicesNow.reduce(
+            (sum, invoice) =>
+              sum +
+              invoice.schedule
+                .filter((item) => item.due_on <= '2026-11-04')
+                .reduce((total, item) => total + item.amount, 0),
+            0,
+          )
+          const overdue = invoicesNow.reduce((sum, invoice) => sum + invoice.balance.overdue, 0)
+          const finance = cyclesOf(schoolId).some((cycle) =>
+            holds(schoolId, 'billing.view', cycle.id),
+          )
+            ? {
+                collected_month: live
+                  .filter((payment) => payment.paid_at.startsWith('2026-11'))
+                  .reduce((sum, payment) => sum + payment.amount, 0),
+                payments_month: live.filter((payment) => payment.paid_at.startsWith('2026-11'))
+                  .length,
+                expected_month: invoicesNow.reduce(
+                  (sum, invoice) =>
+                    sum +
+                    invoice.schedule
+                      .filter((item) => item.due_on.startsWith('2026-11'))
+                      .reduce((total, item) => total + item.amount, 0),
+                  0,
+                ),
+                overdue,
+                collection_rate: due === 0 ? 100 : Math.round(((due - overdue) / due) * 100),
+                monthly: ['2026-09', '2026-10', '2026-11'].map((month) => ({
+                  month,
+                  collected: live
+                    .filter((payment) => payment.paid_at.startsWith(month))
+                    .reduce((sum, payment) => sum + payment.amount, 0),
+                })),
+                recent_payments: live
+                  .slice()
+                  .reverse()
+                  .slice(0, 8)
+                  .map((payment) => {
+                    const owner = studentOfInvoice(schoolId, payment.invoice_id)
+                    return {
+                      payment_id: payment.id,
+                      receipt_number: payment.receipt_number,
+                      paid_at: payment.paid_at,
+                      amount: payment.amount,
+                      student_name:
+                        owner === undefined ? '' : studentRow(schoolId, owner).full_name,
+                    }
+                  }),
+              }
+            : null
+          return route.fulfill({
+            json: {
+              data: {
+                today: '2026-11-04',
+                academic_year_label: '2026-2027',
+                students: students.length,
+                by_cycle: byCycle,
+                finance,
+              },
+            },
+          })
         }
         if (path === '/billing/policy') {
           const schoolId = schoolHeader ?? ''

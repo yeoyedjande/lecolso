@@ -159,7 +159,12 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   → `Listeners\ApplyDeparture` : ligne `departure` négative qui annule le net des échéances postérieures au départ,
   retirée au retour. Politique de l'école : `schools.settings.billing_departure` (`FinancialPolicy`, `DeparturePolicy`),
   écrite par `Tenancy\Actions\UpdateSchoolSettings`.
-- Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` (modifier, encaisser),
+- Impayés et relances (lot 5c) : `Support\InvoiceTotals` (montants de nombreuses factures en une requête,
+  sous-requêtes), `ListUnpaid` (`GET billing/unpaid`), `SendPaymentReminders` (`POST billing/reminders` : un SMS par
+  payeur, `MIN_DAYS_BETWEEN` = 7, table `payment_reminders` sans le texte) puis job `Jobs\SendPaymentReminderSms`
+  (`TenantAware`, `SmsSender`, texte composé à l'envoi, échec noté sans nouvel essai). `BuildDashboard`
+  (`GET billing/dashboard`) : effectifs (`students.view`) et finances (`billing.view`) de l'année en cours par cycle.
+- Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` (modifier, encaisser, relancer),
   `billing.discount`, `billing.cancel`, `billing.refund` sur le cycle de la classe (`InvoicePolicy`, `BillingScope`) ;
   caisse : la sienne, toutes avec `billing.manage` sur toute l'école. Payeur suivi par l'événement
   `Students\Events\StudentPayerChanged`.

@@ -302,7 +302,7 @@
       "students": "Élèves inscrits",
       "studentsHint": "répartis dans {{count}} classes",
       "collected": "Encaissé ce mois",
-      "collectedHint": "{{count}} paiement(s) ce mois-ci",
+      "collectedHint": "{{count}} paiement(s) · attendu ce mois : {{expected}}",
       "overdue": "Impayés à ce jour",
       "overdueHint": "Taux de recouvrement de l’échu : {{rate}} %",
       "absences": "Absents aujourd’hui",
@@ -324,13 +324,10 @@
       "rate": "Présence"
     },
     "activity": {
-      "title": "Dernières activités",
-      "empty": "Aucune activité récente.",
+      "title": "Derniers encaissements",
+      "empty": "Aucun encaissement pour l’instant.",
       "payment": "Paiement de {{amount}} — {{student}}",
-      "enrollment": "Nouvelle inscription — {{student}}",
-      "absence": "Absence signalée — {{student}}",
-      "grade": "Notes saisies — {{student}}",
-      "message": "Nouveau message — {{student}}"
+      "receipt": "Voir le reçu {{number}}"
     }
   },
   "students": {
@@ -701,7 +698,7 @@
     },
     "unpaid": {
       "title": "Impayés",
-      "description": "Élèves dont une échéance est passée sans être réglée.",
+      "description": "Factures dont une échéance est passée sans être réglée, toutes années scolaires.",
       "total": "Total en retard",
       "count": "Familles concernées",
       "student": "Élève",
@@ -713,12 +710,22 @@
       "select": "Sélectionner {{name}}",
       "selectAll": "Tout sélectionner",
       "remind": "Relancer ({{count}})",
-      "remindTitle": "Relancer {{count}} famille(s) par SMS",
-      "remindPreview": "Aperçu du message",
-      "remindMessage": "{{school}} : bonjour, la scolarité de {{student}} présente un retard de {{amount}}. Merci de régulariser au guichet ou par Mobile Money.",
+      "remindTitle": "Relancer par SMS ({{count}} facture(s))",
+      "remindPreview": "Un SMS par parent, quel que soit le nombre d’enfants. Exemple :",
+      "remindMessage": "{{school}} : bonjour, la scolarité de {{students}} présente un retard de {{amount}}. Merci de régulariser auprès de l’école.",
       "remindConfirm": "Envoyer les SMS",
-      "reminded": "{{count}} relance(s) envoyée(s)",
-      "empty": "Aucun impayé : toutes les familles sont à jour !"
+      "reminded": "{{count}} SMS de relance mis en envoi",
+      "empty": "Aucun impayé : toutes les familles sont à jour !",
+      "noPayer": "Aucun parent payeur",
+      "lastReminder": {
+        "queued": "Relance en cours d’envoi ({{date}})",
+        "sent": "Relancé le {{date}}",
+        "failed": "Relance du {{date}} non envoyée"
+      },
+      "remindRule": "Un parent déjà relancé depuis moins de 7 jours ne reçoit pas de nouveau SMS.",
+      "skippedRecent": "{{count}} parent(s) déjà relancé(s) depuis moins de 7 jours",
+      "skippedNoPhone": "{{count}} facture(s) sans parent joignable par téléphone",
+      "tooMany": "{{max}} factures au plus par relance : filtrez par cycle."
     },
     "cash": {
       "title": "Caisse du jour",
