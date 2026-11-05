@@ -103,6 +103,8 @@ const PERMISSIONS: Record<string, Role[]> = {
   'billing.manage': ['director', 'accountant'],
   'billing.pay': ['guardian'],
   'billing.discount': ['director'],
+  'billing.cancel': ['director'],
+  'billing.refund': ['director'],
   'grades.view': ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
   'grades.manage': ['director', 'teacher'],
   'grades.validate': ['director'],
@@ -1219,6 +1221,63 @@ export async function mockApi(
   const grids = new Map<string, Map<string, number>>()
   const calendars = new Map<string, MockInstallment[]>()
   const invoices = new Map<string, MockInvoice[]>()
+  interface MockPayment {
+    id: string
+    invoice_id: string
+    receipt_number: string
+    amount: number
+    method: string
+    reference: string | null
+    payer_name: string
+    cashier_name: string
+    cashier_phone: string
+    paid_at: string
+    cancellation: { reason: string; cancelled_at: string; cancelled_by_name: string } | null
+  }
+  const payments = new Map<string, MockPayment[]>()
+  const paymentsOf = (schoolId: string): MockPayment[] => {
+    const existing = payments.get(schoolId)
+    if (existing !== undefined) return existing
+    const list: MockPayment[] = []
+    payments.set(schoolId, list)
+    // Un encaissement du comptable ce matin (comme le seeder : caisse du jour non vide)
+    const first = invoicesOf(schoolId).find(
+      (invoice) => invoice.student_id === lauriersStudentId(1),
+    )
+    if (first !== undefined)
+      list.push({
+        id: 'pay-lau-00001',
+        invoice_id: first.id,
+        receipt_number: 'REC-2026-000001',
+        amount: 25000,
+        method: 'cash',
+        reference: null,
+        payer_name: '',
+        cashier_name: 'Moussa Comptable',
+        cashier_phone: '+2250700000006',
+        paid_at: '2026-11-04T08:15:00+00:00',
+        cancellation: null,
+      })
+    return list
+  }
+  const closedSessions = new Map<
+    string,
+    { closed_at: string; counted: number; note: string | null }
+  >()
+  const PAID_AT = '2026-11-04T09:30:00+00:00'
+  const policies = new Map<string, string>()
+  /** Paiement tel que l'API le renvoie (sans les champs internes de la simulation). */
+  const paymentResource = (payment: MockPayment) => ({
+    id: payment.id,
+    receipt_number: payment.receipt_number,
+    paid_at: payment.paid_at,
+    amount: payment.amount,
+    method: payment.method,
+    reference: payment.reference,
+    payer_name: payment.payer_name,
+    cashier_name: payment.cashier_name,
+    cancellation: payment.cancellation,
+  })
   let billingCounter = 0
   const nextBillingId = () => {
     billingCounter += 1
@@ -1410,6 +1469,26 @@ export async function mockApi(
         })
       }
     const present = invoice.lines.map((line) => line.fee_type_id)
+    const invoicePayments = paymentsOf(schoolId).filter(
+      (payment) => payment.invoice_id === invoice.id,
+    )
+    const settled = invoicePayments
+      .filter((payment) => payment.cancellation === null)
+      .reduce((sum, payment) => sum + payment.amount, 0)
+    const schedule = [...byDate.values()]
+      .filter((item) => item.amount !== 0)
+      .sort((a, b) => a.due_on.localeCompare(b.due_on))
+    let left = settled
+    const withSettled = schedule.map((item) => {
+      const part = Math.max(0, Math.min(item.amount, left))
+      left -= part
+      return { ...item, settled: part }
+    })
+    const total = invoice.lines.reduce((sum, line) => sum + line.amount, 0)
+    const dueToDate = schedule
+      .filter((item) => item.due_on <= '2026-11-04')
+      .reduce((sum, item) => sum + item.amount, 0)
+    const nextItem = withSettled.find((item) => item.settled < item.amount)
     return {
       id: invoice.id,
       academic_year: { id: yearsOf(schoolId)[0]?.id ?? '', label: '2026-2027', is_current: true },
@@ -1418,7 +1497,26 @@ export async function mockApi(
         row?.primary_contact === null || row === undefined
           ? null
           : { name: row.primary_contact.name },
-      total: invoice.lines.reduce((sum, line) => sum + line.amount, 0),
+      left_on: null,
+      total,
+      balance: {
+        settled,
+        remaining: Math.max(0, total - settled),
+        overdue: Math.max(0, dueToDate - settled),
+        credit: Math.max(0, settled - total),
+        next:
+          nextItem === undefined
+            ? null
+            : {
+                due_on: nextItem.due_on,
+                label: nextItem.label,
+                amount: nextItem.amount - nextItem.settled,
+              },
+      },
+      payments: invoicePayments.slice().reverse().map(paymentResource),
+      refunds: [],
+      transfers: [],
+      credit_targets: [],
       discount_total: -invoice.lines
         .filter((line) => line.kind === 'discount')
         .reduce((sum, line) => sum + line.amount, 0),
@@ -1435,9 +1533,7 @@ export async function mockApi(
           reason: line.reason,
         }
       }),
-      schedule: [...byDate.values()]
-        .filter((item) => item.amount !== 0)
-        .sort((a, b) => a.due_on.localeCompare(b.due_on)),
+      schedule: withSettled,
       available_options: FEE_TYPES.filter(
         (type) =>
           type.is_optional &&
@@ -1452,7 +1548,125 @@ export async function mockApi(
           found === undefined ? 0 : (gridOf(schoolId).get(`${found.level.id}:${type.id}`) ?? 0),
       })),
       can_manage: holds(schoolId, 'billing.manage', cycleId),
+      can_collect: holds(schoolId, 'billing.manage', cycleId),
       can_discount: holds(schoolId, 'billing.discount', cycleId),
+      can_cancel: holds(schoolId, 'billing.cancel', cycleId),
+      can_refund: holds(schoolId, 'billing.refund', cycleId),
+    }
+  }
+  const studentOfInvoice = (schoolId: string, invoiceId: string) => {
+    const invoice = invoicesOf(schoolId).find((candidate) => candidate.id === invoiceId)
+    return studentsOf(schoolId).find((candidate) => candidate.id === invoice?.student_id)
+  }
+  const receiptResource = (schoolId: string, payment: MockPayment) => {
+    const student = studentOfInvoice(schoolId, payment.invoice_id)
+    const invoice = invoicesOf(schoolId).find((candidate) => candidate.id === payment.invoice_id)
+    const row = student === undefined ? undefined : studentRow(schoolId, student)
+    const profile = schoolProfileOf(schoolId)
+    const cycleId =
+      student === undefined ? null : (levelOfStudent(schoolId, student)?.cycle.id ?? null)
+    return {
+      payment: paymentResource(payment),
+      student: {
+        id: student?.id ?? '',
+        full_name: row?.full_name ?? '',
+        matricule: student?.matricule ?? '',
+      },
+      classroom_name: row?.enrollment?.classroom_name ?? '',
+      academic_year_label: '2026-2027',
+      remaining: invoice === undefined ? 0 : invoiceResource(schoolId, invoice).balance.remaining,
+      school: {
+        name: profile.name,
+        city: profile.city,
+        address: profile.address,
+        phone: profile.phone,
+        email: profile.email,
+        logo_url: profile.logo_url,
+      },
+      can_cancel: payment.cancellation === null && holds(schoolId, 'billing.cancel', cycleId),
+    }
+  }
+  /** Caisse du jour : une session par caissier (téléphone), comme CashSessionResource. */
+  const cashDeskResource = (schoolId: string, date: string) => {
+    const allCashiers = holds(schoolId, 'billing.manage', null)
+    const byCashier = new Map<string, MockPayment[]>()
+    for (const payment of paymentsOf(schoolId).filter((candidate) =>
+      candidate.paid_at.startsWith(date),
+    )) {
+      if (!allCashiers && payment.cashier_phone !== current?.phone) continue
+      byCashier.set(payment.cashier_phone, [
+        ...(byCashier.get(payment.cashier_phone) ?? []),
+        payment,
+      ])
+    }
+    const sessions = [...byCashier.entries()].map(([phone, list]) => {
+      const sessionId = `cash-${schoolId.slice(-4)}-${phone.slice(-4)}-${date}`
+      const closed = closedSessions.get(sessionId)
+      const methods = [...new Set(list.map((payment) => payment.method))].map((method) => {
+        const rows = list.filter((payment) => payment.method === method)
+        const collected = rows.reduce((sum, payment) => sum + payment.amount, 0)
+        const cancelled = rows
+          .filter((payment) => payment.cancellation !== null)
+          .reduce((sum, payment) => sum + payment.amount, 0)
+        return {
+          method,
+          collected,
+          cancelled,
+          refunded: 0,
+          net: collected - cancelled,
+          count: rows.length,
+        }
+      })
+      const expected = methods.find((row) => row.method === 'cash')?.net ?? 0
+      return {
+        id: sessionId,
+        cashier_name: list[0]?.cashier_name ?? '',
+        is_mine: phone === current?.phone,
+        business_date: date,
+        closed_at: closed?.closed_at ?? null,
+        expected_cash: expected,
+        counted_cash: closed?.counted ?? null,
+        difference: closed === undefined ? null : closed.counted - expected,
+        note: closed?.note ?? null,
+        net_total: methods.reduce((sum, row) => sum + row.net, 0),
+        methods,
+        movements: list
+          .flatMap((payment) => {
+            const owner = studentOfInvoice(schoolId, payment.invoice_id)
+            const studentName = owner === undefined ? '' : studentRow(schoolId, owner).full_name
+            const base = {
+              kind: 'payment',
+              at: payment.paid_at,
+              number: payment.receipt_number,
+              amount: payment.amount,
+              method: payment.method,
+              student_name: studentName,
+              payment_id: payment.id,
+              reason: null,
+              cancelled: payment.cancellation !== null,
+            }
+            return payment.cancellation === null
+              ? [base]
+              : [
+                  base,
+                  {
+                    ...base,
+                    kind: 'cancellation',
+                    at: payment.cancellation.cancelled_at,
+                    amount: -payment.amount,
+                    reason: payment.cancellation.reason,
+                    cancelled: false,
+                  },
+                ]
+          })
+          .sort((a, b) => b.at.localeCompare(a.at)),
+      }
+    })
+    return {
+      date,
+      all_cashiers: allCashiers,
+      net_total: sessions.reduce((sum, session) => sum + session.net_total, 0),
+      sessions: sessions.sort((a, b) => Number(b.is_mine) - Number(a.is_mine)),
     }
   }
   const gridResource = (schoolId: string) => ({
@@ -2403,6 +2617,88 @@ export async function mockApi(
             },
           })
         }
+        if (path.startsWith('/payments/')) {
+          const schoolId = schoolHeader ?? ''
+          const [, , paymentId, sub] = path.split('/')
+          const payment = paymentsOf(schoolId).find((candidate) => candidate.id === paymentId)
+          const student =
+            payment === undefined ? undefined : studentOfInvoice(schoolId, payment.invoice_id)
+          if (
+            payment === undefined ||
+            student === undefined ||
+            !canSee(schoolId, student, 'billing.view')
+          )
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (sub === 'cancel' && request.method() === 'POST') {
+            const cycleId = levelOfStudent(schoolId, student)?.cycle.id ?? null
+            if (!holds(schoolId, 'billing.cancel', cycleId)) return route.fulfill(forbidden)
+            if (payment.cancellation !== null)
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Déjà annulé.', code: 'already_cancelled' },
+              })
+            const body = z.object({ reason: z.string() }).parse(request.postDataJSON())
+            payment.cancellation = {
+              reason: body.reason,
+              cancelled_at: '2026-11-04T10:15:00+00:00',
+              cancelled_by_name: current?.name ?? '',
+            }
+          }
+          return route.fulfill({ json: { data: receiptResource(schoolId, payment) } })
+        }
+        if (request.method() === 'GET' && path === '/billing/cash-desk') {
+          const schoolId = schoolHeader ?? ''
+          if (
+            !holds(schoolId, 'billing.manage', null) &&
+            !cyclesOf(schoolId).some((cycle) => holds(schoolId, 'billing.manage', cycle.id))
+          )
+            return route.fulfill(forbidden)
+          const date = new URL(request.url()).searchParams.get('date') ?? '2026-11-04'
+          return route.fulfill({ json: { data: cashDeskResource(schoolId, date) } })
+        }
+        if (request.method() === 'POST' && /^\/billing\/cash-sessions\/[^/]+\/close$/.test(path)) {
+          const schoolId = schoolHeader ?? ''
+          const sessionId = path.split('/')[3] ?? ''
+          const session = cashDeskResource(schoolId, sessionId.slice(-10)).sessions.find(
+            (candidate) => candidate.id === sessionId,
+          )
+          if (session === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (!session.is_mine) return route.fulfill(forbidden)
+          if (session.closed_at !== null)
+            return route.fulfill({
+              status: 409,
+              json: { message: 'Clôturée.', code: 'cash_closed' },
+            })
+          const body = z
+            .object({ counted_cash: z.number(), note: z.optional(z.nullable(z.string())) })
+            .parse(request.postDataJSON())
+          if (body.counted_cash !== session.expected_cash && (body.note ?? '') === '')
+            return route.fulfill({
+              status: 422,
+              json: { message: 'Écart.', errors: { note: ['Expliquez l’écart.'] } },
+            })
+          closedSessions.set(sessionId, {
+            closed_at: '2026-11-04T18:00:00+00:00',
+            counted: body.counted_cash,
+            note: body.note ?? null,
+          })
+          const closed = cashDeskResource(schoolId, sessionId.slice(-10)).sessions.find(
+            (candidate) => candidate.id === sessionId,
+          )
+          return route.fulfill({ json: { data: closed } })
+        }
+        if (path === '/billing/policy') {
+          const schoolId = schoolHeader ?? ''
+          if (request.method() === 'PUT') {
+            if (!canEditSchool(schoolId)) return route.fulfill(forbidden)
+            const body = z.object({ departure: z.string() }).parse(request.postDataJSON())
+            policies.set(schoolId, body.departure)
+          }
+          return route.fulfill({
+            json: { data: { departure: policies.get(schoolId) ?? 'cancel_unstarted' } },
+          })
+        }
         if (path.startsWith('/invoices/')) {
           const schoolId = schoolHeader ?? ''
           const [, , invoiceId, sub, itemId] = path.split('/')
@@ -2424,6 +2720,50 @@ export async function mockApi(
           if (!holds(schoolId, isDiscount ? 'billing.discount' : 'billing.manage', cycleId))
             return route.fulfill(forbidden)
           const today = '2026-11-04'
+          if (sub === 'payments' && request.method() === 'POST') {
+            const body = z
+              .object({
+                amount: z.number(),
+                method: z.string(),
+                reference: z.optional(z.nullable(z.string())),
+              })
+              .parse(request.postDataJSON())
+            const remaining = invoiceResource(schoolId, invoice).balance.remaining
+            if (remaining === 0)
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Réglée.', code: 'nothing_due' },
+              })
+            if (body.amount > remaining)
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Trop élevé.', code: 'amount_exceeds' },
+              })
+            const list = paymentsOf(schoolId)
+            const payment: MockPayment = {
+              id: nextBillingId(),
+              invoice_id: invoice.id,
+              receipt_number: `REC-2026-${String(list.length + 1).padStart(6, '0')}`,
+              amount: body.amount,
+              method: body.method,
+              reference: body.method === 'cash' ? null : (body.reference ?? null),
+              payer_name: invoiceResource(schoolId, invoice).payer?.name ?? '',
+              cashier_name: current?.name ?? '',
+              cashier_phone: current?.phone ?? '',
+              paid_at: PAID_AT,
+              cancellation: null,
+            }
+            list.push(payment)
+            return route.fulfill({
+              status: 201,
+              json: { data: receiptResource(schoolId, payment) },
+            })
+          }
+          if (sub === 'refunds' || sub === 'credit-transfers')
+            return route.fulfill({
+              status: 409,
+              json: { message: 'Aucun crédit.', code: 'no_credit' },
+            })
           const snapshot = invoice.lines.map((line) => ({
             ...line,
             installments: [...line.installments],

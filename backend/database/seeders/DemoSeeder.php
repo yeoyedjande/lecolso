@@ -365,7 +365,7 @@ final class DemoSeeder extends Seeder
             }
 
             if ($slug === 'les-lauriers') {
-                $this->payments($school, $enrollments->values()->all());
+                $this->payments($school, array_values($enrollments->all()));
             }
         });
     }

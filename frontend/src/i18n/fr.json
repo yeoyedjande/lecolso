@@ -633,10 +633,10 @@
       "noResult": "Aucun élève ne correspond.",
       "pick": "Choisir {{name}}",
       "change": "Changer d’élève",
-      "remaining": "Reste à payer sur l’année",
+      "remaining": "Reste à payer",
       "overdue": "Dont en retard",
       "next": "Prochaine échéance : {{label}}, {{amount}} au {{date}}",
-      "upToDate": "Cet élève est à jour : un paiement sera compté en avance.",
+      "upToDate": "Cette facture est entièrement réglée : il n’y a rien à encaisser.",
       "amount": "Montant reçu (FCFA)",
       "amountHint": "Montant entier, sans centimes.",
       "suggestions": "Montants proposés",
@@ -648,7 +648,7 @@
       "referenceHint": "Numéro de transaction Mobile Money, de chèque ou de virement.",
       "submit": "Encaisser {{amount}}",
       "confirmTitle": "Confirmer l’encaissement",
-      "confirmDescription": "{{amount}} pour {{name}}, par {{method}}. Un reçu numéroté sera émis et ne pourra plus être modifié : une erreur se corrige par une annulation.",
+      "confirmDescription": "{{amount}} pour {{name}}, par {{method}}. Un reçu numéroté sera émis : il ne pourra plus être modifié ni supprimé, seule la direction peut l’annuler, avec un motif.",
       "confirm": "Confirmer et émettre le reçu",
       "doneTitle": "Paiement enregistré",
       "doneDescription": "Reçu {{number}} — {{amount}}",
@@ -656,8 +656,18 @@
       "another": "Nouvel encaissement",
       "errors": {
         "amount": "Saisissez un montant entier supérieur à zéro.",
-        "tooMuch": "Le montant dépasse le reste à payer de l’année ({{amount}}).",
+        "tooMuch": "Le montant dépasse le reste à payer ({{amount}}).",
         "reference": "La référence est obligatoire pour ce moyen de paiement."
+      },
+      "invoiceOf": "Facture {{classroom}} · {{year}}",
+      "notFound": "Cet élève est introuvable.",
+      "noInvoiceTitle": "{{name}} n’a pas de facture",
+      "noInvoiceDescription": "La facture est créée à l’inscription, ou depuis la grille de frais.",
+      "conflicts": {
+        "nothing_due": "Cette facture est entièrement réglée.",
+        "amount_exceeds": "Le montant dépasse le reste à payer de la facture.",
+        "cash_closed": "Votre caisse du jour est clôturée : aucun encaissement ne peut plus y entrer aujourd’hui.",
+        "reference_used": "Cette référence de paiement est déjà enregistrée."
       }
     },
     "receipt": {
@@ -672,12 +682,20 @@
       "inWords": "Arrêté le présent reçu à la somme de : {{words}} francs CFA.",
       "method": "Moyen de paiement",
       "reference": "Référence",
-      "remaining": "Reste à payer après ce paiement",
+      "remaining": "Reste à payer à ce jour",
       "cashier": "Caissier(e)",
       "signature": "Signature et cachet",
       "footer": "Ce reçu est la preuve de votre paiement. Conservez-le précieusement.",
       "notFound": "Ce reçu est introuvable.",
-      "back": "Retour"
+      "back": "Retour",
+      "cancelled": "Reçu annulé",
+      "cancelledDetail": "Annulé le {{date}} par {{name}} : {{reason}}",
+      "cancel": "Annuler ce paiement",
+      "cancelTitle": "Annuler le paiement",
+      "cancelDescription": "Le reçu {{number}} ({{amount}}) restera visible, marqué « annulé », et son numéro ne sera jamais réutilisé. Le montant est retiré de la caisse.",
+      "cancelReason": "Motif de l’annulation",
+      "cancelConfirm": "Annuler le paiement",
+      "cancelDone": "Paiement annulé"
     },
     "unpaid": {
       "title": "Impayés",
@@ -702,17 +720,51 @@
     },
     "cash": {
       "title": "Caisse du jour",
-      "description": "Encaissements du {{date}}",
-      "total": "Total encaissé",
-      "count": "Paiements",
+      "description": "Mouvements du {{date}}",
+      "total": "Net de ma caisse",
+      "count": "Encaissements",
       "byMethod": "Par moyen de paiement",
-      "list": "Détail des paiements",
-      "empty": "Aucun encaissement aujourd’hui.",
+      "list": "Mouvements de la caisse",
+      "empty": "Aucun mouvement.",
       "close": "Clôturer la caisse",
-      "closeTitle": "Clôture de la caisse",
-      "closeDescription": "Vérifiez que l’argent en caisse correspond aux espèces enregistrées : {{amount}}.",
-      "closeConfirm": "Clôturer",
-      "closed": "Caisse clôturée"
+      "closeDescription": "Comptez les espèces de votre caisse. Montant attendu : {{amount}}. Une fois clôturée, la caisse ne change plus.",
+      "closeConfirm": "Clôturer ma caisse",
+      "closed": "Caisse clôturée",
+      "day": "Jour",
+      "totalSchool": "Net de la journée (toutes les caisses)",
+      "expectedMine": "Espèces attendues dans ma caisse",
+      "mine": "Ma caisse",
+      "of": "Caisse de {{name}}",
+      "statusOpen": "Ouverte",
+      "statusClosed": "Clôturée",
+      "closedAt": "Clôturée à {{time}}",
+      "net": "Net",
+      "expected": "Espèces attendues",
+      "countedShort": "Espèces comptées",
+      "collected": "Encaissé",
+      "cancelled": "Annulé",
+      "refunded": "Remboursé",
+      "movement": "Mouvement",
+      "document": "Pièce",
+      "movements": {
+        "payment": "Encaissement",
+        "cancellation": "Annulation",
+        "refund": "Remboursement"
+      },
+      "cancelledSince": "Annulé depuis",
+      "emptyTitle": "Aucune caisse ce jour-là",
+      "emptyDescription": "Une caisse s’ouvre au premier encaissement de la journée.",
+      "counted": "Espèces comptées (FCFA)",
+      "countedHint": "Montant réellement présent dans la caisse.",
+      "noDifference": "Aucun écart.",
+      "difference": "Écart : {{amount}}",
+      "note": "Justification",
+      "noteOptional": "Facultative sans écart.",
+      "noteRequired": "Obligatoire : expliquez l’écart.",
+      "conflicts": {
+        "cash_closed": "La caisse du jour est clôturée."
+      },
+      "closeTitle": "Clôture de ma caisse"
     },
     "schedules": {
       "title": "Échéanciers",
@@ -752,7 +804,15 @@
       "generate": "Facturer {{count}} élève",
       "generate_other": "Facturer {{count}} élèves",
       "generated": "{{count}} facture créée",
-      "generated_other": "{{count}} factures créées"
+      "generated_other": "{{count}} factures créées",
+      "policy": {
+        "title": "Départ d’un élève en cours d’année",
+        "description": "Ce qui reste dû quand un élève quitte l’école. Les paiements déjà faits ne changent jamais ; un trop-perçu est remboursé ou reporté par la direction.",
+        "cancel_unstarted": "Annuler les échéances des périodes non commencées (recommandé)",
+        "keep_all": "Garder toutes les échéances dues",
+        "saved": "Politique enregistrée",
+        "readOnly": "Seule la direction de l’établissement modifie cette règle."
+      }
     },
     "invoice": {
       "title": "Frais {{year}}",
@@ -772,17 +832,11 @@
       "optionAdded": "Service ajouté à partir d’aujourd’hui",
       "addLine": "Ajouter une ligne",
       "addDiscount": "Accorder une remise",
-      "lineTitle": "Ajouter une ligne à la facture",
-      "lineHint": "Fournitures, tenue, sortie… Un montant dû à la date choisie.",
-      "discountTitle": "Accorder une remise",
-      "discountHint": "La remise réduit d’abord les dernières échéances. Le motif est conservé sur la facture.",
       "label": "Libellé",
       "reason": "Motif",
       "amountFcfa": "Montant (FCFA)",
       "dueOn": "Date d’échéance",
       "dueOnHint": "Aujourd’hui si vous ne choisissez pas de date.",
-      "confirmLine": "Ajouter la ligne",
-      "confirmDiscount": "Accorder la remise",
       "lineAdded": "Ligne ajoutée",
       "discountAdded": "Remise accordée",
       "noneTitle": "Aucune facture",
@@ -790,7 +844,58 @@
       "conflicts": {
         "discount_exceeds": "La remise dépasse le montant restant de la facture.",
         "option_present": "Ce service figure déjà sur la facture.",
-        "no_amount": "Aucun montant n’est fixé pour ce service à ce niveau dans la grille de frais."
+        "no_amount": "Aucun montant n’est fixé pour ce service à ce niveau dans la grille de frais.",
+        "student_left": "L’élève est parti : aucun service ne peut plus être ajouté.",
+        "no_credit": "Cette facture n’a pas de trop-perçu.",
+        "amount_exceeds_credit": "Le montant dépasse le trop-perçu de la facture.",
+        "target_not_due": "Le montant dépasse le reste à payer de l’autre facture.",
+        "other_payer": "Le crédit ne se reporte que sur une facture du même payeur.",
+        "cash_closed": "Votre caisse du jour est clôturée."
+      },
+      "leftOn": "Élève parti le {{date}} : les échéances des périodes non commencées sont annulées.",
+      "balance": {
+        "settled": "Réglé",
+        "remaining": "Reste à payer",
+        "overdue": "En retard",
+        "credit": "Trop-perçu"
+      },
+      "settled": "Réglée",
+      "partlySettled": "{{amount}} réglés",
+      "unsettled": "À régler",
+      "payments": "Paiements",
+      "noPayment": "Aucun paiement pour cette facture.",
+      "paymentCancelled": "Annulé : {{reason}}",
+      "refundLine": "Remboursement {{number}} du {{date}}",
+      "transferOut": "Reporté sur la facture de {{name}} ({{year}})",
+      "transferIn": "Reçu de la facture de {{name}} ({{year}})",
+      "collect": "Encaisser",
+      "refund": "Rembourser le trop-perçu",
+      "transfer": "Reporter le trop-perçu",
+      "transferTo": "Facture à créditer",
+      "transferTarget": "{{name}} · {{year}} · reste {{amount}}",
+      "refundDone": "{{amount}} remboursés",
+      "transferDone": "{{amount}} reportés",
+      "forms": {
+        "line": {
+          "title": "Ajouter une ligne à la facture",
+          "hint": "Fournitures, tenue, sortie… Un montant dû à la date choisie.",
+          "confirm": "Ajouter la ligne"
+        },
+        "discount": {
+          "title": "Accorder une remise",
+          "hint": "La remise réduit d’abord les dernières échéances. Le motif est conservé sur la facture.",
+          "confirm": "Accorder la remise"
+        },
+        "refund": {
+          "title": "Rembourser le trop-perçu",
+          "hint": "Trop-perçu : {{amount}}. Le remboursement sort de votre caisse du jour, reçoit un numéro et garde son motif.",
+          "confirm": "Rembourser"
+        },
+        "transfer": {
+          "title": "Reporter le trop-perçu",
+          "hint": "Trop-perçu : {{amount}}. Il est déduit de la facture d’un autre enfant du même payeur, sans mouvement d’argent.",
+          "confirm": "Reporter"
+        }
       }
     }
   },
@@ -1439,7 +1544,9 @@
     "users.manage": "Créer, modifier et désactiver des utilisateurs",
     "roles.manage": "Créer et modifier les rôles",
     "students.medical.view": "Voir les données médicales des élèves",
-    "billing.discount": "Accorder des remises sur les factures"
+    "billing.discount": "Accorder des remises sur les factures",
+    "billing.cancel": "Annuler un paiement encaissé (avec motif)",
+    "billing.refund": "Rembourser ou reporter un trop-perçu"
   },
   "permissionGroups": {
     "school": "Établissement",

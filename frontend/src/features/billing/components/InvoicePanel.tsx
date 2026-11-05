@@ -1,4 +1,5 @@
-import { BadgePercent, Plus, Trash2 } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowRightLeft, BadgePercent, Plus, Printer, Trash2, Undo2, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -29,24 +30,70 @@ import {
 } from '@/components/ui/table'
 import { FormAlert } from '@/features/auth/components/FormAlert'
 import { ConflictError, ValidationError } from '@/lib/api/errors'
-import { formatDay } from '@/lib/format'
+import { formatDate, formatDay, formatMoney } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 
 import { parseAmount } from '../amount'
-import { useChangeInvoice, useStudentInvoices, type Invoice, type InvoiceChange } from '../api'
+import {
+  PAYMENT_METHODS,
+  useChangeInvoice,
+  useStudentInvoices,
+  type Invoice,
+  type InvoiceChange,
+  type PaymentMethod,
+} from '../api'
 
-const CONFLICTS = ['discount_exceeds', 'option_present', 'no_amount'] as const
+const CONFLICTS = [
+  'discount_exceeds',
+  'option_present',
+  'no_amount',
+  'student_left',
+  'no_credit',
+  'amount_exceeds_credit',
+  'target_not_due',
+  'other_payer',
+  'cash_closed',
+] as const
 
-type Form = { kind: 'line' } | { kind: 'discount' } | null
+type FormKind = 'line' | 'discount' | 'refund' | 'transfer'
+type Form = { kind: FormKind } | null
+
+/** Situation de la facture : réglé, reste, retard, trop-perçu. */
+function BalanceSummary({ invoice }: { invoice: Invoice }) {
+  const { t } = useTranslation()
+  const { balance } = invoice
+  const items = [
+    ['settled', balance.settled, ''],
+    ['remaining', balance.remaining, ''],
+    ['overdue', balance.overdue, balance.overdue > 0 ? 'text-destructive-ink' : ''],
+    ...(balance.credit > 0 ? ([['credit', balance.credit, 'text-success-ink']] as const) : []),
+  ] as const
+  return (
+    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {items.map(([key, value, tone]) => (
+        <div key={key} className="grid gap-0.5 rounded-2xl bg-muted/60 p-3">
+          <dt className="text-xs text-muted-foreground">{t(`billing.invoice.balance.${key}`)}</dt>
+          <dd>
+            <MoneyAmount value={value} className={cn('font-display text-lg font-bold', tone)} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
 
 function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoice }) {
   const { t } = useTranslation()
-  const change = useChangeInvoice(studentId)
+  const change = useChangeInvoice()
   const [form, setForm] = useState<Form>(null)
   const [label, setLabel] = useState('')
   const [amountText, setAmountText] = useState('')
   const [dueOn, setDueOn] = useState('')
   const [option, setOption] = useState('')
+  const [method, setMethod] = useState<PaymentMethod>('cash')
+  const [reference, setReference] = useState('')
+  const [target, setTarget] = useState('')
   const [error, setError] = useState<string | null>(null)
   const amount = parseAmount(amountText)
 
@@ -73,26 +120,43 @@ function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoi
     }
   }
 
-  const openForm = (kind: 'line' | 'discount') => {
+  const openForm = (kind: FormKind) => {
     setForm({ kind })
     setLabel('')
-    setAmountText('')
+    setAmountText(kind === 'refund' || kind === 'transfer' ? String(invoice.balance.credit) : '')
     setDueOn('')
+    setMethod('cash')
+    setReference('')
+    setTarget(invoice.credit_targets[0]?.invoice_id ?? '')
     setError(null)
   }
 
   const submitForm = async () => {
     if (form === null || amount === null) return
+    const reason = label.trim()
     const ok =
       form.kind === 'line'
         ? await apply(
-            { kind: 'addLine', label: label.trim(), amount, dueOn: dueOn === '' ? null : dueOn },
+            { kind: 'addLine', label: reason, amount, dueOn: dueOn === '' ? null : dueOn },
             t('billing.invoice.lineAdded'),
           )
-        : await apply(
-            { kind: 'addDiscount', amount, reason: label.trim() },
-            t('billing.invoice.discountAdded'),
-          )
+        : form.kind === 'discount'
+          ? await apply({ kind: 'addDiscount', amount, reason }, t('billing.invoice.discountAdded'))
+          : form.kind === 'refund'
+            ? await apply(
+                {
+                  kind: 'refund',
+                  amount,
+                  method,
+                  reference: method === 'cash' ? null : reference.trim(),
+                  reason,
+                },
+                t('billing.invoice.refundDone', { amount: formatMoney(amount) }),
+              )
+            : await apply(
+                { kind: 'transfer', toInvoiceId: target, amount, reason },
+                t('billing.invoice.transferDone', { amount: formatMoney(amount) }),
+              )
     if (ok) setForm(null)
   }
 
@@ -110,6 +174,12 @@ function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoi
         </p>
       </CardHeader>
       <CardContent className="grid gap-6">
+        {invoice.left_on !== null && (
+          <p className="rounded-xl bg-muted px-3 py-2 text-sm">
+            {t('billing.invoice.leftOn', { date: formatDate(invoice.left_on) })}
+          </p>
+        )}
+        <BalanceSummary invoice={invoice} />
         {invoice.lines.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('billing.invoice.empty')}</p>
         ) : (
@@ -200,14 +270,69 @@ function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoi
                     <span className="tabular font-medium">{formatDay(item.due_on)}</span>
                     <span className="text-muted-foreground">{` · ${item.label}`}</span>
                   </span>
-                  <MoneyAmount value={item.amount} className="font-semibold" />
+                  <span className="grid justify-items-end">
+                    <MoneyAmount value={item.amount} className="font-semibold" />
+                    <span
+                      className={cn(
+                        'text-xs',
+                        item.settled >= item.amount ? 'text-success-ink' : 'text-muted-foreground',
+                      )}
+                    >
+                      {item.settled >= item.amount
+                        ? t('billing.invoice.settled')
+                        : item.settled > 0
+                          ? t('billing.invoice.partlySettled', {
+                              amount: formatMoney(item.settled),
+                            })
+                          : t('billing.invoice.unsettled')}
+                    </span>
+                  </span>
                 </li>
               ))}
             </ol>
           </section>
         )}
 
-        {(invoice.can_manage || invoice.can_discount) && (
+        <MoneyHistory invoice={invoice} />
+
+        {(invoice.can_collect || invoice.can_refund) && (
+          <div className="flex flex-wrap gap-2">
+            {invoice.can_collect && invoice.balance.remaining > 0 && (
+              <Button asChild variant="accent">
+                <Link from="/$school" to="/$school/encaissements" search={{ eleve: studentId }}>
+                  <Wallet aria-hidden />
+                  {t('billing.invoice.collect')}
+                </Link>
+              </Button>
+            )}
+            {invoice.can_refund && invoice.balance.credit > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    openForm('refund')
+                  }}
+                >
+                  <Undo2 aria-hidden />
+                  {t('billing.invoice.refund')}
+                </Button>
+                {invoice.credit_targets.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      openForm('transfer')
+                    }}
+                  >
+                    <ArrowRightLeft aria-hidden />
+                    {t('billing.invoice.transfer')}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {(invoice.can_manage || invoice.can_discount) && invoice.left_on === null && (
           <div className="flex flex-wrap items-end gap-2 border-t pt-4">
             {invoice.can_manage && invoice.available_options.length > 0 && (
               <div className="flex flex-wrap items-end gap-2">
@@ -279,28 +404,47 @@ function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoi
         }}
       >
         <DialogContent closeLabel={t('common.close')}>
-          <DialogTitle>
-            {form?.kind === 'discount'
-              ? t('billing.invoice.discountTitle')
-              : t('billing.invoice.lineTitle')}
-          </DialogTitle>
+          <DialogTitle>{t(`billing.invoice.forms.${form?.kind ?? 'line'}.title`)}</DialogTitle>
           <DialogDescription>
-            {form?.kind === 'discount'
-              ? t('billing.invoice.discountHint')
-              : t('billing.invoice.lineHint')}
+            {t(`billing.invoice.forms.${form?.kind ?? 'line'}.hint`, {
+              amount: formatMoney(invoice.balance.credit),
+            })}
           </DialogDescription>
           {error !== null && <FormAlert>{error}</FormAlert>}
           <div className="grid gap-4">
+            {form?.kind === 'transfer' && (
+              <Field label={t('billing.invoice.transferTo')}>
+                {(control) => (
+                  <NativeSelect
+                    {...control}
+                    value={target}
+                    onChange={(event) => {
+                      setTarget(event.target.value)
+                    }}
+                  >
+                    {invoice.credit_targets.map((candidate) => (
+                      <option key={candidate.invoice_id} value={candidate.invoice_id}>
+                        {t('billing.invoice.transferTarget', {
+                          name: candidate.student_name,
+                          year: candidate.academic_year_label,
+                          amount: formatMoney(candidate.remaining),
+                        })}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                )}
+              </Field>
+            )}
             <Field
               label={
-                form?.kind === 'discount' ? t('billing.invoice.reason') : t('billing.invoice.label')
+                form?.kind === 'line' ? t('billing.invoice.label') : t('billing.invoice.reason')
               }
             >
               {(control) => (
                 <Input
                   {...control}
                   value={label}
-                  maxLength={form?.kind === 'discount' ? 200 : 120}
+                  maxLength={form?.kind === 'line' ? 120 : 200}
                   onChange={(event) => {
                     setLabel(event.target.value)
                   }}
@@ -323,6 +467,44 @@ function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoi
                 />
               )}
             </Field>
+            {form?.kind === 'refund' && (
+              <>
+                <Field label={t('billing.collect.method')}>
+                  {(control) => (
+                    <NativeSelect
+                      {...control}
+                      value={method}
+                      onChange={(event) => {
+                        setMethod(
+                          PAYMENT_METHODS.find((candidate) => candidate === event.target.value) ??
+                            'cash',
+                        )
+                      }}
+                    >
+                      {PAYMENT_METHODS.map((candidate) => (
+                        <option key={candidate} value={candidate}>
+                          {t(`paymentMethods.${candidate}`)}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  )}
+                </Field>
+                {method !== 'cash' && (
+                  <Field label={t('billing.collect.reference')}>
+                    {(control) => (
+                      <Input
+                        {...control}
+                        value={reference}
+                        maxLength={60}
+                        onChange={(event) => {
+                          setReference(event.target.value)
+                        }}
+                      />
+                    )}
+                  </Field>
+                )}
+              </>
+            )}
             {form?.kind === 'line' && (
               <Field label={t('billing.invoice.dueOn')} hint={t('billing.invoice.dueOnHint')}>
                 {(control) => (
@@ -344,17 +526,114 @@ function InvoiceCard({ studentId, invoice }: { studentId: string; invoice: Invoi
             </DialogClose>
             <Button
               variant="accent"
-              disabled={amount === null || label.trim().length < 2 || change.isPending}
+              disabled={
+                amount === null ||
+                label.trim().length < (form?.kind === 'line' ? 2 : 3) ||
+                (form?.kind === 'refund' && method !== 'cash' && reference.trim().length < 3) ||
+                (form?.kind === 'transfer' && target === '') ||
+                change.isPending
+              }
               onClick={() => void submitForm()}
             >
-              {form?.kind === 'discount'
-                ? t('billing.invoice.confirmDiscount')
-                : t('billing.invoice.confirmLine')}
+              {t(`billing.invoice.forms.${form?.kind ?? 'line'}.confirm`)}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
+  )
+}
+
+/** Paiements (annulés compris), remboursements et reports de trop-perçu d'une facture. */
+function MoneyHistory({ invoice }: { invoice: Invoice }) {
+  const { t } = useTranslation()
+  if (
+    invoice.payments.length === 0 &&
+    invoice.refunds.length === 0 &&
+    invoice.transfers.length === 0
+  ) {
+    return <p className="text-sm text-muted-foreground">{t('billing.invoice.noPayment')}</p>
+  }
+  return (
+    <section className="grid gap-2" aria-labelledby={`payments-${invoice.id}`}>
+      <h3 id={`payments-${invoice.id}`} className="font-semibold">
+        {t('billing.invoice.payments')}
+      </h3>
+      <ul className="grid gap-1 text-sm">
+        {invoice.payments.map((payment) => (
+          <li
+            key={payment.id}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/50 px-3 py-2"
+          >
+            <span className="grid min-w-0">
+              <span className="font-medium">
+                {formatDate(payment.paid_at)} · {t(`paymentMethods.${payment.method}`)}
+              </span>
+              {payment.cancellation !== null && (
+                <span className="text-xs text-destructive-ink">
+                  {t('billing.invoice.paymentCancelled', { reason: payment.cancellation.reason })}
+                </span>
+              )}
+            </span>
+            <span className="flex items-center gap-2">
+              <MoneyAmount
+                value={payment.amount}
+                className={cn('font-semibold', payment.cancellation !== null && 'line-through')}
+              />
+              <Button asChild variant="ghost" size="sm">
+                <Link
+                  from="/$school"
+                  to="/$school/recus/$paymentId"
+                  params={{ paymentId: payment.id }}
+                >
+                  <Printer aria-hidden />
+                  {payment.receipt_number}
+                </Link>
+              </Button>
+            </span>
+          </li>
+        ))}
+        {invoice.refunds.map((refund) => (
+          <li
+            key={refund.id}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/50 px-3 py-2"
+          >
+            <span className="grid min-w-0">
+              <span className="font-medium">
+                {t('billing.invoice.refundLine', {
+                  date: formatDate(refund.refunded_at),
+                  number: refund.number,
+                })}
+              </span>
+              <span className="text-xs text-muted-foreground">{refund.reason}</span>
+            </span>
+            <MoneyAmount value={-refund.amount} className="font-semibold" />
+          </li>
+        ))}
+        {invoice.transfers.map((transfer) => (
+          <li
+            key={transfer.id}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/50 px-3 py-2"
+          >
+            <span className="grid min-w-0">
+              <span className="font-medium">
+                {t(
+                  transfer.direction === 'out'
+                    ? 'billing.invoice.transferOut'
+                    : 'billing.invoice.transferIn',
+                  { name: transfer.other_student_name, year: transfer.other_year_label },
+                )}
+              </span>
+              <span className="text-xs text-muted-foreground">{transfer.reason}</span>
+            </span>
+            <MoneyAmount
+              value={transfer.direction === 'out' ? -transfer.amount : transfer.amount}
+              className="font-semibold"
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

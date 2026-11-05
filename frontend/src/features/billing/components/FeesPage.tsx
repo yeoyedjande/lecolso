@@ -28,6 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { FormAlert } from '@/features/auth/components/FormAlert'
+import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { ConflictError, ValidationError } from '@/lib/api/errors'
 import { formatDay } from '@/lib/format'
 import { toast } from '@/lib/toast'
@@ -35,9 +36,11 @@ import { toast } from '@/lib/toast'
 import { parseAmountOrZero } from '../amount'
 import {
   useBillingGrid,
+  useFinancialPolicy,
   useGenerateInvoices,
   useSaveCalendar,
   useSaveFeeGrid,
+  useSaveFinancialPolicy,
   type BillingGrid,
   type FeeType,
 } from '../api'
@@ -361,6 +364,61 @@ function FeesGrid({ grid }: { grid: BillingGrid }) {
   )
 }
 
+/** Politique de départ de l'école : modifiable par la direction de toute l'école (school.settings.manage). */
+function DeparturePolicyCard() {
+  const { t } = useTranslation()
+  const membership = useCurrentSchool()
+  const policy = useFinancialPolicy()
+  const save = useSaveFinancialPolicy()
+  const editable = membership !== null && membership.permissions['school.settings.manage'] === null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('billing.fees.policy.title')}</CardTitle>
+        <p className="text-sm text-muted-foreground">{t('billing.fees.policy.description')}</p>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <QueryState query={policy}>
+          {(current) => (
+            <fieldset className="grid gap-2" disabled={!editable || save.isPending}>
+              <legend className="sr-only">{t('billing.fees.policy.title')}</legend>
+              {(['cancel_unstarted', 'keep_all'] as const).map((value) => (
+                <label
+                  key={value}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-surface px-3 text-sm font-medium has-[:checked]:border-accent has-[:disabled]:cursor-default has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-accent/20"
+                >
+                  <input
+                    type="radio"
+                    name="departure-policy"
+                    value={value}
+                    checked={current.departure === value}
+                    onChange={() => {
+                      save
+                        .mutateAsync(value)
+                        .then(() => {
+                          toast(t('billing.fees.policy.saved'), { tone: 'success' })
+                        })
+                        .catch(() => {
+                          toast(t('common.error'), { tone: 'error' })
+                        })
+                    }}
+                    className="size-4 accent-accent"
+                  />
+                  {t(`billing.fees.policy.${value}`)}
+                </label>
+              ))}
+            </fieldset>
+          )}
+        </QueryState>
+        {!editable && (
+          <p className="text-sm text-muted-foreground">{t('billing.fees.policy.readOnly')}</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 /** Grille de frais de l'année (vraie API) : montants annuels par niveau, calendrier des échéances de chaque cycle. */
 export function FeesPage() {
   const { t } = useTranslation()
@@ -383,6 +441,7 @@ export function FeesPage() {
         </Badge>
       )}
       <QueryState query={query}>{(grid) => <FeesGrid grid={grid} />}</QueryState>
+      <DeparturePolicyCard />
     </div>
   )
 }

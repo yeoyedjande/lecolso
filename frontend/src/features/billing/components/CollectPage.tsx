@@ -29,31 +29,50 @@ import {
 } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { useMe } from '@/features/auth/api'
-import { useDemoStudent, useDemoStudents } from '@/features/students/api'
-import type { StudentDetail } from '@/features/students/demo'
+import { FormAlert } from '@/features/auth/components/FormAlert'
+import {
+  useStudentFile,
+  useStudentList,
+  type StudentFile,
+  type StudentListFilters,
+} from '@/features/students/api'
+import { ConflictError, ValidationError } from '@/lib/api/errors'
 import { formatDay, formatMoney } from '@/lib/format'
-import type { DemoPayment, PaymentMethod } from '@/lib/demo/types'
 import { cn } from '@/lib/utils'
 
 import { parseAmount } from '../amount'
-import { useRecordPayment } from '../api'
+import {
+  PAYMENT_METHODS,
+  useRecordPayment,
+  useStudentInvoices,
+  type Invoice,
+  type PaymentMethod,
+  type Receipt,
+} from '../api'
 
-const METHODS: PaymentMethod[] = [
-  'cash',
-  'orange_money',
-  'mtn_momo',
-  'moov_money',
-  'wave',
-  'cheque',
-  'transfer',
-]
+const CONFLICTS = ['nothing_due', 'amount_exceeds', 'cash_closed', 'reference_used'] as const
+
+/** Facture à encaisser : celle de l'année en cours, sinon la plus récente qui a un reste dû. */
+function invoiceToCollect(invoices: Invoice[]): Invoice | undefined {
+  return (
+    invoices.find((invoice) => invoice.academic_year.is_current) ??
+    invoices.find((invoice) => invoice.balance.remaining > 0) ??
+    invoices[0]
+  )
+}
 
 function StudentPicker({ onPick }: { onPick: (id: string) => void }) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const deferred = useDeferredValue(query)
-  const results = useDemoStudents({ search: deferred })
+  const filters: StudentListFilters = {
+    search: deferred,
+    cycleId: null,
+    classroomId: null,
+    status: 'all',
+  }
+  const results = useStudentList(filters)
+  const searching = deferred.trim().length >= 2
 
   return (
     <div className="grid gap-3">
@@ -74,37 +93,44 @@ function StudentPicker({ onPick }: { onPick: (id: string) => void }) {
           }}
         />
       </div>
-      {deferred.trim().length >= 2 && (
+      {searching && (
         <QueryState query={results}>
-          {(rows) =>
-            rows.length === 0 ? (
+          {(data) => {
+            const rows = data.pages.flatMap((page) => page.data)
+            return rows.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('billing.collect.noResult')}</p>
             ) : (
               <ul className="grid gap-2">
                 {rows.slice(0, 6).map((row) => (
-                  <li key={row.student.id}>
+                  <li key={row.id}>
                     <button
                       type="button"
                       onClick={() => {
-                        onPick(row.student.id)
+                        onPick(row.id)
                       }}
-                      aria-label={t('billing.collect.pick', { name: row.name })}
-                      className="flex w-full items-center gap-3 rounded-2xl border bg-card p-3 text-left transition hover:border-accent"
+                      aria-label={t('billing.collect.pick', { name: row.full_name })}
+                      className="flex w-full min-w-0 items-center gap-3 rounded-2xl border bg-card p-3 text-left transition hover:border-accent"
                     >
-                      <Avatar name={row.name} size="sm" />
-                      <span className="grid flex-1">
-                        <span className="font-semibold">{row.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {row.student.matricule} · {row.payer}
+                      <Avatar name={row.full_name} photoUrl={row.photo_url} size="sm" />
+                      <span className="grid min-w-0 flex-1">
+                        <span className="truncate font-semibold">{row.full_name}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {row.matricule}
+                          {row.primary_contact === null ? '' : ` · ${row.primary_contact.name}`}
                         </span>
                       </span>
-                      <CycleBadge code={row.classroom.cycle} label={row.classroom.name} />
+                      {row.enrollment !== null && (
+                        <CycleBadge
+                          code={row.enrollment.cycle_code}
+                          label={row.enrollment.classroom_name}
+                        />
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
             )
-          }
+          }}
         </QueryState>
       )}
     </div>
@@ -112,36 +138,38 @@ function StudentPicker({ onPick }: { onPick: (id: string) => void }) {
 }
 
 function PaymentForm({
-  detail,
+  student,
+  invoice,
   onDone,
   onChange,
 }: {
-  detail: StudentDetail
-  onDone: (payment: DemoPayment) => void
+  student: StudentFile
+  invoice: Invoice
+  onDone: (receipt: Receipt) => void
   onChange: () => void
 }) {
   const { t } = useTranslation()
-  const { data: profile } = useMe()
   const record = useRecordPayment()
-  const { balance } = detail
+  const { balance } = invoice
   const [amountText, setAmountText] = useState(balance.overdue > 0 ? String(balance.overdue) : '')
   const [method, setMethod] = useState<PaymentMethod>('cash')
   const [reference, setReference] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
 
   const amount = parseAmount(amountText)
   const amountError =
     amount === null
       ? t('billing.collect.errors.amount')
-      : amount > balance.remaining && balance.remaining > 0
+      : amount > balance.remaining
         ? t('billing.collect.errors.tooMuch', { amount: formatMoney(balance.remaining) })
         : undefined
   const referenceError =
     method !== 'cash' && reference.trim() === '' ? t('billing.collect.errors.reference') : undefined
   const suggestions = [
     ['suggestOverdue', balance.overdue],
-    ['suggestNext', balance.nextInstallment === null ? 0 : balance.nextInstallment.amount],
+    ['suggestNext', balance.next === null ? 0 : balance.next.amount],
     ['suggestAll', balance.remaining],
   ] as const
 
@@ -150,14 +178,15 @@ function PaymentForm({
       <Card>
         <CardContent className="grid gap-4 pt-6">
           <div className="flex items-center gap-3">
-            <Avatar name={detail.name} size="lg" />
-            <div className="grid gap-1">
-              <p className="font-display text-xl font-bold">{detail.name}</p>
-              <CycleBadge
-                code={detail.classroom.cycle}
-                label={detail.classroom.name}
-                className="w-fit"
-              />
+            <Avatar name={student.full_name} photoUrl={student.photo_url} size="lg" />
+            <div className="grid min-w-0 gap-1">
+              <p className="font-display text-xl font-bold break-words">{student.full_name}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('billing.collect.invoiceOf', {
+                  classroom: invoice.classroom_name,
+                  year: invoice.academic_year.label,
+                })}
+              </p>
             </div>
           </div>
           <dl className="grid gap-3 rounded-2xl bg-muted/60 p-4">
@@ -181,11 +210,11 @@ function PaymentForm({
             </div>
           </dl>
           <p className="text-sm text-muted-foreground">
-            {balance.nextInstallment !== null
+            {balance.next !== null
               ? t('billing.collect.next', {
-                  label: balance.nextInstallment.label,
-                  amount: formatMoney(balance.nextInstallment.amount),
-                  date: formatDay(balance.nextInstallment.dueDate),
+                  label: balance.next.label,
+                  amount: formatMoney(balance.next.amount),
+                  date: formatDay(balance.next.due_on),
                 })
               : t('billing.collect.upToDate')}
           </p>
@@ -246,7 +275,7 @@ function PaymentForm({
             <fieldset className="grid gap-2">
               <legend className="mb-2 text-sm font-medium">{t('billing.collect.method')}</legend>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {METHODS.map((candidate) => (
+                {PAYMENT_METHODS.map((candidate) => (
                   <label
                     key={candidate}
                     className="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border bg-surface px-3 text-sm font-medium transition has-[:checked]:border-accent has-[:checked]:bg-orange-100 has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-accent/20 dark:has-[:checked]:bg-orange/15"
@@ -290,7 +319,14 @@ function PaymentForm({
                 )}
               </Field>
             )}
-            <Button type="submit" variant="accent" size="lg" className="w-full">
+            {failure !== null && <FormAlert>{failure}</FormAlert>}
+            <Button
+              type="submit"
+              variant="accent"
+              size="lg"
+              className="w-full"
+              disabled={balance.remaining === 0}
+            >
               <Wallet aria-hidden />
               {t('billing.collect.submit', { amount: amount === null ? '' : formatMoney(amount) })}
             </Button>
@@ -304,7 +340,7 @@ function PaymentForm({
           <DialogDescription>
             {t('billing.collect.confirmDescription', {
               amount: formatMoney(amount ?? 0),
-              name: detail.name,
+              name: student.full_name,
               method: t(`paymentMethods.${method}`),
             })}
           </DialogDescription>
@@ -317,17 +353,31 @@ function PaymentForm({
               disabled={record.isPending}
               onClick={() => {
                 if (amount === null) return
-                void record
+                setFailure(null)
+                record
                   .mutateAsync({
-                    studentId: detail.student.id,
+                    invoiceId: invoice.id,
                     amount,
                     method,
                     reference: method === 'cash' ? null : reference.trim(),
-                    cashier: profile?.name ?? '',
                   })
-                  .then((payment) => {
+                  .then((receipt) => {
                     setConfirming(false)
-                    onDone(payment)
+                    onDone(receipt)
+                  })
+                  .catch((caught: unknown) => {
+                    setConfirming(false)
+                    const code =
+                      caught instanceof ConflictError
+                        ? CONFLICTS.find((candidate) => candidate === caught.code)
+                        : undefined
+                    setFailure(
+                      code !== undefined
+                        ? t(`billing.collect.conflicts.${code}`)
+                        : caught instanceof ValidationError
+                          ? (Object.values(caught.fields)[0]?.[0] ?? t('common.error'))
+                          : t('common.error'),
+                    )
                   })
               }}
             >
@@ -341,12 +391,69 @@ function PaymentForm({
   )
 }
 
-/** Encaissement au guichet : élève → montant → moyen → confirmation → reçu. */
+function StudentCollect({
+  studentId,
+  onDone,
+  onChange,
+}: {
+  studentId: string
+  onDone: (receipt: Receipt) => void
+  onChange: () => void
+}) {
+  const { t } = useTranslation()
+  const file = useStudentFile(studentId)
+  const invoices = useStudentInvoices(studentId)
+
+  return (
+    <QueryState query={file}>
+      {(student) =>
+        student === null ? (
+          <EmptyState
+            title={t('billing.collect.notFound')}
+            action={
+              <Button variant="outline" onClick={onChange}>
+                <RotateCcw aria-hidden />
+                {t('billing.collect.change')}
+              </Button>
+            }
+          />
+        ) : (
+          <QueryState query={invoices}>
+            {(list) => {
+              const invoice = list === null ? undefined : invoiceToCollect(list)
+              return invoice === undefined ? (
+                <EmptyState
+                  title={t('billing.collect.noInvoiceTitle', { name: student.full_name })}
+                  description={t('billing.collect.noInvoiceDescription')}
+                  action={
+                    <Button variant="outline" onClick={onChange}>
+                      <RotateCcw aria-hidden />
+                      {t('billing.collect.change')}
+                    </Button>
+                  }
+                />
+              ) : (
+                <PaymentForm
+                  key={invoice.id}
+                  student={student}
+                  invoice={invoice}
+                  onDone={onDone}
+                  onChange={onChange}
+                />
+              )
+            }}
+          </QueryState>
+        )
+      }
+    </QueryState>
+  )
+}
+
+/** Encaissement au guichet (vraie API) : élève → montant → moyen → confirmation → reçu numéroté. */
 export function CollectPage({ studentId }: { studentId: string | undefined }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [done, setDone] = useState<DemoPayment | null>(null)
-  const detail = useDemoStudent(studentId ?? '')
+  const [done, setDone] = useState<Receipt | null>(null)
 
   const pick = (id: string | undefined) => {
     setDone(null)
@@ -362,6 +469,7 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
     <div className="grid gap-6">
       <ScreenHeader
         title={t('billing.collect.title')}
+        demo={false}
         description={t('billing.collect.description')}
       />
       {done !== null ? (
@@ -373,8 +481,8 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
             </span>
           }
           description={t('billing.collect.doneDescription', {
-            number: done.receiptNumber,
-            amount: formatMoney(done.amount),
+            number: done.payment.receipt_number,
+            amount: formatMoney(done.payment.amount),
           })}
           action={
             <div className="flex flex-wrap justify-center gap-2">
@@ -382,7 +490,7 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
                 <Link
                   from="/$school"
                   to="/$school/recus/$paymentId"
-                  params={{ paymentId: done.id }}
+                  params={{ paymentId: done.payment.id }}
                 >
                   <Printer aria-hidden />
                   {t('billing.collect.print')}
@@ -402,22 +510,14 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
       ) : studentId === undefined ? (
         <StudentPicker onPick={pick} />
       ) : (
-        <QueryState query={detail}>
-          {(data) =>
-            data === null ? (
-              <StudentPicker onPick={pick} />
-            ) : (
-              <PaymentForm
-                key={data.student.id}
-                detail={data}
-                onDone={setDone}
-                onChange={() => {
-                  pick(undefined)
-                }}
-              />
-            )
-          }
-        </QueryState>
+        <StudentCollect
+          key={studentId}
+          studentId={studentId}
+          onDone={setDone}
+          onChange={() => {
+            pick(undefined)
+          }}
+        />
       )}
     </div>
   )

@@ -13,15 +13,18 @@ test.beforeEach(async ({ page }) => {
   }, LAURIERS)
 })
 
-test('encaissement au guichet (démo) : recherche, montant, confirmation, reçu imprimable', async ({
+test('encaissement au guichet : recherche, montant, confirmation, reçu, caisse, annulation', async ({
   page,
 }) => {
   await mockApi(page, { session: ACCOUNTS.director })
   await page.goto('/les-lauriers/encaissements')
 
-  await page.getByRole('searchbox', { name: /Rechercher l’élève/ }).fill('LAU-2026-0001')
-  await page.getByRole('button', { name: /^Choisir / }).click()
-  await expect(page.getByText('Reste à payer sur l’année')).toBeVisible()
+  await page.getByRole('searchbox', { name: /Rechercher l’élève/ }).fill('LAU-000002')
+  await page
+    .getByRole('button', { name: /^Choisir / })
+    .first()
+    .click()
+  await expect(page.getByText('Montants proposés')).toBeVisible()
 
   const amount = page.getByLabel('Montant reçu (FCFA)')
   await amount.fill('0')
@@ -42,15 +45,45 @@ test('encaissement au guichet (démo) : recherche, montant, confirmation, reçu 
   await dialog.getByRole('button', { name: 'Confirmer et émettre le reçu' }).click()
 
   await expect(page.getByText('Paiement enregistré')).toBeVisible()
-  await expect(page.getByText(/Reçu REC-2026-\d{6}/)).toBeVisible()
+  await expect(page.getByText('Reçu REC-2026-000002')).toBeVisible()
   await page.getByRole('link', { name: 'Imprimer le reçu' }).click()
   await expect(page.getByText('vingt-cinq mille francs CFA', { exact: false })).toBeVisible()
   await expect(page.getByText('MP26110400123')).toBeVisible()
 
-  // Le paiement apparaît dans la caisse du jour
+  // La direction annule le paiement : motif obligatoire, le reçu reste et porte la mention
+  await page.getByRole('button', { name: 'Annuler ce paiement' }).click()
+  const cancel = page.getByRole('dialog', { name: 'Annuler le paiement' })
+  await expect(cancel.getByRole('button', { name: 'Annuler le paiement' })).toBeDisabled()
+  await cancel.getByLabel('Motif de l’annulation').fill('Saisie sur le mauvais élève')
+  await cancel.getByRole('button', { name: 'Annuler le paiement' }).click()
+  await expect(page.getByText('Reçu annulé')).toBeVisible()
+  await expect(page.getByText(/Saisie sur le mauvais élève/)).toBeVisible()
+
+  // Caisse du jour : ma caisse (encaissement et annulation), celle du comptable
   await page.getByRole('link', { name: 'Retour' }).click()
   await expect(page.getByRole('heading', { name: 'Caisse du jour', level: 1 })).toBeVisible()
-  await expect(page.getByText('Orange Money').first()).toBeVisible()
+  await expect(page.getByText(/^Ma caisse/)).toBeVisible()
+  await expect(page.getByText(/^Caisse de Moussa Comptable/)).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Annulation' })).toBeVisible()
+})
+
+test('clôture de la caisse : espèces comptées, écart justifié, caisse figée', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.accountant })
+  await page.goto('/les-lauriers/caisse')
+
+  await expect(page.getByText(/^Ma caisse/)).toBeVisible()
+  await page.getByRole('button', { name: 'Clôturer la caisse' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Clôture de ma caisse' })
+  await dialog.getByLabel('Espèces comptées (FCFA)').fill('24000')
+  await expect(dialog.getByText(/Écart : −1\s000/)).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Clôturer ma caisse' })).toBeDisabled()
+  await dialog.getByLabel('Justification').fill('Monnaie rendue en trop')
+  await dialog.getByRole('button', { name: 'Clôturer ma caisse' }).click()
+
+  await expect(page.getByText('Caisse clôturée').first()).toBeVisible()
+  await expect(page.getByText('Clôturée', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Clôturer la caisse' })).toHaveCount(0)
+  await expect(page.getByText('Monnaie rendue en trop')).toBeVisible()
 })
 
 test('appel de classe (démo) : absent en un geste, enregistrement', async ({ page }) => {

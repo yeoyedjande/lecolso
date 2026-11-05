@@ -1,140 +1,195 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Printer } from 'lucide-react'
+import { ArrowLeft, Ban, Printer } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { LogoMark } from '@/components/brand/Logo'
-import { MoneyAmount } from '@/components/MoneyAmount'
-import { DemoBanner } from '@/components/states/DemoBanner'
 import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
-import { amountInWords } from '@/lib/amountInWords'
-import { formatDateTime, formatPhone } from '@/lib/format'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { FormAlert } from '@/features/auth/components/FormAlert'
+import { ConflictError } from '@/lib/api/errors'
+import { formatMoney } from '@/lib/format'
+import { toast } from '@/lib/toast'
 
-import { useReceipt } from '../api'
+import { useCancelPayment, useReceipt, type Receipt } from '../api'
+import { ReceiptSheet, type ReceiptContent } from './ReceiptSheet'
 
-/** Reçu imprimable (format A5 portrait à l'impression ; le menu et l'en-tête sont masqués). */
-export function ReceiptPage({
-  paymentId,
-  backTo = '/$school/caisse',
+function contentOf(receipt: Receipt): ReceiptContent {
+  const { payment } = receipt
+  return {
+    number: payment.receipt_number,
+    paidAt: payment.paid_at,
+    amount: payment.amount,
+    method: payment.method,
+    reference: payment.reference,
+    payer: payment.payer_name,
+    studentName: receipt.student.full_name,
+    matricule: receipt.student.matricule,
+    classroom: receipt.classroom_name,
+    yearLabel: receipt.academic_year_label,
+    remaining: receipt.remaining,
+    cashier: payment.cashier_name,
+    school: {
+      name: receipt.school.name,
+      address: receipt.school.address,
+      phone: receipt.school.phone,
+      logoUrl: receipt.school.logo_url,
+    },
+    cancellation:
+      payment.cancellation === null
+        ? null
+        : {
+            reason: payment.cancellation.reason,
+            at: payment.cancellation.cancelled_at,
+            by: payment.cancellation.cancelled_by_name,
+          },
+  }
+}
+
+/** Barre d'actions d'un reçu (retour, impression), masquée à l'impression. */
+export function ReceiptToolbar({
+  backTo,
+  children,
 }: {
-  paymentId: string
-  backTo?: '/$school/caisse' | '/$school/parent/paiements'
+  backTo: '/$school/caisse' | '/$school/parent/paiements'
+  children?: React.ReactNode
 }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <Button asChild variant="ghost" size="sm">
+        <Link from="/$school" to={backTo}>
+          <ArrowLeft aria-hidden />
+          {t('billing.receipt.back')}
+        </Link>
+      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {children}
+        <Button
+          variant="accent"
+          onClick={() => {
+            window.print()
+          }}
+        >
+          <Printer aria-hidden />
+          {t('common.print')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function CancelPayment({ receipt }: { receipt: Receipt }) {
+  const { t } = useTranslation()
+  const cancel = useCancelPayment()
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        className="text-destructive-ink"
+        onClick={() => {
+          setReason('')
+          setError(null)
+          setOpen(true)
+        }}
+      >
+        <Ban aria-hidden />
+        {t('billing.receipt.cancel')}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent closeLabel={t('common.close')}>
+          <DialogTitle>{t('billing.receipt.cancelTitle')}</DialogTitle>
+          <DialogDescription>
+            {t('billing.receipt.cancelDescription', {
+              number: receipt.payment.receipt_number,
+              amount: formatMoney(receipt.payment.amount),
+            })}
+          </DialogDescription>
+          {error !== null && <FormAlert>{error}</FormAlert>}
+          <Field label={t('billing.receipt.cancelReason')}>
+            {(control) => (
+              <Input
+                {...control}
+                value={reason}
+                maxLength={200}
+                onChange={(event) => {
+                  setReason(event.target.value)
+                }}
+              />
+            )}
+          </Field>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost">{t('common.cancel')}</Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              disabled={reason.trim().length < 3 || cancel.isPending}
+              onClick={() => {
+                setError(null)
+                cancel
+                  .mutateAsync({ paymentId: receipt.payment.id, reason: reason.trim() })
+                  .then(() => {
+                    setOpen(false)
+                    toast(t('billing.receipt.cancelDone'), { tone: 'success' })
+                  })
+                  .catch((caught: unknown) => {
+                    setError(
+                      caught instanceof ConflictError && caught.code === 'cash_closed'
+                        ? t('billing.cash.conflicts.cash_closed')
+                        : t('common.error'),
+                    )
+                  })
+              }}
+            >
+              {t('billing.receipt.cancelConfirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+/** Reçu d'un paiement (vraie API) ; la direction peut l'annuler avec un motif. */
+export function ReceiptPage({ paymentId }: { paymentId: string }) {
   const { t } = useTranslation()
   const query = useReceipt(paymentId)
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Button asChild variant="ghost" size="sm">
-          <Link from="/$school" to={backTo}>
-            <ArrowLeft aria-hidden />
-            {t('billing.receipt.back')}
-          </Link>
-        </Button>
-        <div className="flex items-center gap-3">
-          <DemoBanner />
-          <Button
-            variant="accent"
-            onClick={() => {
-              window.print()
-            }}
-          >
-            <Printer aria-hidden />
-            {t('common.print')}
-          </Button>
-        </div>
-      </div>
       <QueryState query={query}>
         {(receipt) =>
           receipt === null ? (
-            <EmptyState
-              headingLevel={1}
-              illustration="lost"
-              title={t('billing.receipt.notFound')}
-            />
+            <>
+              <ReceiptToolbar backTo="/$school/caisse" />
+              <EmptyState
+                headingLevel={1}
+                illustration="lost"
+                title={t('billing.receipt.notFound')}
+              />
+            </>
           ) : (
-            <article className="mx-auto w-full max-w-2xl rounded-3xl border bg-white p-6 text-navy shadow-soft sm:p-10 print:max-w-none print:rounded-none print:border-0 print:p-0 print:shadow-none">
-              <header className="flex items-start justify-between gap-4 border-b-2 border-navy pb-5">
-                <div className="flex items-center gap-3">
-                  <LogoMark className="size-12" />
-                  <div>
-                    <p className="font-display text-xl font-bold">{receipt.school.name}</p>
-                    <p className="text-sm text-warm-600">{receipt.school.address}</p>
-                    <p className="text-sm text-warm-600">{formatPhone(receipt.school.phone)}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <h1 className="font-display text-lg font-bold tracking-wide uppercase">
-                    {t('billing.receipt.title')}
-                  </h1>
-                  <p className="tabular font-semibold text-[#a14a07]">
-                    {t('billing.receipt.number', { number: receipt.payment.receiptNumber })}
-                  </p>
-                  <p className="text-sm text-warm-600">{receipt.school.year}</p>
-                </div>
-              </header>
-
-              <dl className="grid gap-x-6 gap-y-3 py-6 sm:grid-cols-2">
-                {(
-                  [
-                    ['date', formatDateTime(receipt.payment.paidAt)],
-                    ['payer', receipt.payer],
-                    ['student', receipt.studentName],
-                    ['matricule', receipt.matricule],
-                    ['classroom', receipt.classroom],
-                    ['method', t(`paymentMethods.${receipt.payment.method}`)],
-                    ...(receipt.payment.reference !== null
-                      ? [['reference', receipt.payment.reference] as const]
-                      : []),
-                  ] as const
-                ).map(([key, value]) => (
-                  <div key={key} className="grid gap-0.5">
-                    <dt className="text-xs font-semibold tracking-wide text-warm-600 uppercase">
-                      {t(`billing.receipt.${key}`)}
-                    </dt>
-                    <dd className="font-medium">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <div className="grid gap-2 rounded-2xl bg-cream p-5 print:border print:border-warm-300">
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-semibold">{t('billing.receipt.amount')}</span>
-                  <MoneyAmount
-                    value={receipt.payment.amount}
-                    className="font-display text-3xl font-bold"
-                  />
-                </div>
-                <p className="text-sm italic">
-                  {t('billing.receipt.inWords', { words: amountInWords(receipt.payment.amount) })}
-                </p>
-              </div>
-
-              <div className="flex items-baseline justify-between gap-4 py-4 text-sm">
-                <span className="text-warm-600">{t('billing.receipt.remaining')}</span>
-                <MoneyAmount value={receipt.remaining} className="font-semibold" />
-              </div>
-
-              <footer className="grid gap-8 border-t pt-5 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold tracking-wide text-warm-600 uppercase">
-                    {t('billing.receipt.cashier')}
-                  </p>
-                  <p className="font-medium">{receipt.payment.cashier}</p>
-                </div>
-                <div className="sm:text-right">
-                  <p className="text-xs font-semibold tracking-wide text-warm-600 uppercase">
-                    {t('billing.receipt.signature')}
-                  </p>
-                  <div className="mt-2 h-16 rounded-xl border border-dashed border-warm-300" />
-                </div>
-                <p className="text-center text-xs text-warm-600 sm:col-span-2">
-                  {t('billing.receipt.footer')}
-                </p>
-              </footer>
-            </article>
+            <>
+              <ReceiptToolbar backTo="/$school/caisse">
+                {receipt.can_cancel && <CancelPayment receipt={receipt} />}
+              </ReceiptToolbar>
+              <ReceiptSheet receipt={contentOf(receipt)} />
+            </>
           )
         }
       </QueryState>
