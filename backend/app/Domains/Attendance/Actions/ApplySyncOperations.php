@@ -15,6 +15,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -47,18 +48,28 @@ final readonly class ApplySyncOperations
                 continue;
             }
 
-            [$status, $code, $message] = $this->apply($user, $operation['type'], $operation['payload'], $now);
             try {
-                $stored = SyncOperation::query()->create([
-                    'id' => $operation['id'],
-                    'user_id' => $user->id,
-                    'type' => $operation['type'],
-                    'status' => $status,
-                    'result' => ['code' => $code, 'message' => $message],
-                ]);
+                // Opération réservée puis appliquée dans la même transaction : un second envoi simultané attend
+                // sur la clé primaire, puis relit le résultat ; une panne n'enregistre ni l'une ni l'autre.
+                $stored = DB::transaction(function () use ($user, $operation, $now): SyncOperation {
+                    $stored = SyncOperation::query()->create([
+                        'id' => $operation['id'],
+                        'user_id' => $user->id,
+                        'type' => $operation['type'],
+                        'status' => 'applied',
+                        'result' => ['code' => null, 'message' => null],
+                    ]);
+                    [$status, $code, $message] = $this->apply($user, $operation['type'], $operation['payload'], $now);
+                    if ($status !== 'applied') {
+                        $stored->fill(['status' => $status, 'result' => ['code' => $code, 'message' => $message]])->save();
+                    }
+
+                    return $stored;
+                });
             } catch (UniqueConstraintViolationException) {
-                // Même opération envoyée au même instant par un autre onglet
-                $stored = SyncOperation::query()->findOrFail($operation['id']);
+                $results[] = $this->result(SyncOperation::query()->findOrFail($operation['id']), true);
+
+                continue;
             }
             $results[] = $this->result($stored, false);
         }

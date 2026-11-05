@@ -220,6 +220,41 @@ function todayInAbidjan(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+/** Garderie mise à jour localement par une saisie en attente d'envoi (même effet que la réponse de l'API). */
+function withLocalDaycare(board: DaycareBoard, input: DaycareInput): DaycareBoard {
+  return {
+    ...board,
+    classrooms: board.classrooms.map((classroom) => ({
+      ...classroom,
+      children: classroom.children.map((child) => {
+        if (child.student.id !== input.studentId) return child
+        if (input.kind === 'log') {
+          return {
+            ...child,
+            logs: [
+              ...child.logs,
+              { id: crypto.randomUUID(), time: input.time, kind: input.logKind, note: input.note },
+            ],
+          }
+        }
+        const visit = child.visit ?? {
+          arrived_at: null,
+          left_at: null,
+          dropped_by: null,
+          picked_up_by: null,
+        }
+        return {
+          ...child,
+          visit:
+            input.direction === 'in'
+              ? { ...visit, arrived_at: input.time, dropped_by: input.person }
+              : { ...visit, left_at: input.time, picked_up_by: input.person },
+        }
+      }),
+    })),
+  }
+}
+
 export type DaycareInput =
   | {
       kind: 'check'
@@ -257,6 +292,10 @@ export function useDaycareRecord() {
               kind: input.logKind,
               note: input.note,
             }))
+        // Affichage immédiat : l'arrivée notée hors connexion permet de noter le départ pendant la même coupure
+        queryClient.setQueryData<DaycareBoard>([...key, 'daycare'], (board) =>
+          board === undefined ? board : withLocalDaycare(board, input),
+        )
         return { queued: true }
       }
       if (!navigator.onLine) return queue()

@@ -92,10 +92,7 @@ final readonly class BuildDashboard
             ->get()
             ->filter(static fn (Classroom $classroom): bool => $classroom->level->cycle->settings->attendanceMode === AttendanceMode::RollCall);
         $ids = $classrooms->modelKeys();
-        $roster = [];
-        foreach ($classrooms as $classroom) {
-            $roster[$classroom->id] = ClassRoster::on($classroom, $today)->count();
-        }
+        $byId = $classrooms->keyBy('id');
 
         $marksOn = static fn (string $date, AttendanceStatus $status): int => AttendanceMark::query()->whereDate('date', $date)->where('status', $status)
             ->whereHas('rollCall', static fn (Builder $call) => $call->whereIn('classroom_id', $ids))
@@ -110,7 +107,12 @@ final readonly class BuildDashboard
         }
         foreach (array_slice($byDay, 0, 10, true) as $date => $calls) {
             $date = (string) $date;
-            $expected = array_sum(array_map(static fn (string $id): int => $roster[$id] ?? 0, $calls));
+            // Effectif de chaque classe à la date de l'appel (inscriptions et départs du moment)
+            $expected = array_sum(array_map(static function (string $id) use ($byId, $date): int {
+                $classroom = $byId->get($id);
+
+                return $classroom instanceof Classroom ? ClassRoster::on($classroom, $date)->count() : 0;
+            }, $calls));
             $absent = $marksOn($date, AttendanceStatus::Absent);
             $rates[] = ['date' => $date, 'rate' => $expected === 0 ? 100 : (int) round(max(0, $expected - $absent) / $expected * 100)];
         }

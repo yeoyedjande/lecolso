@@ -192,3 +192,28 @@ test('directrice limitée à la maternelle : seuls les élèves de maternelle', 
   await expect(page.getByText(/^\d+ élèves$/)).toBeVisible()
   await expect(page.getByText(/^CE1 A$/)).toHaveCount(0)
 })
+
+test('garderie hors connexion : arrivée puis départ pendant la même coupure', async ({
+  page,
+  context,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/garderie')
+  await expect(page.getByRole('button', { name: 'Arrivée' }).first()).toBeVisible()
+
+  await context.setOffline(true)
+  await page.getByRole('button', { name: 'Arrivée' }).first().click()
+  await page.getByRole('dialog').getByLabel('Heure').fill('07:40')
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmer' }).click()
+  await expect(page.getByText('Arrivé(e) à 07:40').first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Départ' }).first().click()
+  await page.getByRole('dialog').getByLabel('Heure').fill('12:10')
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmer' }).click()
+  await expect(page.getByText('Parti(e) à 12:10').first()).toBeVisible()
+  await expect(page.getByText('2 élément(s) en attente d’envoi')).toBeVisible()
+
+  await context.setOffline(false)
+  await expect(page.getByText('2 saisie(s) hors connexion envoyée(s)').first()).toBeVisible()
+  await expect(page.getByText('Parti(e) à 12:10').first()).toBeVisible()
+})

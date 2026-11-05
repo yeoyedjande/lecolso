@@ -21,6 +21,15 @@ final class AbsencesRequest extends FormRequest
         return $user instanceof User && app(AttendanceAccess::class)->classrooms($user)->isNotEmpty();
     }
 
+    /** `pending=true` ou `false` (query string d'un navigateur) : lu comme booléen. */
+    protected function prepareForValidation(): void
+    {
+        $pending = $this->query('pending');
+        if (is_string($pending) && in_array(strtolower($pending), ['true', 'false'], true)) {
+            $this->merge(['pending' => strtolower($pending) === 'true' ? '1' : '0']);
+        }
+    }
+
     /**
      * @return array<string, list<string>>
      */

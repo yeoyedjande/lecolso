@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
@@ -78,6 +79,7 @@ export function useOutboxSync(messages: {
 }): void {
   const school = useCurrentSchool()
   const schoolId = school?.id ?? null
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (schoolId === null) return undefined
@@ -87,6 +89,9 @@ export function useOutboxSync(messages: {
       running = true
       flushOutbox(schoolId)
         .then(({ applied, rejected }) => {
+          // Les écrans relisent l'école : les saisies locales sont remplacées par l'état du serveur
+          if (applied > 0 || rejected.length > 0)
+            void queryClient.invalidateQueries({ queryKey: ['school', schoolId] })
           if (applied > 0) toast(messages.synced(applied), { tone: 'success' })
           for (const result of rejected)
             toast(messages.rejected(result.message ?? ''), { tone: 'error' })
@@ -107,5 +112,5 @@ export function useOutboxSync(messages: {
       window.clearInterval(timer)
       stop()
     }
-  }, [schoolId, messages])
+  }, [schoolId, messages, queryClient])
 }

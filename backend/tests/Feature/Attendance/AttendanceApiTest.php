@@ -8,6 +8,7 @@ use App\Domains\Attendance\Models\DaycareLog;
 use App\Domains\Attendance\Models\RollCall;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Models\Enrollment;
 use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Models\School;
 use Illuminate\Http\UploadedFile;
@@ -180,7 +181,7 @@ it('fait proposer la justification par le parent et décider par l’école', fu
 
     // Enseignant : voit, ne décide pas
     login($teacher);
-    $justification = spa('GET', '/api/v1/attendance/absences?pending=1', [], $school)->assertOk()
+    $justification = spa('GET', '/api/v1/attendance/absences?pending=true', [], $school)->assertOk()
         ->assertJsonCount(1, 'data')->assertJsonPath('data.0.can_decide', false)->json('data.0.justification.id');
     \assert(is_string($justification));
     spa('POST', '/api/v1/attendance/justifications/'.$justification.'/decision', ['decision' => 'accepted'], $school)->assertForbidden();
@@ -315,4 +316,23 @@ it('compte les absents du jour et les appels manquants au tableau de bord', func
 
     actingAsRole(Role::Accountant, $school);
     spa('GET', '/api/v1/billing/dashboard', [], $school)->assertOk()->assertJsonPath('data.attendance', null);
+});
+
+it('calcule le taux de présence d’un jour avec l’effectif de ce jour-là', function (): void {
+    [$school, $classroom, $teacher, $awa, $yao] = attendanceSchool();
+    login($teacher);
+    spa('PUT', '/api/v1/classrooms/'.$classroom->id.'/roll-calls/2026-10-05', ['marks' => [['student_id' => $awa->id, 'status' => 'absent']]], $school)->assertOk();
+
+    // Deux élèves arrivent le lendemain : le taux du 5 octobre ne change pas
+    Carbon::setTestNow('2026-10-06 08:00:00');
+    $newcomers = [
+        enrollStudent($school, $classroom, ['first_name' => 'Ismaël', 'gender' => 'M', 'guardian_phone' => '+2250606060606']),
+        enrollStudent($school, $classroom, ['first_name' => 'Aya', 'guardian_phone' => '+2250707070707']),
+    ];
+    inSchool($school, static fn () => Enrollment::query()->whereIn('student_id', array_map(static fn (Student $s): string => $s->id, $newcomers))->update(['enrolled_on' => '2026-10-06']));
+
+    actingAsRole(Role::Director, $school);
+    spa('GET', '/api/v1/billing/dashboard', [], $school)->assertOk()
+        ->assertJsonPath('data.attendance.rates.0.date', '2026-10-05')
+        ->assertJsonPath('data.attendance.rates.0.rate', 50);
 });
