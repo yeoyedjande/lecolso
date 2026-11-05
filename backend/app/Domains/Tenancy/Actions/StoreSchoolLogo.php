@@ -12,6 +12,7 @@ use Illuminate\Contracts\Filesystem\Factory as Filesystems;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -36,7 +37,10 @@ final readonly class StoreSchoolLogo
         $path = SchoolLogo::path(Str::uuid7()->toString().'.webp');
         $previous = $school->logo_path;
 
-        $disk->put($path, $webp);
+        // Disques configurés avec 'throw' => false : un échec d'écriture renvoie false. L'ancien logo reste en place.
+        if (! $disk->put($path, $webp)) {
+            throw new RuntimeException('Enregistrement du logo impossible : stockage indisponible.');
+        }
 
         try {
             $school->logo_path = $path;

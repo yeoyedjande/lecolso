@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { meQueryOptions } from '@/features/auth/api'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
@@ -45,6 +46,7 @@ function useSaveProfile() {
 
 export function useUpdateSchoolProfile() {
   const save = useSaveProfile()
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: UpdateSchoolProfileInput): Promise<SchoolProfile> => {
       const { data, response } = await api.PATCH('/school', { body: input })
@@ -52,7 +54,11 @@ export function useUpdateSchoolProfile() {
         throw new Error(`Enregistrement impossible (${String(response.status)})`)
       return data.data
     },
-    onSuccess: save,
+    onSuccess: async (profile) => {
+      save(profile)
+      // Le nom affiché dans l'en-tête et le choix d'établissement vient de /me : relu pour suivre un renommage
+      await queryClient.invalidateQueries({ queryKey: meQueryOptions.queryKey })
+    },
   })
 }
 

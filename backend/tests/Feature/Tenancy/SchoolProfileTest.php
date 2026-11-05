@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Tenancy\Models\School;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -205,4 +206,25 @@ it('montre le logo et les coordonnées sur la page publique', function (): void 
     \assert(is_string($url));
 
     get(relativeUrl($url))->assertOk()->assertHeader('Content-Type', 'image/webp');
+});
+
+it('garde l’ancien logo si le stockage refuse le nouveau', function (): void {
+    $school = makeSchool();
+    actingAsRole(Role::Director, $school);
+    uploadLogo($school, pngUpload())->assertOk();
+    $previous = ownerSchoolValue($school, 'logo_path');
+    \assert(is_string($previous));
+    $working = Storage::disk();
+
+    // Stockage indisponible : put() renvoie false sans exception (disques configurés avec 'throw' => false)
+    $failing = Mockery::mock(Filesystem::class);
+    $failing->allows('put')->andReturnFalse();
+    $failing->shouldNotReceive('delete');
+    Storage::set(config()->string('filesystems.default'), $failing);
+
+    uploadLogo($school, pngUpload(300, 300))->assertServerError();
+
+    expect(ownerSchoolValue($school, 'logo_path'))->toBe($previous);
+    Storage::set(config()->string('filesystems.default'), $working);
+    Storage::assertExists($previous);
 });

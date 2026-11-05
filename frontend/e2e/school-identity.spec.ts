@@ -27,6 +27,7 @@ test('direction : modifier l’identité de l’école et son logo, visible dans
 
   await expect(page.getByLabel('Nom de l’établissement')).toHaveValue('Les Lauriers')
   await expect(page.getByLabel('Téléphone')).toHaveValue('+225 27 22 41 00 00')
+  await page.getByLabel('Nom de l’établissement').fill('Groupe scolaire Les Lauriers')
   await page.getByLabel('Devise').fill('Apprendre ensemble')
   await page.getByLabel('Téléphone').fill('123')
   await page.getByRole('button', { name: 'Enregistrer' }).click()
@@ -35,6 +36,8 @@ test('direction : modifier l’identité de l’école et son logo, visible dans
   await page.getByRole('button', { name: 'Enregistrer' }).click()
   await expect(page.getByText('Identité enregistrée').first()).toBeVisible()
   await expect(page.getByLabel('Téléphone')).toHaveValue('+225 27 22 41 00 01')
+  // L'en-tête suit le renommage (nom lu dans /me)
+  await expect(page.getByRole('banner').getByText('Groupe scolaire Les Lauriers')).toBeVisible()
 
   // Format refusé avant tout envoi
   await page
@@ -46,11 +49,15 @@ test('direction : modifier l’identité de l’école et son logo, visible dans
     .getByLabel('Choisir un logo')
     .setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG })
   await expect(page.getByText('Logo enregistré').first()).toBeVisible()
-  await expect(page.getByRole('banner').getByAltText('Logo de Les Lauriers')).toBeVisible()
+  await expect(
+    page.getByRole('banner').getByAltText('Logo de Groupe scolaire Les Lauriers'),
+  ).toBeVisible()
 
   await page.getByRole('button', { name: 'Retirer le logo' }).click()
   await expect(page.getByText('Logo retiré').first()).toBeVisible()
-  await expect(page.getByRole('banner').getByAltText('Logo de Les Lauriers')).toHaveCount(0)
+  await expect(
+    page.getByRole('banner').getByAltText('Logo de Groupe scolaire Les Lauriers'),
+  ).toHaveCount(0)
 })
 
 test('direction d’un cycle : identité en lecture seule', async ({ page }) => {

@@ -518,10 +518,18 @@ export async function mockApi(
       }
       case 'GET /health':
         return route.fulfill({ json: { status: 'ok', database: 'ok', redis: 'ok' } })
-      case 'GET /me':
-        return current === null
-          ? route.fulfill({ status: 401, json: { message: 'Unauthenticated.' } })
-          : route.fulfill({ json: { data: profileOf(current, mustChange) } })
+      case 'GET /me': {
+        if (current === null) {
+          return route.fulfill({ status: 401, json: { message: 'Unauthenticated.' } })
+        }
+        // Nom des écoles renommées par PATCH /school (comme l'API, qui lit schools.name)
+        const me = profileOf(current, mustChange)
+        const schools = me.schools.map((school) => ({
+          ...school,
+          name: profiles.get(school.id)?.name ?? school.name,
+        }))
+        return route.fulfill({ json: { data: { ...me, schools } } })
+      }
       case 'POST /auth/login': {
         const body = z
           .object({ login: z.string(), password: z.string() })
