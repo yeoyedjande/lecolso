@@ -7,8 +7,9 @@ import { StudentsPage } from '@/features/students/components/StudentsPage'
 export const Route = createFileRoute('/$school/_gestion/eleves/')({
   validateSearch: z.object({
     q: z.catch(z.optional(z.string()), undefined),
-    cycle: z.catch(z.optional(z.enum(['daycare', 'kindergarten', 'primary'])), undefined),
+    cycle: z.catch(z.optional(z.string()), undefined),
     classe: z.catch(z.optional(z.string()), undefined),
+    statut: z.catch(z.optional(z.enum(['active', 'left', 'all'])), undefined),
   }),
   component: StudentsRoute,
 })

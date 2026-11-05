@@ -335,34 +335,25 @@
   },
   "students": {
     "title": "Élèves",
-    "description": "Tous les élèves inscrits pour l’année {{year}}",
+    "description": "Élèves inscrits pour l’année {{year}}",
     "enroll": "Inscrire un élève",
     "import": "Importer",
     "search": "Rechercher un élève, un parent, un matricule…",
     "cycle": "Cycle",
     "classroom": "Classe",
     "student": "Élève",
-    "payer": "Parent payeur",
-    "situation": "Situation",
-    "upToDate": "À jour",
-    "overdue": "Doit",
     "showMore": "Afficher plus",
     "emptyTitle": "Aucun élève trouvé",
     "emptyDescription": "Modifiez la recherche ou les filtres.",
     "count": "{{count}} élève",
     "count_other": "{{count}} élèves",
-    "open": "Ouvrir la fiche de {{name}}",
     "detail": {
       "back": "Retour à la liste",
-      "notFound": "Cet élève n’existe pas ou n’est plus inscrit.",
+      "notFound": "Cet élève est introuvable, ou son dossier n’est pas accessible avec vos droits.",
       "tabs": {
         "identity": "Identité",
         "guardians": "Parents",
-        "schooling": "Scolarité",
-        "payments": "Paiements",
-        "grades": "Notes",
-        "attendance": "Présences",
-        "documents": "Documents"
+        "schooling": "Scolarité"
       },
       "matricule": "Matricule",
       "born": "Né(e) le",
@@ -377,7 +368,7 @@
       "enrolledAt": "Inscrit(e) le",
       "medical": "Informations médicales",
       "medicalNone": "Aucune information médicale signalée.",
-      "medicalHint": "Visible uniquement par la direction, le secrétariat et l’enseignant de la classe.",
+      "medicalHint": "Visible uniquement par la direction, le secrétariat, l’enseignant de la classe et les parents.",
       "relation": "Lien",
       "phone": "Téléphone",
       "profession": "Profession",
@@ -385,30 +376,6 @@
       "call": "Appeler {{name}}",
       "teacher": "Enseignant(e)",
       "room": "Salle",
-      "options": "Services souscrits",
-      "noOptions": "Aucun service optionnel.",
-      "year": "Année scolaire",
-      "expected": "Total de l’année",
-      "paid": "Déjà payé",
-      "remaining": "Reste à payer",
-      "overdue": "En retard",
-      "installments": "Échéancier",
-      "dueDate": "Échéance",
-      "amount": "Montant",
-      "status": "État",
-      "statusPaid": "Payé",
-      "statusPartial": "Partiel",
-      "statusLate": "En retard",
-      "statusUpcoming": "À venir",
-      "history": "Historique des paiements",
-      "noPayments": "Aucun paiement enregistré.",
-      "receipt": "Reçu",
-      "collect": "Encaisser",
-      "average": "Moyenne générale",
-      "rank": "Rang",
-      "rankOf": "sur {{count}}",
-      "subject": "Matière",
-      "coefficient": "Coef.",
       "skills": "Compétences du 1er trimestre",
       "noGrades": "Pas de notes : ce cycle est évalué par compétences ou par observation.",
       "absences": "Absences",
@@ -425,7 +392,81 @@
         "report": "Bulletin de l’année précédente"
       },
       "provided": "Fourni",
-      "missing": "Manquant"
+      "missing": "Manquant",
+      "notProvided": "Non renseigné",
+      "siblings": "Frères et sœurs",
+      "edit": "Modifier",
+      "editTitle": "Modifier le dossier de {{name}}",
+      "editDescription": "Identité de l’élève ; les données médicales ne sont visibles que par les personnes autorisées.",
+      "save": "Enregistrer",
+      "saved": "Dossier enregistré",
+      "delete": "Supprimer",
+      "deleteTitle": "Supprimer le dossier de {{name}} ?",
+      "deleteDescription": "À réserver à une saisie erronée : pour un élève qui quitte l’école, notez plutôt son départ (onglet Scolarité). Le matricule ne sera jamais réattribué.",
+      "deleteConfirm": "Supprimer le dossier",
+      "deleted": "Dossier de {{name}} supprimé",
+      "receipt": "Reçu",
+      "collect": "Encaisser",
+      "coefficient": "Coef."
+    },
+    "descriptionNoYear": "Élèves inscrits, par classe.",
+    "contact": "Contact principal",
+    "status": "Situation",
+    "statuses": {
+      "active": "Inscrit(e)",
+      "left": "Parti(e)",
+      "all": "Tous"
+    },
+    "countMore": "{{count}} élèves affichés, d’autres suivent",
+    "guardians": {
+      "add": "Ajouter un parent",
+      "addTitle": "Ajouter un parent",
+      "editTitle": "Modifier {{name}}",
+      "description": "Le nom, le téléphone et la profession sont partagés avec les frères et sœurs de l’élève.",
+      "added": "{{name}} ajouté(e) au dossier",
+      "saved": "{{name}} enregistré(e)",
+      "editOf": "Modifier {{name}}",
+      "remove": "Retirer",
+      "removeOf": "Retirer {{name}} du dossier",
+      "removeTitle": "Retirer {{name}} du dossier ?",
+      "removeDescription": "Ce parent ne sera plus lié à l’élève ; il reste lié à ses autres enfants inscrits.",
+      "removed": "{{name}} retiré(e) du dossier",
+      "primary": "Contact principal (premier appelé)",
+      "primaryBadge": "Contact principal",
+      "lockedFlag": "Pour retirer ce rôle, confiez-le à un autre parent.",
+      "noPickUp": "N’est pas autorisé(e) à récupérer l’enfant",
+      "conflicts": {
+        "last_guardian": "L’élève doit garder au moins un parent.",
+        "reassign_first": "Confiez d’abord le paiement et le contact principal à un autre parent."
+      }
+    },
+    "schooling": {
+      "move": "Changer de classe",
+      "leave": "Noter un départ",
+      "return": "Noter un retour",
+      "leftOn": "Date de départ",
+      "reason": "Motif",
+      "leftSince": "Parti(e) le {{date}}",
+      "titles": {
+        "move": "Changer {{name}} de classe",
+        "leave": "Départ de {{name}}",
+        "return": "Retour de {{name}}"
+      },
+      "descriptions": {
+        "move": "Même année scolaire ; la nouvelle classe doit avoir une place libre.",
+        "leave": "L’élève reste dans l’historique de l’école, avec la date et le motif de son départ.",
+        "return": "L’élève reprend sa place dans sa classe, s’il y en a une de libre."
+      },
+      "confirm": {
+        "move": "Changer de classe",
+        "leave": "Confirmer le départ",
+        "return": "Confirmer le retour"
+      },
+      "done": {
+        "move": "{{name}} a changé de classe",
+        "leave": "Départ de {{name}} enregistré",
+        "return": "Retour de {{name}} enregistré"
+      }
     }
   },
   "attendanceStatus": {
@@ -465,11 +506,11 @@
   },
   "enrollment": {
     "title": "Inscrire un élève",
-    "description": "Quatre étapes : l’élève, ses parents, sa classe, puis la vérification.",
+    "description": "Quatre étapes : la classe, l’élève, ses parents, puis la vérification. Le matricule est attribué automatiquement.",
     "steps": {
+      "schooling": "Classe",
       "student": "Élève",
       "guardians": "Parents",
-      "schooling": "Classe et services",
       "review": "Vérification"
     },
     "stepOf": "Étape {{current}} sur {{total}}",
@@ -480,44 +521,59 @@
     "district": "Quartier de résidence",
     "districtPlaceholder": "Cocody Angré",
     "medical": "Informations médicales (facultatif)",
-    "medicalHint": "Allergies, traitement, contre-indications. Accès limité aux personnes qui en ont besoin.",
+    "medicalHint": "Accès limité à la direction, au secrétariat, à l’enseignant de la classe et aux parents ; jamais à la comptabilité.",
     "guardian": "Parent {{index}}",
     "guardianName": "Nom complet",
     "relation": "Lien avec l’élève",
     "relations": {
-      "Père": "Père",
-      "Mère": "Mère",
-      "Tuteur": "Tuteur",
-      "Tutrice": "Tutrice"
+      "mother": "Mère",
+      "father": "Père",
+      "guardian": "Tuteur ou tutrice",
+      "other": "Autre"
     },
     "phone": "Téléphone",
     "phoneHint": "Numéro ivoirien, par exemple 07 00 00 00 00",
     "profession": "Profession (facultatif)",
     "payer": "C’est ce parent qui paie la scolarité",
-    "addGuardian": "Ajouter un second parent",
+    "addGuardian": "Ajouter un parent",
     "removeGuardian": "Retirer ce parent",
     "classroom": "Classe",
     "chooseClassroom": "Choisir une classe",
     "seats": "{{count}} place(s) libre(s)",
-    "services": "Services optionnels",
-    "annual": "Coût de l’année",
-    "perYear": "par an :",
     "summaryStudent": "Élève",
     "summaryGuardians": "Parents",
     "summarySchooling": "Classe",
     "submit": "Valider l’inscription",
     "submitting": "Inscription…",
     "successTitle": "{{name}} est inscrit(e) !",
-    "successDescription": "Matricule {{matricule}}. L’échéancier de l’année a été créé.",
+    "successDescription": "Matricule {{matricule}}, classe {{classroom}}.",
     "openFile": "Ouvrir la fiche",
-    "collectRegistration": "Encaisser l’inscription",
     "another": "Inscrire un autre élève",
     "errors": {
       "required": "Ce champ est obligatoire.",
       "birthDate": "Saisissez une date de naissance valide.",
       "phone": "Saisissez un numéro ivoirien à 10 chiffres.",
       "classroom": "Choisissez une classe.",
-      "payer": "Indiquez quel parent paie la scolarité."
+      "payer": "Indiquez quel parent paie la scolarité (un seul).",
+      "email": "Adresse e-mail invalide."
+    },
+    "optional": "Facultatif",
+    "birthPlace": "Lieu de naissance",
+    "bloodType": "Groupe sanguin",
+    "bloodTypeUnknown": "Non connu",
+    "allergies": "Allergies",
+    "medicalNotes": "Traitement, contre-indications",
+    "email": "E-mail",
+    "canPickUp": "Peut récupérer l’enfant à la sortie",
+    "guardiansHint": "Le premier parent est le contact principal. Un parent déjà connu de l’école (frère ou sœur inscrit) est reconnu par son téléphone.",
+    "year": "Année scolaire {{year}}",
+    "enrolled": "{{count}} inscrit(s)",
+    "matriculeHint": "Le matricule sera attribué à la validation.",
+    "failed": "Enregistrement impossible. Réessayez.",
+    "conflicts": {
+      "classroom_full": "Cette classe est complète : choisissez-en une autre.",
+      "year_closed": "Cette année scolaire est clôturée.",
+      "other_year": "La nouvelle classe doit appartenir à la même année scolaire."
     }
   },
   "import": {
@@ -666,7 +722,6 @@
   "classes": {
     "title": "Classes et niveaux",
     "description": "Organisation de l’année {{year}} : classes par niveau, salles, capacités et enseignants titulaires.",
-    "capacity": "{{count}} places",
     "descriptionNoYear": "Classes par niveau, salles, capacités et enseignants titulaires.",
     "create": "Nouvelle classe",
     "edit": "Modifier",
@@ -675,7 +730,6 @@
     "deleteOf": "Supprimer {{name}}",
     "noTeacher": "Pas de titulaire",
     "noRoom": "Salle non précisée",
-    "noCapacity": "Capacité non précisée",
     "emptyTitle": "Aucune classe",
     "emptyDescription": "Aucune classe n’est encore ouverte pour cette année scolaire.",
     "noYearTitle": "Aucune année scolaire en cours",
@@ -709,7 +763,10 @@
       "description": "La classe disparaîtra de l’année scolaire. Cette action est définitive.",
       "confirm": "Supprimer la classe",
       "done": "Classe {{name}} supprimée"
-    }
+    },
+    "enrolledOf": "{{count}} / {{capacity}} élèves",
+    "enrolled": "{{count}} élève(s)",
+    "notEmpty": "Des élèves sont inscrits dans cette classe : changez-les de classe avant de la supprimer."
   },
   "grades": {
     "title": "Notes",
@@ -918,6 +975,9 @@
     },
     "identity": {
       "name": "Nom de l’établissement",
+      "code": "Préfixe des matricules",
+      "codeHint": "2 à 5 lettres majuscules, par exemple LAU pour LAU-000123.",
+      "codeLocked": "Des matricules ont déjà été attribués : le préfixe ne peut plus changer.",
       "city": "Ville",
       "address": "Adresse",
       "phone": "Téléphone",
@@ -943,7 +1003,8 @@
         "nameMin": "Le nom doit compter au moins 2 caractères.",
         "phone": "Saisissez un numéro de téléphone valide.",
         "email": "Adresse e-mail invalide.",
-        "mottoMax": "120 caractères au maximum."
+        "mottoMax": "120 caractères au maximum.",
+        "code": "2 à 5 lettres majuscules, sans accent."
       }
     },
     "cycles": {
@@ -1301,7 +1362,8 @@
     "users.reset_password": "Réinitialiser le mot de passe d’un utilisateur",
     "users.view": "Voir les utilisateurs",
     "users.manage": "Créer, modifier et désactiver des utilisateurs",
-    "roles.manage": "Créer et modifier les rôles"
+    "roles.manage": "Créer et modifier les rôles",
+    "students.medical.view": "Voir les données médicales des élèves"
   },
   "permissionGroups": {
     "school": "Établissement",

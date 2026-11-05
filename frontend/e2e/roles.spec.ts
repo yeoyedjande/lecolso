@@ -101,7 +101,7 @@ test('direction : dupliquer le rôle Parent donne un rôle du personnel enregist
   await expect(editor).toBeHidden()
   const copy = page.getByRole('main').getByRole('listitem').filter({ hasText: 'Parent (copie)' })
   await expect(copy).toContainText('Rôle personnalisé')
-  await expect(copy).toContainText('5 permissions')
+  await expect(copy).toContainText('6 permissions')
 })
 
 test('le menu et l’écran des rôles sont réservés à qui gère les rôles', async ({ page }) => {

@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useMe } from '@/features/auth/api'
 import { useReply } from '@/features/messaging/api'
 import { MobileConversations } from '@/features/messaging/components/MobileConversations'
-import { useStudents } from '@/features/students/api'
+import { useDemoStudents } from '@/features/students/api'
 import { toast } from '@/lib/toast'
 
 import { useMessageParent, useMyClasses, useTeacherConversations } from '../api'
@@ -27,7 +27,7 @@ export function TeacherMessages() {
   const reply = useReply()
   const send = useMessageParent()
   const classIds = new Set((classes.data ?? []).map((classroom) => classroom.id))
-  const students = useStudents({})
+  const students = useDemoStudents({})
   const pupils = (students.data ?? []).filter((row) => classIds.has(row.classroom.id))
   const [studentId, setStudentId] = useState('')
   const [subject, setSubject] = useState('')

@@ -9,6 +9,11 @@ import { E2E_API_URL } from './api.ts'
  */
 export const DEMO_PASSWORD = 'Demo2026!'
 
+/** Identifiant d'un élève de démonstration des Lauriers d'après son numéro de matricule (LAU-000001 → 1). */
+export function lauriersStudentId(number: number): string {
+  return `0195f000-0000-7000-8000-1${String(number).padStart(11, '0')}`
+}
+
 type Role = 'promoter' | 'director' | 'secretary' | 'accountant' | 'teacher' | 'guardian'
 
 export const SCHOOLS = {
@@ -93,6 +98,7 @@ const PERMISSIONS: Record<string, Role[]> = {
   'school.settings.manage': ['promoter', 'director'],
   'students.view': ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],
   'students.manage': ['director', 'secretary'],
+  'students.medical.view': ['director', 'secretary', 'teacher', 'guardian'],
   'billing.view': ['promoter', 'director', 'secretary', 'accountant', 'guardian'],
   'billing.manage': ['director', 'accountant'],
   'billing.pay': ['guardian'],
@@ -433,6 +439,7 @@ export async function mockApi(
   // Identité des écoles (GET/PATCH /school, logo) : modifiée par les écritures, lue aussi par la page publique
   interface MockSchoolProfile {
     name: string
+    code: string
     city: string | null
     address: string | null
     phone: string | null
@@ -447,6 +454,7 @@ export async function mockApi(
     const schoolKey = schoolKeyOf(schoolId) ?? 'lauriers'
     const profile: MockSchoolProfile = {
       name: SCHOOLS[schoolKey].name,
+      code: schoolKey === 'lauriers' ? 'LAU' : 'PGE',
       city: 'Abidjan',
       address: schoolKey === 'lauriers' ? 'Cocody Angré, 8e tranche, Abidjan' : null,
       phone: schoolKey === 'lauriers' ? '+2252722410000' : null,
@@ -465,6 +473,7 @@ export async function mockApi(
       type: 'preschool_primary',
       currency: 'XOF',
       ...schoolProfileOf(schoolId),
+      code_locked: studentsOf(schoolId).length > 0,
     }
   }
   /** Comme SchoolPolicy::update : paramètres de l'école sur toute l'école. */
@@ -610,6 +619,7 @@ export async function mockApi(
       name: `${found?.level.code ?? '?'} ${classroom.section}`,
       section: classroom.section,
       capacity: classroom.capacity,
+      enrolled_count: takenSeats(schoolId, classroom.id),
       room: classroom.room,
       level: {
         id: classroom.level_id,
@@ -747,6 +757,404 @@ export async function mockApi(
       status: classroom === null ? 201 : 200,
       json: { data: classroomResource(schoolId, target) },
     }
+  }
+  // Élèves, tuteurs et inscriptions (comme le DemoSeeder : 3 élèves par classe aux Lauriers, 2 aux Petits Génies,
+  // enfants du compte parent ; matricules « LAU-000001 »)
+  interface MockGuardian {
+    id: string
+    name: string
+    phone: string
+    email: string | null
+    profession: string | null
+  }
+  interface MockLink {
+    guardian_id: string
+    relation: 'father' | 'mother' | 'guardian' | 'other'
+    is_primary_contact: boolean
+    is_payer: boolean
+    can_pick_up: boolean
+  }
+  interface MockEnrollment {
+    id: string
+    academic_year_id: string
+    classroom_id: string
+    status: 'active' | 'left'
+    enrolled_on: string
+    left_on: string | null
+    leave_reason: string | null
+  }
+  interface MockStudent {
+    id: string
+    matricule: string
+    first_name: string
+    last_name: string
+    gender: 'F' | 'M'
+    birth_date: string
+    birth_place: string | null
+    address: string | null
+    blood_type: string | null
+    allergies: string | null
+    medical_notes: string | null
+    links: MockLink[]
+    enrollments: MockEnrollment[]
+  }
+  const FIRST = {
+    F: ['Awa', 'Aïcha', 'Mariam', 'Fatou', 'Adjoua', 'Aya', 'Inès', 'Grâce'],
+    M: ['Yao', 'Koffi', 'Ibrahim', 'Moussa', 'Kouamé', 'Didier', 'Serge', 'Ismaël'],
+  }
+  const LAST = [
+    'Koné',
+    'Traoré',
+    'Bamba',
+    'Kouassi',
+    'Ouattara',
+    'Diallo',
+    'Coulibaly',
+    'Touré',
+    'Konan',
+    'Soro',
+  ]
+  const GUARDIAN_CHILDREN: Record<string, [string, string, 'F' | 'M'][]> = {
+    lauriers: [
+      ['CE1 A', 'Ange', 'M'],
+      ['CP1 A', 'Junior', 'M'],
+    ],
+    genies: [['MS A', 'Grâce', 'F']],
+  }
+  const schoolStudents = new Map<string, MockStudent[]>()
+  const schoolGuardians = new Map<string, MockGuardian[]>()
+  const sequences = new Map<string, number>()
+  let studentCounter = 0
+  const studentIdOf = (schoolKey: string, number: number) =>
+    `0195f000-0000-7000-8000-${schoolKey === 'lauriers' ? '1' : '2'}${String(number).padStart(11, '0')}`
+  const nextStudentId = () => {
+    studentCounter += 1
+    return `0195f000-0000-7000-8000-0000000c${String(studentCounter).padStart(4, '0')}`
+  }
+  const guardiansOf = (schoolId: string): MockGuardian[] => {
+    studentsOf(schoolId)
+    return schoolGuardians.get(schoolId) ?? []
+  }
+  const guardianByPhone = (
+    schoolId: string,
+    phone: string,
+    name: string,
+    profession: string | null,
+  ) => {
+    const guardians = schoolGuardians.get(schoolId) ?? []
+    schoolGuardians.set(schoolId, guardians)
+    const existing = guardians.find((guardian) => guardian.phone === phone)
+    if (existing !== undefined) {
+      existing.profession ??= profession
+      return existing
+    }
+    const created = { id: nextStudentId(), name, phone, email: null, profession }
+    guardians.push(created)
+    return created
+  }
+  const nextMatricule = (schoolId: string) => {
+    const number = (sequences.get(schoolId) ?? 0) + 1
+    sequences.set(schoolId, number)
+    return `${schoolProfileOf(schoolId).code}-${String(number).padStart(6, '0')}`
+  }
+  const studentsOf = (schoolId: string): MockStudent[] => {
+    const existing = schoolStudents.get(schoolId)
+    if (existing !== undefined) return existing
+    const students: MockStudent[] = []
+    schoolStudents.set(schoolId, students)
+    const schoolKey = schoolKeyOf(schoolId) ?? 'lauriers'
+    const perClass = schoolKey === 'lauriers' ? 3 : 2
+    let number = 0
+    for (const classroom of classroomsOf(schoolId)) {
+      const name = classroomResource(schoolId, classroom).name
+      const children = (GUARDIAN_CHILDREN[schoolKey] ?? []).filter(([classe]) => classe === name)
+      for (let index = 0; index < perClass + children.length; index++) {
+        number += 1
+        const child = children[index - perClass]
+        const gender = child?.[2] ?? (number % 2 === 0 ? 'M' : 'F')
+        const lastName =
+          child === undefined ? (LAST[(number * 7) % LAST.length] ?? 'Koné') : 'Kouadio'
+        const guardian =
+          child === undefined
+            ? guardianByPhone(
+                schoolId,
+                `+2250710${String(number).padStart(6, '0')}`,
+                `Mariam ${lastName}`,
+                'Commerçante',
+              )
+            : guardianByPhone(
+                schoolId,
+                ACCOUNTS.guardian.phone,
+                ACCOUNTS.guardian.name,
+                'Enseignant',
+              )
+        students.push({
+          // Identifiant stable dérivé du matricule (liens des tests) : LAU-000001 → …-100000000001
+          id: studentIdOf(schoolKey, number),
+          matricule: nextMatricule(schoolId),
+          first_name: child?.[1] ?? FIRST[gender][number % FIRST[gender].length] ?? 'Awa',
+          last_name: lastName,
+          gender,
+          birth_date: `2019-${String(1 + (number % 12)).padStart(2, '0')}-14`,
+          birth_place: null,
+          address: 'Cocody Angré',
+          blood_type: null,
+          allergies: number % 9 === 4 ? 'Arachide' : null,
+          medical_notes: null,
+          links: [
+            {
+              guardian_id: guardian.id,
+              relation: child === undefined ? 'mother' : 'father',
+              is_primary_contact: true,
+              is_payer: true,
+              can_pick_up: true,
+            },
+          ],
+          enrollments: [
+            {
+              id: nextStudentId(),
+              academic_year_id: classroom.academic_year_id,
+              classroom_id: classroom.id,
+              status: 'active',
+              enrolled_on: '2026-09-14',
+              left_on: null,
+              leave_reason: null,
+            },
+          ],
+        })
+      }
+    }
+    return students
+  }
+  const takenSeats = (schoolId: string, classroomId: string) =>
+    (
+      schoolStudents.get(schoolId) ??
+      (classroomsOf(schoolId).length > 0 ? studentsOf(schoolId) : [])
+    )
+      .flatMap((student) => student.enrollments)
+      .filter(
+        (enrollment) => enrollment.classroom_id === classroomId && enrollment.status === 'active',
+      ).length
+  const cycleOfClassroom = (schoolId: string, classroomId: string) => {
+    const classroom = classroomsOf(schoolId).find((candidate) => candidate.id === classroomId)
+    return classroom === undefined
+      ? null
+      : (levelOf(schoolId, classroom.level_id)?.cycle.id ?? null)
+  }
+  /** Comme StudentAccess : personnel par cycle, enseignant limité à ses classes, parent à ses enfants. */
+  const canSee = (schoolId: string, student: MockStudent, permission = 'students.view') => {
+    const schoolKey = schoolKeyOf(schoolId)
+    return (current?.roles ?? [])
+      .filter(
+        (assignment) =>
+          assignment.school === schoolKey &&
+          PERMISSIONS[permission]?.includes(assignment.role) === true,
+      )
+      .some((assignment) => {
+        if (assignment.role === 'guardian') {
+          return student.links.some(
+            (link) =>
+              guardiansOf(schoolId).find((guardian) => guardian.id === link.guardian_id)?.phone ===
+              current?.phone,
+          )
+        }
+        if (assignment.role === 'teacher') {
+          return student.enrollments.some(
+            (enrollment) =>
+              enrollment.status === 'active' &&
+              classroomsOf(schoolId).find((classroom) => classroom.id === enrollment.classroom_id)
+                ?.homeroom_teacher_id === userId(current?.phone ?? ''),
+          )
+        }
+        return (
+          assignment.cycle === undefined ||
+          student.enrollments.some(
+            (enrollment) =>
+              cycleOfClassroom(schoolId, enrollment.classroom_id) === assignment.cycle,
+          )
+        )
+      })
+  }
+  const latestEnrollment = (student: MockStudent) => student.enrollments[0]
+  const manages = (schoolId: string, student: MockStudent) => {
+    const enrollment = latestEnrollment(student)
+    return holds(
+      schoolId,
+      'students.manage',
+      enrollment === undefined ? null : cycleOfClassroom(schoolId, enrollment.classroom_id),
+    )
+  }
+  const fullName = (student: MockStudent) =>
+    `${student.last_name.toUpperCase()} ${student.first_name}`
+  const guardianResource = (schoolId: string, link: MockLink) => {
+    const guardian = guardiansOf(schoolId).find((candidate) => candidate.id === link.guardian_id)
+    return {
+      id: link.guardian_id,
+      name: guardian?.name ?? '',
+      phone: guardian?.phone ?? '',
+      email: guardian?.email ?? null,
+      profession: guardian?.profession ?? null,
+      ...link,
+    }
+  }
+  const studentRow = (schoolId: string, student: MockStudent) => {
+    const enrollment = latestEnrollment(student)
+    const classroom = classroomsOf(schoolId).find(
+      (candidate) => candidate.id === enrollment?.classroom_id,
+    )
+    const resource = classroom === undefined ? undefined : classroomResource(schoolId, classroom)
+    const contact = student.links.find((link) => link.is_primary_contact) ?? student.links[0]
+    const guardian = contact === undefined ? undefined : guardianResource(schoolId, contact)
+    return {
+      id: student.id,
+      matricule: student.matricule,
+      first_name: student.first_name,
+      last_name: student.last_name,
+      full_name: fullName(student),
+      gender: student.gender,
+      birth_date: student.birth_date,
+      enrollment:
+        enrollment === undefined || resource === undefined
+          ? null
+          : {
+              id: enrollment.id,
+              status: enrollment.status,
+              classroom_id: resource.id,
+              classroom_name: resource.name,
+              cycle_id: resource.level.cycle_id,
+              cycle_code: resource.level.cycle_code,
+            },
+      primary_contact:
+        guardian === undefined ? null : { name: guardian.name, phone: guardian.phone },
+    }
+  }
+  const studentFile = (schoolId: string, student: MockStudent) => {
+    const medical = canSee(schoolId, student, 'students.medical.view')
+    const guardianIds = student.links.map((link) => link.guardian_id)
+    return {
+      ...studentRow(schoolId, student),
+      birth_place: student.birth_place,
+      address: student.address,
+      medical: medical
+        ? {
+            blood_type: student.blood_type,
+            allergies: student.allergies,
+            medical_notes: student.medical_notes,
+          }
+        : null,
+      guardians: student.links.map((link) => guardianResource(schoolId, link)),
+      enrollments: student.enrollments.map((enrollment) => {
+        const classroom = classroomsOf(schoolId).find(
+          (candidate) => candidate.id === enrollment.classroom_id,
+        )
+        const resource =
+          classroom === undefined ? undefined : classroomResource(schoolId, classroom)
+        const year = yearsOf(schoolId).find(
+          (candidate) => candidate.id === enrollment.academic_year_id,
+        )
+        return {
+          ...enrollment,
+          academic_year: {
+            id: year?.id ?? '',
+            label: year?.label ?? '',
+            is_current: year?.is_current ?? false,
+            status: year?.status ?? 'open',
+          },
+          classroom: {
+            id: resource?.id ?? '',
+            name: resource?.name ?? '',
+            level_code: resource?.level.code ?? '',
+            cycle_id: resource?.level.cycle_id ?? '',
+            cycle_code: resource?.level.cycle_code ?? '',
+            homeroom_teacher: resource?.homeroom_teacher?.name ?? null,
+          },
+        }
+      }),
+      siblings: studentsOf(schoolId)
+        .filter(
+          (other) =>
+            other !== student &&
+            other.links.some((link) => guardianIds.includes(link.guardian_id)) &&
+            canSee(schoolId, other),
+        )
+        .map((other) => ({
+          id: other.id,
+          full_name: fullName(other),
+          classroom_name: studentRow(schoolId, other).enrollment?.classroom_name ?? null,
+        })),
+      can_manage: manages(schoolId, student),
+      can_view_medical: medical,
+      created_at: '2026-09-14T08:00:00+00:00',
+    }
+  }
+  const phoneOf = (input: unknown) => {
+    const digits = typeof input === 'string' ? input.replace(/[\s.-]/g, '') : ''
+    return /^0[157]\d{8}$/.test(digits)
+      ? `+225${digits}`
+      : /^\+225\d{10}$/.test(digits)
+        ? digits
+        : null
+  }
+  const studentBody = z.object({
+    first_name: z.optional(z.string()),
+    last_name: z.optional(z.string()),
+    gender: z.optional(z.enum(['F', 'M'])),
+    birth_date: z.optional(z.string()),
+    birth_place: z.optional(z.nullable(z.string())),
+    address: z.optional(z.nullable(z.string())),
+    blood_type: z.optional(z.nullable(z.string())),
+    allergies: z.optional(z.nullable(z.string())),
+    medical_notes: z.optional(z.nullable(z.string())),
+  })
+  const guardianBody = z.object({
+    name: z.optional(z.string()),
+    phone: z.optional(z.string()),
+    email: z.optional(z.nullable(z.string())),
+    profession: z.optional(z.nullable(z.string())),
+    relation: z.optional(z.enum(['father', 'mother', 'guardian', 'other'])),
+    is_primary_contact: z.optional(z.boolean()),
+    is_payer: z.optional(z.boolean()),
+    can_pick_up: z.optional(z.boolean()),
+  })
+  const MEDICAL = ['blood_type', 'allergies', 'medical_notes'] as const
+  const medicalErrors = (
+    schoolId: string,
+    cycleId: string | null,
+    body: z.infer<typeof studentBody>,
+    prefix: string,
+  ) =>
+    holds(schoolId, 'students.medical.view', cycleId)
+      ? null
+      : Object.fromEntries(
+          MEDICAL.filter((field) => body[field] !== undefined).map((field) => [
+            `${prefix}${field}`,
+            ['Champ interdit.'],
+          ]),
+        )
+  const applyStudent = (student: MockStudent, body: z.infer<typeof studentBody>) => {
+    for (const field of ['first_name', 'last_name', 'birth_date'] as const) {
+      const value = body[field]
+      if (value !== undefined) student[field] = value.trim()
+    }
+    if (body.gender !== undefined) student.gender = body.gender
+    for (const field of [
+      'birth_place',
+      'address',
+      'blood_type',
+      'allergies',
+      'medical_notes',
+    ] as const) {
+      const value = body[field]
+      if (value !== undefined)
+        student[field] = value === null || value.trim() === '' ? null : value.trim()
+    }
+  }
+  const setFlag = (
+    student: MockStudent,
+    link: MockLink,
+    flag: 'is_payer' | 'is_primary_contact',
+  ) => {
+    for (const other of student.links) other[flag] = other === link
   }
   const ordered = (permissions: string[]) =>
     Object.keys(PERMISSIONS).filter((permission) => permissions.includes(permission))
@@ -935,6 +1343,145 @@ export async function mockApi(
           saveClassroom(schoolId, null, classroomBody.parse(request.postDataJSON())),
         )
       }
+      case 'GET /students': {
+        const schoolId = schoolHeader ?? ''
+        const query = new URL(request.url()).searchParams
+        const search = (query.get('search') ?? '').toLowerCase()
+        const digits = search.replace(/\D/g, '')
+        const status = query.get('status') ?? 'active'
+        const all = studentsOf(schoolId)
+          .filter((student) => canSee(schoolId, student))
+          .filter((student) => {
+            const enrollment = latestEnrollment(student)
+            if (enrollment === undefined) return false
+            if (status !== 'all' && enrollment.status !== status) return false
+            const classroomId = query.get('classroom_id')
+            if (classroomId !== null && enrollment.classroom_id !== classroomId) return false
+            const cycleId = query.get('cycle_id')
+            return (
+              cycleId === null || cycleOfClassroom(schoolId, enrollment.classroom_id) === cycleId
+            )
+          })
+          .filter((student) => {
+            if (search === '') return true
+            const guardians = student.links.map((link) => guardianResource(schoolId, link))
+            return (
+              `${student.first_name} ${student.last_name}`.toLowerCase().includes(search) ||
+              `${student.last_name} ${student.first_name}`.toLowerCase().includes(search) ||
+              student.matricule.toLowerCase().includes(search) ||
+              guardians.some(
+                (guardian) =>
+                  guardian.name.toLowerCase().includes(search) ||
+                  (digits.length >= 4 && guardian.phone.includes(digits)),
+              )
+            )
+          })
+          .sort(
+            (a, b) =>
+              a.last_name.localeCompare(b.last_name, 'fr') ||
+              a.first_name.localeCompare(b.first_name, 'fr'),
+          )
+        const offset = Number(query.get('cursor') ?? '0')
+        const page = all.slice(offset, offset + 25)
+        return route.fulfill({
+          json: {
+            data: page.map((student) => studentRow(schoolId, student)),
+            links: { first: null, last: null, prev: null, next: null },
+            meta: {
+              path: '',
+              per_page: 25,
+              next_cursor: offset + 25 < all.length ? String(offset + 25) : null,
+              prev_cursor: null,
+            },
+          },
+        })
+      }
+      case 'POST /enrollments': {
+        const schoolId = schoolHeader ?? ''
+        const body = z
+          .object({
+            classroom_id: z.string(),
+            student: studentBody,
+            guardians: z.array(guardianBody),
+          })
+          .parse(request.postDataJSON())
+        const classroom = classroomsOf(schoolId).find(
+          (candidate) => candidate.id === body.classroom_id,
+        )
+        if (classroom === undefined) {
+          return route.fulfill({
+            status: 422,
+            json: { message: 'Classe inconnue.', errors: { classroom_id: ['Classe inconnue.'] } },
+          })
+        }
+        const cycleId = cycleOfClassroom(schoolId, classroom.id)
+        if (!holds(schoolId, 'students.manage', cycleId)) return route.fulfill(forbidden)
+        const errors: Record<string, string[]> = {
+          ...medicalErrors(schoolId, cycleId, body.student, 'student.'),
+        }
+        body.guardians.forEach((guardian, index) => {
+          if (phoneOf(guardian.phone) === null)
+            errors[`guardians.${String(index)}.phone`] = [
+              'Saisissez un numéro de téléphone valide.',
+            ]
+        })
+        if (Object.keys(errors).length > 0) {
+          return route.fulfill({ status: 422, json: { message: 'Données invalides.', errors } })
+        }
+        if (
+          classroom.capacity !== null &&
+          takenSeats(schoolId, classroom.id) >= classroom.capacity
+        ) {
+          return route.fulfill({
+            status: 409,
+            json: { message: 'Classe complète.', code: 'classroom_full' },
+          })
+        }
+        const student: MockStudent = {
+          id: nextStudentId(),
+          matricule: nextMatricule(schoolId),
+          first_name: '',
+          last_name: '',
+          gender: 'F',
+          birth_date: '',
+          birth_place: null,
+          address: null,
+          blood_type: null,
+          allergies: null,
+          medical_notes: null,
+          links: [],
+          enrollments: [
+            {
+              id: nextStudentId(),
+              academic_year_id: classroom.academic_year_id,
+              classroom_id: classroom.id,
+              status: 'active',
+              enrolled_on: '2026-11-04',
+              left_on: null,
+              leave_reason: null,
+            },
+          ],
+        }
+        applyStudent(student, body.student)
+        const hasPayer = body.guardians.some((guardian) => guardian.is_payer === true)
+        body.guardians.forEach((input, index) => {
+          const guardian = guardianByPhone(
+            schoolId,
+            phoneOf(input.phone) ?? '',
+            input.name?.trim() ?? '',
+            input.profession ?? null,
+          )
+          student.links.push({
+            guardian_id: guardian.id,
+            relation: input.relation ?? 'guardian',
+            is_primary_contact: input.is_primary_contact ?? index === 0,
+            is_payer: input.is_payer ?? (!hasPayer && index === 0),
+            can_pick_up: input.can_pick_up ?? true,
+          })
+        })
+        studentsOf(schoolId).push(student)
+        return route.fulfill({ status: 201, json: { data: studentFile(schoolId, student) } })
+      }
       case 'GET /school':
         return route.fulfill({ json: { data: schoolResource(schoolHeader ?? '') } })
       case 'PATCH /school': {
@@ -948,6 +1495,14 @@ export async function mockApi(
           // Comme Support\Phone\Phone : tout numéro ivoirien à 10 chiffres (fixe ou mobile)
           const digits = body.phone.replace(/[\s.-]/g, '')
           body.phone = /^\d{10}$/.test(digits) ? `+225${digits}` : digits
+        }
+        if (typeof body.code === 'string' && body.code !== profile.code) {
+          if (studentsOf(schoolId).length > 0)
+            return route.fulfill({
+              status: 409,
+              json: { message: 'Préfixe figé.', code: 'code_locked' },
+            })
+          profile.code = body.code
         }
         for (const field of ['name', 'city', 'address', 'phone', 'email', 'motto'] as const) {
           const value = body[field]
@@ -1236,6 +1791,158 @@ export async function mockApi(
             },
           })
         }
+        if (path.startsWith('/students/')) {
+          const schoolId = schoolHeader ?? ''
+          const [, , studentId, sub, guardianId] = path.split('/')
+          const student = studentsOf(schoolId).find((candidate) => candidate.id === studentId)
+          if (student === undefined || !canSee(schoolId, student))
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (request.method() === 'GET' && sub === undefined)
+            return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+          if (!manages(schoolId, student)) return route.fulfill(forbidden)
+          if (sub === undefined && request.method() === 'PATCH') {
+            const body = studentBody.parse(request.postDataJSON())
+            const enrollment = latestEnrollment(student)
+            const errors = medicalErrors(
+              schoolId,
+              enrollment === undefined ? null : cycleOfClassroom(schoolId, enrollment.classroom_id),
+              body,
+              '',
+            )
+            if (errors !== null && Object.keys(errors).length > 0)
+              return route.fulfill({ status: 422, json: { message: 'Données invalides.', errors } })
+            applyStudent(student, body)
+            return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+          }
+          if (sub === undefined && request.method() === 'DELETE') {
+            const students = studentsOf(schoolId)
+            students.splice(students.indexOf(student), 1)
+            return route.fulfill({ status: 204 })
+          }
+          if (sub === 'guardians') {
+            if (request.method() === 'POST') {
+              const body = guardianBody.parse(request.postDataJSON())
+              const phone = phoneOf(body.phone)
+              if (phone === null)
+                return route.fulfill({
+                  status: 422,
+                  json: {
+                    message: 'Téléphone invalide.',
+                    errors: { phone: ['Saisissez un numéro de téléphone valide.'] },
+                  },
+                })
+              const guardian = guardianByPhone(
+                schoolId,
+                phone,
+                body.name?.trim() ?? '',
+                body.profession ?? null,
+              )
+              if (student.links.some((link) => link.guardian_id === guardian.id))
+                return route.fulfill({
+                  status: 422,
+                  json: {
+                    message: 'Déjà lié.',
+                    errors: { phone: ['Ce tuteur est déjà lié à l’élève.'] },
+                  },
+                })
+              const link: MockLink = {
+                guardian_id: guardian.id,
+                relation: body.relation ?? 'guardian',
+                is_primary_contact: false,
+                is_payer: false,
+                can_pick_up: body.can_pick_up ?? true,
+              }
+              student.links.push(link)
+              if (body.is_payer === true) setFlag(student, link, 'is_payer')
+              if (body.is_primary_contact === true) setFlag(student, link, 'is_primary_contact')
+              return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+            }
+            const link = student.links.find((candidate) => candidate.guardian_id === guardianId)
+            const guardian = guardiansOf(schoolId).find((candidate) => candidate.id === guardianId)
+            if (link === undefined || guardian === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (request.method() === 'PATCH') {
+              const body = guardianBody.parse(request.postDataJSON())
+              if (body.is_payer === false && link.is_payer)
+                return route.fulfill({
+                  status: 422,
+                  json: {
+                    message: 'Payeur requis.',
+                    errors: { is_payer: ['Désignez un autre tuteur comme payeur.'] },
+                  },
+                })
+              if (body.name !== undefined) guardian.name = body.name.trim()
+              if (body.profession !== undefined) guardian.profession = body.profession
+              if (body.email !== undefined) guardian.email = body.email
+              const phone = body.phone === undefined ? null : phoneOf(body.phone)
+              if (phone !== null) guardian.phone = phone
+              if (body.relation !== undefined) link.relation = body.relation
+              if (body.can_pick_up !== undefined) link.can_pick_up = body.can_pick_up
+              if (body.is_payer === true) setFlag(student, link, 'is_payer')
+              if (body.is_primary_contact === true) setFlag(student, link, 'is_primary_contact')
+              return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+            }
+            if (request.method() === 'DELETE') {
+              if (student.links.length === 1)
+                return route.fulfill({
+                  status: 409,
+                  json: { message: 'Dernier tuteur.', code: 'last_guardian' },
+                })
+              if (link.is_payer || link.is_primary_contact)
+                return route.fulfill({
+                  status: 409,
+                  json: { message: 'À remplacer.', code: 'reassign_first' },
+                })
+              student.links.splice(student.links.indexOf(link), 1)
+              return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+            }
+          }
+        }
+        if (request.method() === 'PATCH' && path.startsWith('/enrollments/')) {
+          const schoolId = schoolHeader ?? ''
+          const student = studentsOf(schoolId).find((candidate) =>
+            candidate.enrollments.some((enrollment) => path.endsWith(enrollment.id)),
+          )
+          const enrollment = student?.enrollments.find((candidate) => path.endsWith(candidate.id))
+          if (student === undefined || enrollment === undefined || !canSee(schoolId, student))
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (!manages(schoolId, student)) return route.fulfill(forbidden)
+          const body = z
+            .object({
+              classroom_id: z.optional(z.string()),
+              status: z.optional(z.enum(['active', 'left'])),
+              left_on: z.optional(z.string()),
+              leave_reason: z.optional(z.nullable(z.string())),
+            })
+            .parse(request.postDataJSON())
+          if (body.classroom_id !== undefined) {
+            const target = classroomsOf(schoolId).find(
+              (candidate) => candidate.id === body.classroom_id,
+            )
+            if (
+              target === undefined ||
+              !holds(schoolId, 'students.manage', cycleOfClassroom(schoolId, target.id))
+            )
+              return route.fulfill(forbidden)
+            if (target.capacity !== null && takenSeats(schoolId, target.id) >= target.capacity)
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Classe complète.', code: 'classroom_full' },
+              })
+            enrollment.classroom_id = target.id
+          }
+          if (body.status === 'left') {
+            enrollment.status = 'left'
+            enrollment.left_on = body.left_on ?? null
+            enrollment.leave_reason = body.leave_reason ?? null
+          }
+          if (body.status === 'active') {
+            enrollment.status = 'active'
+            enrollment.left_on = null
+            enrollment.leave_reason = null
+          }
+          return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+        }
         if (request.method() === 'PATCH' && path.startsWith('/academic-years/')) {
           const schoolId = schoolHeader ?? ''
           const year = yearsOf(schoolId).find((candidate) => path.endsWith(candidate.id))
@@ -1258,6 +1965,15 @@ export async function mockApi(
           if (request.method() === 'DELETE') {
             const cycleId = levelOf(schoolId, classroom.level_id)?.cycle.id ?? null
             if (!holds(schoolId, 'school.settings.manage', cycleId)) return route.fulfill(forbidden)
+            if (
+              studentsOf(schoolId).some((student) =>
+                student.enrollments.some((enrollment) => enrollment.classroom_id === classroom.id),
+              )
+            )
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Classe non vide.', code: 'classroom_not_empty' },
+              })
             classrooms.splice(classrooms.indexOf(classroom), 1)
             return route.fulfill({ status: 204 })
           }

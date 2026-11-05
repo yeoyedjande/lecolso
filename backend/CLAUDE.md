@@ -118,6 +118,23 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
   journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
 
+## Élèves, tuteurs et inscriptions (domaine Students)
+
+- `students` (suppression logique, matricule unique dans l'école), `guardians` (un par téléphone dans l'école),
+  `guardian_student` (modèle `GuardianLink` : parenté, un payeur et un contact principal par élève, index uniques
+  partiels), `enrollments` (une par élève et par année ; la classe appartient à l'année : clé composite
+  `(classroom_id, academic_year_id, school_id)`). Une classe qui a des inscriptions ne se supprime pas (409).
+- Matricule : `schools.code` + compteur `document_sequences` (`Support\Sequences\Sequence::next()`, à appeler
+  dans la transaction qui crée le document : incrément atomique, numéro rendu si la transaction échoue). Réutilisable
+  pour les reçus (`receipt:2026`).
+- Périmètre : `Students\Support\StudentAccess::constrain($query, $user, $school, $permission)` — rôle `teacher` :
+  élèves de ses classes (titulaire) de l'année en cours ; rôle `guardian` : élèves dont un tuteur a le téléphone du
+  compte ; tout autre rôle : son cycle ou toute l'école. Hors périmètre : 404 (`ShowStudentRequest`,
+  `ManageStudentRequest`). Gestion : `students.manage` sur le cycle de la classe la plus récente (`StudentPolicy`).
+- Données médicales (`blood_type`, `allergies`, `medical_notes`) : `students.medical.view` dans le même périmètre ;
+  `medical: null` dans la réponse sinon, et champs `prohibited` dans les requêtes. Jamais dans la liste.
+- Places : `ClassroomSeats::reserve()` (verrou sur la classe, année ouverte, capacité) avant toute inscription active.
+
 ## Fichiers
 
 - Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).

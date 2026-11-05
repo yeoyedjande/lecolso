@@ -30,7 +30,7 @@ import {
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useMe } from '@/features/auth/api'
-import { useStudent, useStudents } from '@/features/students/api'
+import { useDemoStudent, useDemoStudents } from '@/features/students/api'
 import type { StudentDetail } from '@/features/students/demo'
 import { formatDay, formatMoney } from '@/lib/format'
 import type { DemoPayment, PaymentMethod } from '@/lib/demo/types'
@@ -53,7 +53,7 @@ function StudentPicker({ onPick }: { onPick: (id: string) => void }) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const deferred = useDeferredValue(query)
-  const results = useStudents({ search: deferred })
+  const results = useDemoStudents({ search: deferred })
 
   return (
     <div className="grid gap-3">
@@ -346,7 +346,7 @@ export function CollectPage({ studentId }: { studentId: string | undefined }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [done, setDone] = useState<DemoPayment | null>(null)
-  const detail = useStudent(studentId ?? '')
+  const detail = useDemoStudent(studentId ?? '')
 
   const pick = (id: string | undefined) => {
     setDone(null)
