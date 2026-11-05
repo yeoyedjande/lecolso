@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Students\Http\Controllers;
 
+use App\Domains\Billing\Actions\CreateInvoice;
 use App\Domains\Identity\Models\User;
 use App\Domains\Students\Actions\ChangeEnrollment;
 use App\Domains\Students\Actions\EnrollStudent;
@@ -15,6 +16,7 @@ use App\Domains\Students\Models\Student;
 use App\Support\Tenancy\CurrentSchool;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 
 final class EnrollmentController
@@ -27,13 +29,21 @@ final class EnrollmentController
     /**
      * Inscrire un nouvel élève.
      *
-     * Dossier, tuteurs (réutilisés par téléphone : fratrie) et classe en une fois ; matricule « LAU-000123 » attribué.
+     * Dossier, tuteurs (réutilisés par téléphone : fratrie), classe et services optionnels en une fois ; matricule
+     * « LAU-000123 » attribué ; facture de l'année créée d'après la grille du niveau.
      * 409 `classroom_full` (capacité atteinte) ou `year_closed` (année clôturée).
      */
-    public function store(EnrollStudentRequest $request, EnrollStudent $enroll): JsonResponse
+    public function store(EnrollStudentRequest $request, EnrollStudent $enroll, CreateInvoice $createInvoice): JsonResponse
     {
         $school = $this->currentSchool->get() ?? throw new LogicException('Aucune école courante.');
-        $student = $enroll->handle($school, $request->enrollment());
+
+        // Inscription et facture (grille du niveau, services choisis) dans une même transaction
+        $student = DB::transaction(static function () use ($enroll, $createInvoice, $school, $request): Student {
+            $student = $enroll->handle($school, $request->enrollment());
+            $createInvoice->handle($student->enrollments()->firstOrFail(), $request->options());
+
+            return $student;
+        });
         $user = $request->user();
 
         return (new StudentResource($this->present->handle(

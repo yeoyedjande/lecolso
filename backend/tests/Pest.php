@@ -6,6 +6,8 @@ use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Academic\Models\Level;
+use App\Domains\Billing\Models\FeeSchedule;
+use App\Domains\Billing\Models\FeeType;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
@@ -227,4 +229,28 @@ function enrollStudent(School $school, Classroom $classroom, array $overrides = 
             canPickUp: true,
         )],
     )));
+}
+
+function feeTypeOf(School $school, string $code): FeeType
+{
+    return inSchool($school, static fn (): FeeType => FeeType::query()->where('code', $code)->firstOrFail());
+}
+
+/**
+ * Montants annuels de la grille (FCFA) pour un niveau, sur l'année en cours.
+ *
+ * @param  array<string, int>  $amounts  code du type de frais => montant
+ */
+function setFees(School $school, string $levelCode, array $amounts): void
+{
+    $year = currentYearOf($school);
+    $level = levelOf($school, $levelCode);
+
+    foreach ($amounts as $code => $amount) {
+        $type = feeTypeOf($school, $code);
+        inSchool($school, static fn (): FeeSchedule => FeeSchedule::query()->updateOrCreate(
+            ['academic_year_id' => $year->id, 'level_id' => $level->id, 'fee_type_id' => $type->id],
+            ['amount' => $amount],
+        ));
+    }
 }

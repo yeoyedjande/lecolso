@@ -130,6 +130,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Grille de frais d'une année
+         * @description Montants annuels par niveau et type de frais, calendrier des échéances de chaque cycle (créé d'après sa
+         *     périodicité de facturation), nombre d'inscriptions encore sans facture. Cycles du périmètre billing.view.
+         */
+        get: operations["billing.grid.show"];
+        /**
+         * Modifier la grille de frais
+         * @description Montants fournis seulement (0 = aucun frais). S'applique aux nouvelles inscriptions ; les factures déjà émises
+         *     ne changent pas.
+         */
+        put: operations["billing.grid.update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/calendars/{cycle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Modifier le calendrier des échéances d'un cycle
+         * @description Autant de dates que la périodicité du cycle en prévoit, croissantes, dans l'année scolaire.
+         */
+        put: operations["billing.calendars.update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/invoices/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Facturer les élèves déjà inscrits
+         * @description Inscriptions actives de l'année sans facture, dans les cycles gérés ; sans service optionnel. `{ created }`.
+         */
+        post: operations["billing.invoices.generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Échéancier de l'année
+         * @description Montant attendu et nombre de factures par date d'échéance (cycles du périmètre billing.view).
+         */
+        get: operations["billing.schedules.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/classrooms": {
         parameters: {
             query?: never;
@@ -255,7 +341,8 @@ export interface paths {
         put?: never;
         /**
          * Inscrire un nouvel élève
-         * @description Dossier, tuteurs (réutilisés par téléphone : fratrie) et classe en une fois ; matricule « LAU-000123 » attribué.
+         * @description Dossier, tuteurs (réutilisés par téléphone : fratrie), classe et services optionnels en une fois ; matricule
+         *     « LAU-000123 » attribué ; facture de l'année créée d'après la grille du niveau.
          *     409 `classroom_full` (capacité atteinte) ou `year_closed` (année clôturée).
          */
         post: operations["enrollments.store"];
@@ -302,6 +389,120 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{student}/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Factures d'un élève
+         * @description Une par année d'inscription, la plus récente d'abord. billing.view dans le périmètre de l'élève.
+         */
+        get: operations["students.invoices.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter un service optionnel
+         * @description À partir d'aujourd'hui : périodes restantes seulement. 409 `option_present`, `no_amount`.
+         */
+        post: operations["invoices.options.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/options/{feeType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un service optionnel
+         * @description Les périodes déjà commencées restent dues.
+         */
+        delete: operations["invoices.options.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ajouter une ligne à la main */
+        post: operations["invoices.lines.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accorder une remise
+         * @description Montant et motif ; répartie à partir de la dernière échéance. 409 `discount_exceeds`.
+         */
+        post: operations["invoices.discounts.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices/{invoice}/lines/{line}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer une ligne manuelle ou une remise */
+        delete: operations["invoices.lines.destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -796,11 +997,69 @@ export interface components {
          * @enum {string}
          */
         AcademicYearStatus: "open" | "closed";
+        /**
+         * AddDiscountRequest
+         * @description Remise (direction : billing.discount) : montant (FCFA, entier) et motif obligatoire.
+         */
+        AddDiscountRequest: {
+            amount: number;
+            reason: string;
+        };
+        /**
+         * AddInvoiceLineRequest
+         * @description Ligne ajoutée à la main : libellé, montant (FCFA, entier) et date d'échéance (aujourd'hui par défaut).
+         */
+        AddInvoiceLineRequest: {
+            label: string;
+            amount: number;
+            /** Format: date */
+            due_on?: string;
+        };
+        /**
+         * AddOptionRequest
+         * @description Ajouter un service optionnel (cantine, transport…) à partir d'aujourd'hui : échéances restantes seulement.
+         */
+        AddOptionRequest: {
+            /** Format: uuid */
+            fee_type_id: string;
+        };
         /** AssignUserRoleRequest */
         AssignUserRoleRequest: {
             role: string;
             /** Format: uuid */
             cycle_id?: string | null;
+        };
+        /** BillingGridResource */
+        BillingGridResource: {
+            academic_year: {
+                id: string;
+                label: string;
+                /** @enum {string} */
+                status: "open" | "closed";
+            };
+            fee_types: components["schemas"]["FeeTypeResource"][];
+            cycles: {
+                id: string;
+                code: string;
+                name: string;
+                billing_period: string;
+                can_manage: boolean;
+                dates: {
+                    position: string;
+                    due_on: string;
+                    label: string;
+                }[];
+                levels: {
+                    id: string;
+                    code: string;
+                    name: string;
+                    amounts: {
+                        fee_type_id: string;
+                        amount: string;
+                    }[];
+                }[];
+            }[];
+            pending_invoices: number;
         };
         /**
          * BloodType
@@ -880,7 +1139,7 @@ export interface components {
         /**
          * EnrollStudentRequest
          * @description Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
-         *     contact principal, le premier tuteur par défaut) et `classroom_id`. Droits : students.manage sur le cycle de la
+         *     contact principal, le premier tuteur par défaut), `classroom_id` et `options` (codes des services optionnels). Droits : students.manage sur le cycle de la
          *     classe ; champs médicaux de `student` refusés sans students.medical.view sur ce cycle.
          */
         EnrollStudentRequest: {
@@ -900,6 +1159,7 @@ export interface components {
             classroom_id: string;
             /** Format: date */
             enrolled_on?: string;
+            options?: string[];
             guardians: {
                 name: string;
                 phone: string;
@@ -936,11 +1196,28 @@ export interface components {
                 homeroom_teacher: string | null;
             };
         };
+        /** FeeTypeResource */
+        FeeTypeResource: {
+            id: string;
+            code: string;
+            name: string;
+            /** @enum {string} */
+            billing: "once" | "recurring";
+            is_optional: boolean;
+        };
         /**
          * Gender
          * @enum {string}
          */
         Gender: "F" | "M";
+        /**
+         * GenerateInvoicesRequest
+         * @description Factures des élèves déjà inscrits sans facture : billing.manage, dans la limite de ses cycles.
+         */
+        GenerateInvoicesRequest: {
+            /** Format: uuid */
+            academic_year_id?: string | null;
+        };
         /** GuardianLinkResource */
         GuardianLinkResource: {
             id: string;
@@ -969,6 +1246,32 @@ export interface components {
             database: "ok" | "error";
             /** @enum {string} */
             redis: "ok" | "error";
+        };
+        /** InvoiceResource */
+        InvoiceResource: {
+            id: string;
+            academic_year: {
+                id: string;
+                label: string;
+                is_current: boolean;
+            };
+            classroom_name: string;
+            payer: {
+                name: string;
+            } | null;
+            /** @constant */
+            total: 0;
+            discount_total: string;
+            lines: unknown[];
+            schedule: {
+                due_on: string;
+                label: string | "";
+                /** @constant */
+                amount: 0;
+            }[];
+            available_options: unknown[];
+            can_manage: boolean;
+            can_discount: boolean;
         };
         /** LevelResource */
         LevelResource: {
@@ -1040,6 +1343,20 @@ export interface components {
             is_current?: boolean;
         };
         /**
+         * SaveCalendarRequest
+         * @description Dates des échéances d'un cycle pour une année : autant de dates que la périodicité du cycle en prévoit (1, 3 ou 10),
+         *     croissantes, dans l'année scolaire. billing.manage sur le cycle.
+         */
+        SaveCalendarRequest: {
+            /** Format: uuid */
+            academic_year_id?: string | null;
+            dates: {
+                /** Format: date */
+                due_on: string;
+                label: string;
+            }[];
+        };
+        /**
          * SaveClassroomRequest
          * @description Création (POST : niveau et section obligatoires ; année en cours par défaut) ou modification (PATCH).
          *     Droits : school.settings.manage sur le cycle du niveau, et sur celui du nouveau niveau en cas de changement.
@@ -1054,6 +1371,29 @@ export interface components {
             room?: string | null;
             /** Format: uuid */
             homeroom_teacher_id?: string | null;
+        };
+        /**
+         * SaveFeeGridRequest
+         * @description Montants annuels de la grille (FCFA, entiers, 0 = pas de frais) : billing.manage sur le cycle de chaque niveau.
+         *     Année clôturée : 409 `year_closed`.
+         */
+        SaveFeeGridRequest: {
+            /** Format: uuid */
+            academic_year_id?: string | null;
+            amounts: {
+                /** Format: uuid */
+                level_id: string;
+                /** Format: uuid */
+                fee_type_id: string;
+                amount: number;
+            }[];
+        };
+        /** ScheduleRowResource */
+        ScheduleRowResource: {
+            due_on: string;
+            label: string;
+            expected: number;
+            invoices: number;
         };
         /** SchoolMembershipResource */
         SchoolMembershipResource: {
@@ -1614,6 +1954,150 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
         };
     };
+    "billing.grid.show": {
+        parameters: {
+            query?: {
+                academic_year_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `BillingGridResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BillingGridResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.grid.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveFeeGridRequest"];
+            };
+        };
+        responses: {
+            /** @description `BillingGridResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BillingGridResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.calendars.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The cycle ID */
+                cycle: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCalendarRequest"];
+            };
+        };
+        responses: {
+            /** @description `BillingGridResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["BillingGridResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.invoices.generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GenerateInvoicesRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: number;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "billing.schedules.index": {
+        parameters: {
+            query?: {
+                academic_year_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ScheduleRowResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ScheduleRowResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "classrooms.index": {
         parameters: {
             query?: {
@@ -1968,6 +2452,195 @@ export interface operations {
                     "application/json": components["schemas"]["HealthResource"];
                 };
             };
+        };
+    };
+    "students.invoices.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.options.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddOptionRequest"];
+            };
+        };
+        responses: {
+            /** @description `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.options.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+                /** @description The fee type ID */
+                feeType: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.lines.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddInvoiceLineRequest"];
+            };
+        };
+        responses: {
+            /** @description `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.discounts.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddDiscountRequest"];
+            };
+        };
+        responses: {
+            /** @description `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "invoices.lines.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The invoice ID */
+                invoice: string;
+                /** @description The line ID */
+                line: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `InvoiceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["InvoiceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "files.person-photo": {
