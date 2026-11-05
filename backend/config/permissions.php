@@ -33,6 +33,8 @@ return [
     'billing.view' => ['promoter', 'director', 'secretary', 'accountant', 'guardian'],
     'billing.manage' => ['director', 'accountant'],
     'billing.pay' => ['guardian'],
+    // Remise sur la facture d'un élève (montant et motif) : la direction (décision du 05/11/2026)
+    'billing.discount' => ['director'],
 
     // Notes et bulletins
     'grades.view' => ['promoter', 'director', 'secretary', 'teacher', 'guardian'],

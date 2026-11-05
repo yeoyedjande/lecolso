@@ -102,6 +102,7 @@ const PERMISSIONS: Record<string, Role[]> = {
   'billing.view': ['promoter', 'director', 'secretary', 'accountant', 'guardian'],
   'billing.manage': ['director', 'accountant'],
   'billing.pay': ['guardian'],
+  'billing.discount': ['director'],
   'grades.view': ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
   'grades.manage': ['director', 'teacher'],
   'grades.validate': ['director'],
@@ -1161,6 +1162,329 @@ export async function mockApi(
   ) => {
     for (const other of student.links) other[flag] = other === link
   }
+  // Facturation (comme le lot 5a et le DemoSeeder) : types de frais, grille par niveau, calendrier par cycle,
+  // une facture par élève (un sur trois avec la cantine, un sur cinq avec le transport, une remise pour Ange)
+  const FEE_TYPES = [
+    {
+      id: 'ft-registration',
+      code: 'registration',
+      name: 'Inscription',
+      billing: 'once',
+      is_optional: false,
+    },
+    {
+      id: 'ft-tuition',
+      code: 'tuition',
+      name: 'Scolarité',
+      billing: 'recurring',
+      is_optional: false,
+    },
+    { id: 'ft-canteen', code: 'canteen', name: 'Cantine', billing: 'recurring', is_optional: true },
+    {
+      id: 'ft-transport',
+      code: 'transport',
+      name: 'Transport',
+      billing: 'recurring',
+      is_optional: true,
+    },
+    {
+      id: 'ft-daycare',
+      code: 'daycare',
+      name: 'Garderie du soir',
+      billing: 'recurring',
+      is_optional: true,
+    },
+  ] as const
+  const TUITION: Record<string, number> = { daycare: 360000, kindergarten: 300000, primary: 270000 }
+  const TUITION_BONUS: Record<string, number> = { CE1: 10000, CE2: 10000, CM1: 20000, CM2: 30000 }
+  interface MockInstallment {
+    due_on: string
+    label: string
+    amount: number
+  }
+  interface MockLine {
+    id: string
+    kind: 'fee' | 'discount' | 'manual'
+    fee_type_id: string | null
+    label: string
+    amount: number
+    reason: string | null
+    installments: MockInstallment[]
+  }
+  interface MockInvoice {
+    id: string
+    student_id: string
+    lines: MockLine[]
+  }
+  const grids = new Map<string, Map<string, number>>()
+  const calendars = new Map<string, MockInstallment[]>()
+  const invoices = new Map<string, MockInvoice[]>()
+  let billingCounter = 0
+  const nextBillingId = () => {
+    billingCounter += 1
+    return `0195f000-0000-7000-8000-0000000d${String(billingCounter).padStart(4, '0')}`
+  }
+  const gridOf = (schoolId: string): Map<string, number> => {
+    const existing = grids.get(schoolId)
+    if (existing !== undefined) return existing
+    const grid = new Map<string, number>()
+    for (const cycle of cyclesOf(schoolId)) {
+      for (const level of cycle.levels) {
+        grid.set(`${level.id}:ft-registration`, cycle.code === 'daycare' ? 20000 : 25000)
+        grid.set(
+          `${level.id}:ft-tuition`,
+          (TUITION[cycle.code] ?? 270000) + (TUITION_BONUS[level.code] ?? 0),
+        )
+        grid.set(`${level.id}:ft-canteen`, 90000)
+        grid.set(`${level.id}:ft-transport`, 120000)
+        if (cycle.code !== 'daycare') grid.set(`${level.id}:ft-daycare`, 60000)
+      }
+    }
+    grids.set(schoolId, grid)
+    return grid
+  }
+  const MONTHS = [
+    'Septembre',
+    'Octobre',
+    'Novembre',
+    'Décembre',
+    'Janvier',
+    'Février',
+    'Mars',
+    'Avril',
+    'Mai',
+    'Juin',
+  ]
+  const calendarOf = (schoolId: string, cycleId: string): MockInstallment[] => {
+    const key = `${schoolId}:${cycleId}`
+    const existing = calendars.get(key)
+    if (existing !== undefined) return existing
+    const cycle = cyclesOf(schoolId).find((candidate) => candidate.id === cycleId)
+    const dates =
+      cycle?.settings.billing_period === 'monthly'
+        ? MONTHS.map((label, index) => ({
+            due_on:
+              index === 0
+                ? '2026-09-07'
+                : `${String(index < 4 ? 2026 : 2027)}-${String(((8 + index) % 12) + 1).padStart(2, '0')}-05`,
+            label,
+            amount: 0,
+          }))
+        : [
+            { due_on: '2026-09-07', label: '1er trimestre', amount: 0 },
+            { due_on: '2027-01-05', label: '2e trimestre', amount: 0 },
+            { due_on: '2027-04-05', label: '3e trimestre', amount: 0 },
+          ]
+    calendars.set(key, dates)
+    return dates
+  }
+  /** Comme InvoiceSchedule::remainingShares : parts égales, périodes restantes à partir de `from`. */
+  const remainingShares = (
+    amount: number,
+    dates: MockInstallment[],
+    from: string,
+  ): MockInstallment[] => {
+    const share = Math.floor(amount / dates.length)
+    return dates.flatMap((date, index) => {
+      const next = dates[index + 1]
+      if (next !== undefined && from >= next.due_on) return []
+      const value = index === dates.length - 1 ? amount - share * (dates.length - 1) : share
+      return [{ due_on: date.due_on < from ? from : date.due_on, label: date.label, amount: value }]
+    })
+  }
+  const levelOfStudent = (schoolId: string, student: MockStudent) => {
+    const enrollment = latestEnrollment(student)
+    const classroom = classroomsOf(schoolId).find(
+      (candidate) => candidate.id === enrollment?.classroom_id,
+    )
+    return classroom === undefined ? undefined : levelOf(schoolId, classroom.level_id)
+  }
+  const feeLine = (
+    schoolId: string,
+    student: MockStudent,
+    typeId: string,
+    from: string,
+  ): MockLine | null => {
+    const found = levelOfStudent(schoolId, student)
+    const type = FEE_TYPES.find((candidate) => candidate.id === typeId)
+    const amount =
+      found === undefined ? 0 : (gridOf(schoolId).get(`${found.level.id}:${typeId}`) ?? 0)
+    if (found === undefined || type === undefined || amount === 0) return null
+    const installments =
+      type.billing === 'once'
+        ? [{ due_on: from, label: type.name, amount }]
+        : remainingShares(amount, calendarOf(schoolId, found.cycle.id), from)
+    return {
+      id: nextBillingId(),
+      kind: 'fee',
+      fee_type_id: typeId,
+      label: type.name,
+      amount: installments.reduce((sum, item) => sum + item.amount, 0),
+      reason: null,
+      installments,
+    }
+  }
+  /** Comme InvoiceSchedule::rebalanceDiscounts : de la dernière échéance vers la première. */
+  const rebalance = (invoice: MockInvoice): boolean => {
+    const net = new Map<string, number>()
+    for (const line of invoice.lines.filter((candidate) => candidate.kind !== 'discount'))
+      for (const item of line.installments)
+        net.set(item.due_on, (net.get(item.due_on) ?? 0) + item.amount)
+    const order = [...net.keys()].sort().reverse()
+    for (const discount of invoice.lines.filter((candidate) => candidate.kind === 'discount')) {
+      let remaining = -discount.amount
+      discount.installments = []
+      for (const day of order) {
+        const part = Math.min(remaining, net.get(day) ?? 0)
+        if (part <= 0) continue
+        discount.installments.push({ due_on: day, label: 'Remise', amount: -part })
+        net.set(day, (net.get(day) ?? 0) - part)
+        remaining -= part
+      }
+      if (remaining > 0) return false
+    }
+    return true
+  }
+  const createInvoice = (
+    schoolId: string,
+    student: MockStudent,
+    options: string[],
+    from: string,
+  ): MockInvoice => {
+    const lines = FEE_TYPES.filter(
+      (type) => !type.is_optional || options.includes(type.code),
+    ).flatMap((type) => {
+      const line = feeLine(schoolId, student, type.id, from)
+      return line === null ? [] : [line]
+    })
+    const invoice = { id: nextBillingId(), student_id: student.id, lines }
+    invoicesOf(schoolId).push(invoice)
+    return invoice
+  }
+  const invoicesOf = (schoolId: string): MockInvoice[] => {
+    const existing = invoices.get(schoolId)
+    if (existing !== undefined) return existing
+    const list: MockInvoice[] = []
+    invoices.set(schoolId, list)
+    studentsOf(schoolId)
+      .slice()
+      .sort((a, b) => a.matricule.localeCompare(b.matricule))
+      .forEach((student, index) => {
+        const options = [
+          index % 3 === 0 ? 'canteen' : null,
+          index % 5 === 0 ? 'transport' : null,
+        ].filter((code): code is string => code !== null)
+        const invoice = createInvoice(schoolId, student, options, '2026-09-07')
+        if (student.first_name === 'Ange') {
+          invoice.lines.push({
+            id: nextBillingId(),
+            kind: 'discount',
+            fee_type_id: null,
+            label: 'Remise',
+            amount: -30000,
+            reason: 'Fratrie : deux enfants inscrits',
+            installments: [],
+          })
+          rebalance(invoice)
+        }
+      })
+    return list
+  }
+  const invoiceResource = (schoolId: string, invoice: MockInvoice) => {
+    const student = studentsOf(schoolId).find((candidate) => candidate.id === invoice.student_id)
+    const row = student === undefined ? undefined : studentRow(schoolId, student)
+    const found = student === undefined ? undefined : levelOfStudent(schoolId, student)
+    const cycleId = found?.cycle.id ?? null
+    // Montant par date (remises déduites), libellé de la première part positive à cette date
+    const byDate = new Map<string, MockInstallment>()
+    for (const line of invoice.lines)
+      for (const item of line.installments) {
+        const current = byDate.get(item.due_on)
+        byDate.set(item.due_on, {
+          due_on: item.due_on,
+          label:
+            current === undefined || (current.amount <= 0 && item.amount > 0)
+              ? item.label
+              : current.label,
+          amount: (current?.amount ?? 0) + item.amount,
+        })
+      }
+    const present = invoice.lines.map((line) => line.fee_type_id)
+    return {
+      id: invoice.id,
+      academic_year: { id: yearsOf(schoolId)[0]?.id ?? '', label: '2026-2027', is_current: true },
+      classroom_name: row?.enrollment?.classroom_name ?? '',
+      payer:
+        row?.primary_contact === null || row === undefined
+          ? null
+          : { name: row.primary_contact.name },
+      total: invoice.lines.reduce((sum, line) => sum + line.amount, 0),
+      discount_total: -invoice.lines
+        .filter((line) => line.kind === 'discount')
+        .reduce((sum, line) => sum + line.amount, 0),
+      lines: invoice.lines.map((line) => {
+        const type = FEE_TYPES.find((candidate) => candidate.id === line.fee_type_id)
+        return {
+          id: line.id,
+          kind: line.kind,
+          fee_type_id: line.fee_type_id,
+          fee_type_code: type?.code ?? null,
+          is_optional: type?.is_optional ?? false,
+          label: line.label,
+          amount: line.amount,
+          reason: line.reason,
+        }
+      }),
+      schedule: [...byDate.values()]
+        .filter((item) => item.amount !== 0)
+        .sort((a, b) => a.due_on.localeCompare(b.due_on)),
+      available_options: FEE_TYPES.filter(
+        (type) =>
+          type.is_optional &&
+          !present.includes(type.id) &&
+          found !== undefined &&
+          (gridOf(schoolId).get(`${found.level.id}:${type.id}`) ?? 0) > 0,
+      ).map((type) => ({
+        fee_type_id: type.id,
+        code: type.code,
+        name: type.name,
+        amount:
+          found === undefined ? 0 : (gridOf(schoolId).get(`${found.level.id}:${type.id}`) ?? 0),
+      })),
+      can_manage: holds(schoolId, 'billing.manage', cycleId),
+      can_discount: holds(schoolId, 'billing.discount', cycleId),
+    }
+  }
+  const gridResource = (schoolId: string) => ({
+    academic_year: { id: yearsOf(schoolId)[0]?.id ?? '', label: '2026-2027', status: 'open' },
+    fee_types: FEE_TYPES,
+    cycles: cyclesOf(schoolId)
+      .filter((cycle) => holds(schoolId, 'billing.view', cycle.id))
+      .map((cycle) => ({
+        id: cycle.id,
+        code: cycle.code,
+        name: cycle.name,
+        billing_period: cycle.settings.billing_period,
+        can_manage: holds(schoolId, 'billing.manage', cycle.id),
+        dates: calendarOf(schoolId, cycle.id).map((date, position) => ({
+          position,
+          due_on: date.due_on,
+          label: date.label,
+        })),
+        levels: cycle.levels.map((level) => ({
+          id: level.id,
+          code: level.code,
+          name: level.name,
+          amounts: FEE_TYPES.flatMap((type) => {
+            const amount = gridOf(schoolId).get(`${level.id}:${type.id}`) ?? 0
+            return amount === 0 ? [] : [{ fee_type_id: type.id, amount }]
+          }),
+        })),
+      })),
+    pending_invoices: studentsOf(schoolId).filter(
+      (student) => !invoicesOf(schoolId).some((invoice) => invoice.student_id === student.id),
+    ).length,
+  })
   const ordered = (permissions: string[]) =>
     Object.keys(PERMISSIONS).filter((permission) => permissions.includes(permission))
 
@@ -1406,6 +1730,7 @@ export async function mockApi(
         const body = z
           .object({
             classroom_id: z.string(),
+            options: z.optional(z.array(z.string())),
             student: studentBody,
             guardians: z.array(guardianBody),
           })
@@ -1485,7 +1810,83 @@ export async function mockApi(
           })
         })
         studentsOf(schoolId).push(student)
+        invoicesOf(schoolId)
+        createInvoice(schoolId, student, body.options ?? [], '2026-11-04')
         return route.fulfill({ status: 201, json: { data: studentFile(schoolId, student) } })
+      }
+      case 'GET /billing/grid': {
+        const schoolId = schoolHeader ?? ''
+        if (!cyclesOf(schoolId).some((cycle) => holds(schoolId, 'billing.view', cycle.id)))
+          return route.fulfill(forbidden)
+        return route.fulfill({ json: { data: gridResource(schoolId) } })
+      }
+      case 'PUT /billing/grid': {
+        const schoolId = schoolHeader ?? ''
+        const body = z
+          .object({
+            amounts: z.array(
+              z.object({ level_id: z.string(), fee_type_id: z.string(), amount: z.number() }),
+            ),
+          })
+          .parse(request.postDataJSON())
+        for (const entry of body.amounts) {
+          const found = cyclesOf(schoolId)
+            .flatMap((cycle) => cycle.levels.map((level) => ({ level, cycle })))
+            .find((candidate) => candidate.level.id === entry.level_id)
+          if (found === undefined || !holds(schoolId, 'billing.manage', found.cycle.id))
+            return route.fulfill(forbidden)
+          if (!Number.isInteger(entry.amount) || entry.amount < 0)
+            return route.fulfill({
+              status: 422,
+              json: {
+                message: 'Montant invalide.',
+                errors: { 'amounts.0.amount': ['Montant invalide.'] },
+              },
+            })
+          if (entry.amount === 0) gridOf(schoolId).delete(`${entry.level_id}:${entry.fee_type_id}`)
+          else gridOf(schoolId).set(`${entry.level_id}:${entry.fee_type_id}`, entry.amount)
+        }
+        return route.fulfill({ json: { data: gridResource(schoolId) } })
+      }
+      case 'POST /billing/invoices/generate': {
+        const schoolId = schoolHeader ?? ''
+        const pending = studentsOf(schoolId).filter(
+          (student) => !invoicesOf(schoolId).some((invoice) => invoice.student_id === student.id),
+        )
+        for (const student of pending) createInvoice(schoolId, student, [], '2026-11-04')
+        return route.fulfill({ json: { created: pending.length } })
+      }
+      case 'GET /billing/schedules': {
+        const schoolId = schoolHeader ?? ''
+        const byDate = new Map<
+          string,
+          { due_on: string; label: string; expected: number; invoices: Set<string> }
+        >()
+        for (const invoice of invoicesOf(schoolId))
+          for (const line of invoice.lines)
+            for (const item of line.installments) {
+              const row = byDate.get(item.due_on) ?? {
+                due_on: item.due_on,
+                label: item.label,
+                expected: 0,
+                invoices: new Set<string>(),
+              }
+              row.expected += item.amount
+              row.invoices.add(invoice.id)
+              byDate.set(item.due_on, row)
+            }
+        return route.fulfill({
+          json: {
+            data: [...byDate.values()]
+              .sort((a, b) => a.due_on.localeCompare(b.due_on))
+              .map((row) => ({
+                due_on: row.due_on,
+                label: row.label,
+                expected: row.expected,
+                invoices: row.invoices.size,
+              })),
+          },
+        })
       }
       case 'GET /school':
         return route.fulfill({ json: { data: schoolResource(schoolHeader ?? '') } })
@@ -1796,7 +2197,8 @@ export async function mockApi(
             },
           })
         }
-        if (path.startsWith('/students/')) {
+        // Factures d'un élève : route de la facturation, plus bas
+        if (path.startsWith('/students/') && !path.endsWith('/invoices')) {
           const schoolId = schoolHeader ?? ''
           const [, , studentId, sub, guardianId] = path.split('/')
           const student = studentsOf(schoolId).find((candidate) => candidate.id === studentId)
@@ -1964,6 +2366,136 @@ export async function mockApi(
             enrollment.leave_reason = null
           }
           return route.fulfill({ json: { data: studentFile(schoolId, student) } })
+        }
+        if (request.method() === 'PUT' && path.startsWith('/billing/calendars/')) {
+          const schoolId = schoolHeader ?? ''
+          const cycleId = path.slice('/billing/calendars/'.length)
+          if (!holds(schoolId, 'billing.manage', cycleId)) return route.fulfill(forbidden)
+          const body = z
+            .object({ dates: z.array(z.object({ due_on: z.string(), label: z.string() })) })
+            .parse(request.postDataJSON())
+          if (body.dates.length !== calendarOf(schoolId, cycleId).length)
+            return route.fulfill({
+              status: 422,
+              json: {
+                message: 'Nombre de dates.',
+                errors: { dates: ['Nombre de dates incorrect.'] },
+              },
+            })
+          calendars.set(
+            `${schoolId}:${cycleId}`,
+            body.dates.map((date) => ({ ...date, amount: 0 })),
+          )
+          return route.fulfill({ json: { data: gridResource(schoolId) } })
+        }
+        if (request.method() === 'GET' && /^\/students\/[^/]+\/invoices$/.test(path)) {
+          const schoolId = schoolHeader ?? ''
+          const student = studentsOf(schoolId).find(
+            (candidate) => path === `/students/${candidate.id}/invoices`,
+          )
+          if (student === undefined || !canSee(schoolId, student, 'billing.view'))
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          return route.fulfill({
+            json: {
+              data: invoicesOf(schoolId)
+                .filter((invoice) => invoice.student_id === student.id)
+                .map((invoice) => invoiceResource(schoolId, invoice)),
+            },
+          })
+        }
+        if (path.startsWith('/invoices/')) {
+          const schoolId = schoolHeader ?? ''
+          const [, , invoiceId, sub, itemId] = path.split('/')
+          const invoice = invoicesOf(schoolId).find((candidate) => candidate.id === invoiceId)
+          const student = studentsOf(schoolId).find(
+            (candidate) => candidate.id === invoice?.student_id,
+          )
+          if (
+            invoice === undefined ||
+            student === undefined ||
+            !canSee(schoolId, student, 'billing.view')
+          )
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          const cycleId = levelOfStudent(schoolId, student)?.cycle.id ?? null
+          const isDiscount =
+            sub === 'discounts' ||
+            (sub === 'lines' &&
+              invoice.lines.find((line) => line.id === itemId)?.kind === 'discount')
+          if (!holds(schoolId, isDiscount ? 'billing.discount' : 'billing.manage', cycleId))
+            return route.fulfill(forbidden)
+          const today = '2026-11-04'
+          const snapshot = invoice.lines.map((line) => ({
+            ...line,
+            installments: [...line.installments],
+          }))
+          if (sub === 'options' && request.method() === 'POST') {
+            const body = z.object({ fee_type_id: z.string() }).parse(request.postDataJSON())
+            if (invoice.lines.some((line) => line.fee_type_id === body.fee_type_id))
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Déjà présent.', code: 'option_present' },
+              })
+            const line = feeLine(schoolId, student, body.fee_type_id, today)
+            if (line === null)
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Sans montant.', code: 'no_amount' },
+              })
+            invoice.lines.push(line)
+          } else if (sub === 'options' && request.method() === 'DELETE') {
+            const line = invoice.lines.find((candidate) => candidate.fee_type_id === itemId)
+            if (line !== undefined) {
+              line.installments = line.installments.filter((item) => item.due_on <= today)
+              line.amount = line.installments.reduce((sum, item) => sum + item.amount, 0)
+              if (line.amount === 0) invoice.lines.splice(invoice.lines.indexOf(line), 1)
+            }
+          } else if (sub === 'lines' && request.method() === 'POST') {
+            const body = z
+              .object({ label: z.string(), amount: z.number(), due_on: z.optional(z.string()) })
+              .parse(request.postDataJSON())
+            invoice.lines.push({
+              id: nextBillingId(),
+              kind: 'manual',
+              fee_type_id: null,
+              label: body.label,
+              amount: body.amount,
+              reason: null,
+              installments: [
+                { due_on: body.due_on ?? today, label: body.label, amount: body.amount },
+              ],
+            })
+          } else if (sub === 'discounts') {
+            const body = z
+              .object({ amount: z.number(), reason: z.string() })
+              .parse(request.postDataJSON())
+            invoice.lines.push({
+              id: nextBillingId(),
+              kind: 'discount',
+              fee_type_id: null,
+              label: 'Remise',
+              amount: -body.amount,
+              reason: body.reason,
+              installments: [],
+            })
+          } else if (sub === 'lines' && request.method() === 'DELETE') {
+            const line = invoice.lines.find((candidate) => candidate.id === itemId)
+            if (line === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (line.kind === 'fee')
+              return route.fulfill({
+                status: 422,
+                json: { message: 'Frais de la grille.', errors: { line: ['Frais de la grille.'] } },
+              })
+            invoice.lines.splice(invoice.lines.indexOf(line), 1)
+          }
+          if (!rebalance(invoice)) {
+            invoice.lines = snapshot
+            return route.fulfill({
+              status: 409,
+              json: { message: 'Remise trop forte.', code: 'discount_exceeds' },
+            })
+          }
+          return route.fulfill({ json: { data: invoiceResource(schoolId, invoice) } })
         }
         if (request.method() === 'PATCH' && path.startsWith('/academic-years/')) {
           const schoolId = schoolHeader ?? ''

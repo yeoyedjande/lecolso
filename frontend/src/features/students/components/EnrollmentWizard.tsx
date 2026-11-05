@@ -6,6 +6,7 @@ import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from 're
 import { useTranslation } from 'react-i18next'
 
 import { CycleBadge } from '@/components/CycleBadge'
+import { MoneyAmount } from '@/components/MoneyAmount'
 import { ScreenHeader } from '@/components/ScreenHeader'
 import { EmptyState } from '@/components/states/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -15,8 +16,10 @@ import { Field } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
 import { useCurrentAcademicYear } from '@/features/academic/api'
+import { can } from '@/features/auth/access'
 import { FormAlert } from '@/features/auth/components/FormAlert'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
+import { useBillingGrid } from '@/features/billing/api'
 import { useClassroomList } from '@/features/classes/api'
 import { ConflictError, ValidationError } from '@/lib/api/errors'
 import { formatDay, formatPhone } from '@/lib/format'
@@ -66,6 +69,7 @@ const DEFAULTS: EnrollmentValues = {
     medicalNotes: '',
   },
   guardians: [EMPTY_GUARDIAN],
+  options: [],
 }
 
 /** Champ du formulaire correspondant à une clé d'erreur Laravel (`student.first_name`, `guardians.0.phone`). */
@@ -107,6 +111,7 @@ export function EnrollmentWizard() {
   const school = useCurrentSchool()
   const year = useCurrentAcademicYear()
   const classrooms = useClassroomList()
+  const grid = useBillingGrid(can(school, 'billing.view'))
   const enroll = useEnrollStudent()
   const [step, setStep] = useState(0)
   const [created, setCreated] = useState<StudentFile | null>(null)
@@ -130,6 +135,17 @@ export function EnrollmentWizard() {
     classroom !== undefined &&
     medicalScope !== undefined &&
     (medicalScope === null || medicalScope.includes(classroom.level.cycle_id))
+  // Services optionnels du niveau de la classe choisie, avec leur montant annuel dans la grille
+  const gridLevel = grid.data?.cycles
+    .flatMap((cycle) => cycle.levels)
+    .find((level) => level.id === classroom?.level.id)
+  const services = (grid.data?.fee_types ?? [])
+    .filter((type) => type.is_optional)
+    .map((type) => ({
+      type,
+      amount: gridLevel?.amounts.find((entry) => entry.fee_type_id === type.id)?.amount ?? 0,
+    }))
+    .filter((service) => service.amount > 0)
   const choices = (classrooms.data ?? []).filter(
     (candidate) =>
       manageScope !== undefined &&
@@ -305,6 +321,38 @@ export function EnrollmentWizard() {
                   </NativeSelect>
                 )}
               </Field>
+            )}
+            {step === 0 && services.length > 0 && (
+              <fieldset className="grid gap-3">
+                <legend className="mb-2 font-semibold">{t('enrollment.services')}</legend>
+                {services.map(({ type, amount }) => {
+                  const checked = (values.options ?? []).includes(type.code)
+                  return (
+                    <label
+                      key={type.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border p-3 has-[:checked]:border-accent"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(state) => {
+                          const current = form.getValues('options')
+                          setValue(
+                            'options',
+                            state === true
+                              ? [...current, type.code]
+                              : current.filter((code) => code !== type.code),
+                          )
+                        }}
+                      />
+                      <span className="flex-1 font-medium">{type.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        <MoneyAmount value={amount} />
+                        {` ${t('enrollment.perYear')}`}
+                      </span>
+                    </label>
+                  )
+                })}
+              </fieldset>
             )}
 
             {step === 1 && (

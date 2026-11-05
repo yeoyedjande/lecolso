@@ -6,6 +6,7 @@ namespace App\Domains\Students\Actions;
 
 use App\Domains\Students\Data\GuardianInput;
 use App\Domains\Students\Enums\GuardianRelation;
+use App\Domains\Students\Events\StudentPayerChanged;
 use App\Domains\Students\Models\Guardian;
 use App\Domains\Students\Models\GuardianLink;
 use App\Domains\Students\Models\Student;
@@ -73,6 +74,12 @@ final readonly class ManageGuardians
 
             if ($guardianAttributes !== []) {
                 $link->guardian->fill($guardianAttributes)->save();
+
+                // Nom du payeur sur les factures de chaque enfant dont ce tuteur paie la scolarité
+                if (array_key_exists('name', $guardianAttributes)) {
+                    GuardianLink::query()->where('guardian_id', $link->guardian_id)->where('is_payer', true)->get()
+                        ->each(static fn (GuardianLink $paying) => StudentPayerChanged::dispatch($paying->school_id, $paying->student_id));
+                }
             }
 
             return $this->saveLink($link, $linkAttributes);
@@ -130,6 +137,10 @@ final readonly class ManageGuardians
         }
 
         $link->fill($attributes)->save();
+
+        if (($attributes['is_payer'] ?? false) === true) {
+            StudentPayerChanged::dispatch($link->school_id, $link->student_id);
+        }
 
         return $link;
     }

@@ -10,6 +10,13 @@ use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Academic\Models\Level;
+use App\Domains\Billing\Actions\CreateInvoice;
+use App\Domains\Billing\Actions\ManageInvoiceLines;
+use App\Domains\Billing\Actions\ProvisionFeeTypes;
+use App\Domains\Billing\Enums\LineKind;
+use App\Domains\Billing\Models\FeeSchedule;
+use App\Domains\Billing\Models\FeeType;
+use App\Domains\Billing\Models\InvoiceLine;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
@@ -25,6 +32,7 @@ use App\Domains\Tenancy\Enums\SchoolType;
 use App\Domains\Tenancy\Models\School;
 use App\Support\Sequences\Sequence;
 use App\Support\Tenancy\Platform;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -143,6 +151,11 @@ final class DemoSeeder extends Seeder
 
     public const string GUARDIAN_PHONE = '+2250700000008';
 
+    /** Scolarité annuelle par cycle (FCFA), majorée pour les grandes classes du primaire. */
+    public const array TUITION = ['daycare' => 360000, 'kindergarten' => 300000, 'primary' => 270000];
+
+    public const array TUITION_BONUS = ['CE1' => 10000, 'CE2' => 10000, 'CM1' => 20000, 'CM2' => 30000];
+
     private const array FIRST_NAMES = [
         'F' => ['Awa', 'Aïcha', 'Mariam', 'Fatou', 'Adjoua', 'Aya', 'Inès', 'Grâce', 'Salimata', 'Emmanuella', 'Rokia', 'Esther'],
         'M' => ['Yao', 'Koffi', 'Ibrahim', 'Moussa', 'Kouamé', 'Didier', 'Serge', 'Ismaël', 'Jean-Marc', 'Souleymane', 'Arnaud', 'Wilfried'],
@@ -157,17 +170,18 @@ final class DemoSeeder extends Seeder
 
     private const array FATHER_NAMES = ['Ibrahim', 'Kouassi', 'Lassina', 'Hervé', 'Patrice', 'Seydou', 'Paul', 'Mamadou'];
 
-    public function run(Application $app, ProvisionCycles $provisionCycles): void
+    public function run(Application $app, ProvisionCycles $provisionCycles, ProvisionFeeTypes $provisionFeeTypes): void
     {
         if ($app->environment('production')) {
             throw new RuntimeException('Les données de démo ne peuvent pas être créées en production.');
         }
 
-        Platform::run(function () use ($provisionCycles): void {
+        Platform::run(function () use ($provisionCycles, $provisionFeeTypes): void {
             $schools = [];
             foreach (self::SCHOOLS as $slug => $definition) {
                 $schools[$slug] = $this->school($slug, $definition);
                 $provisionCycles->handle($schools[$slug], $definition['cycles']);
+                $provisionFeeTypes->handle($schools[$slug]);
             }
 
             foreach (self::CUSTOM_ROLES as $slug => $roles) {
@@ -195,6 +209,7 @@ final class DemoSeeder extends Seeder
                     }
                 }
                 $this->students($school, $year, $slug);
+                $this->billing($school, $year, $slug);
             }
         });
     }
@@ -282,6 +297,60 @@ final class DemoSeeder extends Seeder
             ['school_id', 'key'],
             ['last_value' => DB::raw('greatest(document_sequences.last_value, excluded.last_value)'), 'updated_at' => now()],
         );
+    }
+
+    /**
+     * Grille de frais de l'année (mêmes montants que la démonstration du frontend) et factures de tous les élèves :
+     * un élève sur trois prend la cantine, un sur cinq le transport ; le fils aîné du compte parent a une remise
+     * (fratrie). Idempotent : une inscription facturée garde sa facture, la remise n'est ajoutée qu'une fois.
+     */
+    private function billing(School $school, AcademicYear $year, string $slug): void
+    {
+        $context = app(TenantContext::class);
+        $context->run($school, function () use ($school, $year, $slug): void {
+            $types = FeeType::query()->where('school_id', $school->id)->get()->keyBy('code');
+            $levels = Level::query()->where('school_id', $school->id)->with('cycle')->get();
+
+            foreach ($levels as $level) {
+                $cycle = $level->cycle->code;
+                $amounts = [
+                    'registration' => $cycle === 'daycare' ? 20000 : 25000,
+                    'tuition' => (self::TUITION[$cycle] ?? 270000) + (self::TUITION_BONUS[$level->code] ?? 0),
+                    'canteen' => 90000,
+                    'transport' => 120000,
+                    'daycare' => $cycle === 'daycare' ? 0 : 60000,
+                ];
+                foreach ($amounts as $code => $amount) {
+                    $type = $types->get($code);
+                    if (! $type instanceof FeeType || $amount === 0) {
+                        continue;
+                    }
+                    FeeSchedule::query()->updateOrCreate(
+                        ['school_id' => $school->id, 'academic_year_id' => $year->id, 'level_id' => $level->id, 'fee_type_id' => $type->id],
+                        ['amount' => $amount],
+                    );
+                }
+            }
+
+            $create = app(CreateInvoice::class);
+            $enrollments = Enrollment::query()->where('school_id', $school->id)->where('academic_year_id', $year->id)
+                ->with(['student', 'classroom.level.cycle', 'academicYear'])->get()
+                ->sortBy(static fn (Enrollment $enrollment): string => $enrollment->student->matricule);
+            foreach ($enrollments->values() as $index => $enrollment) {
+                $options = array_values(array_filter([
+                    $index % 3 === 0 ? 'canteen' : null,
+                    $index % 5 === 0 ? 'transport' : null,
+                ]));
+                $invoice = $create->handle($enrollment, $options);
+
+                $isElder = $enrollment->student->first_name === 'Ange' && $slug === 'les-lauriers';
+                $hasDiscount = InvoiceLine::query()->where('invoice_id', $invoice->id)->where('kind', LineKind::Discount)->exists();
+                $director = User::query()->where('phone', '+2250700000003')->first();
+                if ($isElder && ! $hasDiscount && $director instanceof User) {
+                    app(ManageInvoiceLines::class)->addDiscount($invoice, $director, 30000, 'Fratrie : deux enfants inscrits');
+                }
+            }
+        });
     }
 
     /**

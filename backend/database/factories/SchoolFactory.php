@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Domains\Academic\Actions\ProvisionCycles;
+use App\Domains\Billing\Actions\ProvisionFeeTypes;
 use App\Domains\Tenancy\Enums\SchoolType;
 use App\Domains\Tenancy\Models\School;
 use App\Support\Tenancy\Platform;
@@ -44,6 +45,8 @@ final class SchoolFactory extends Factory
         return $this->connection(Platform::CONNECTION)
             ->afterCreating(static function (School $school): void {
                 $school->setConnection(TenantContext::CONNECTION);
+                // Types de frais du catalogue, comme à la création d'une école (CreateSchool)
+                app(ProvisionFeeTypes::class)->handle($school);
             });
     }
 

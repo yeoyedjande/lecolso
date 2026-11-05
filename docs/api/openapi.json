@@ -334,6 +334,273 @@
                 }
             }
         },
+        "/billing/grid": {
+            "get": {
+                "operationId": "billing.grid.show",
+                "description": "Montants annuels par niveau et type de frais, calendrier des \u00e9ch\u00e9ances de chaque cycle (cr\u00e9\u00e9 d'apr\u00e8s sa\np\u00e9riodicit\u00e9 de facturation), nombre d'inscriptions encore sans facture. Cycles du p\u00e9rim\u00e8tre billing.view.",
+                "summary": "Grille de frais d'une ann\u00e9e",
+                "tags": [
+                    "BillingGrid"
+                ],
+                "parameters": [
+                    {
+                        "name": "academic_year_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`BillingGridResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BillingGridResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "billing.grid.update",
+                "description": "Montants fournis seulement (0 = aucun frais). S'applique aux nouvelles inscriptions ; les factures d\u00e9j\u00e0 \u00e9mises\nne changent pas.",
+                "summary": "Modifier la grille de frais",
+                "tags": [
+                    "BillingGrid"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveFeeGridRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`BillingGridResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BillingGridResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/billing/calendars/{cycle}": {
+            "put": {
+                "operationId": "billing.calendars.update",
+                "description": "Autant de dates que la p\u00e9riodicit\u00e9 du cycle en pr\u00e9voit, croissantes, dans l'ann\u00e9e scolaire.",
+                "summary": "Modifier le calendrier des \u00e9ch\u00e9ances d'un cycle",
+                "tags": [
+                    "BillingGrid"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cycle ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveCalendarRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`BillingGridResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BillingGridResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/billing/invoices/generate": {
+            "post": {
+                "operationId": "billing.invoices.generate",
+                "description": "Inscriptions actives de l'ann\u00e9e sans facture, dans les cycles g\u00e9r\u00e9s ; sans service optionnel. `{ created }`.",
+                "summary": "Facturer les \u00e9l\u00e8ves d\u00e9j\u00e0 inscrits",
+                "tags": [
+                    "BillingGrid"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GenerateInvoicesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "created": {
+                                            "type": "integer",
+                                            "minimum": 0
+                                        }
+                                    },
+                                    "required": [
+                                        "created"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/billing/schedules": {
+            "get": {
+                "operationId": "billing.schedules.index",
+                "description": "Montant attendu et nombre de factures par date d'\u00e9ch\u00e9ance (cycles du p\u00e9rim\u00e8tre billing.view).",
+                "summary": "\u00c9ch\u00e9ancier de l'ann\u00e9e",
+                "tags": [
+                    "BillingGrid"
+                ],
+                "parameters": [
+                    {
+                        "name": "academic_year_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ScheduleRowResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ScheduleRowResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/classrooms": {
             "get": {
                 "operationId": "classrooms.index",
@@ -855,7 +1122,7 @@
         "/enrollments": {
             "post": {
                 "operationId": "enrollments.store",
-                "description": "Dossier, tuteurs (r\u00e9utilis\u00e9s par t\u00e9l\u00e9phone : fratrie) et classe en une fois ; matricule \u00ab LAU-000123 \u00bb attribu\u00e9.\n409 `classroom_full` (capacit\u00e9 atteinte) ou `year_closed` (ann\u00e9e cl\u00f4tur\u00e9e).",
+                "description": "Dossier, tuteurs (r\u00e9utilis\u00e9s par t\u00e9l\u00e9phone : fratrie), classe et services optionnels en une fois ; matricule\n\u00ab LAU-000123 \u00bb attribu\u00e9 ; facture de l'ann\u00e9e cr\u00e9\u00e9e d'apr\u00e8s la grille du niveau.\n409 `classroom_full` (capacit\u00e9 atteinte) ou `year_closed` (ann\u00e9e cl\u00f4tur\u00e9e).",
                 "summary": "Inscrire un nouvel \u00e9l\u00e8ve",
                 "tags": [
                     "Enrollment"
@@ -995,6 +1262,378 @@
                     }
                 },
                 "security": []
+            }
+        },
+        "/students/{student}/invoices": {
+            "get": {
+                "operationId": "students.invoices.index",
+                "description": "Une par ann\u00e9e d'inscription, la plus r\u00e9cente d'abord. billing.view dans le p\u00e9rim\u00e8tre de l'\u00e9l\u00e8ve.",
+                "summary": "Factures d'un \u00e9l\u00e8ve",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/InvoiceResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/options": {
+            "post": {
+                "operationId": "invoices.options.store",
+                "description": "\u00c0 partir d'aujourd'hui : p\u00e9riodes restantes seulement. 409 `option_present`, `no_amount`.",
+                "summary": "Ajouter un service optionnel",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddOptionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/options/{feeType}": {
+            "delete": {
+                "operationId": "invoices.options.destroy",
+                "description": "Les p\u00e9riodes d\u00e9j\u00e0 commenc\u00e9es restent dues.",
+                "summary": "Retirer un service optionnel",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "feeType",
+                        "in": "path",
+                        "required": true,
+                        "description": "The fee type ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/lines": {
+            "post": {
+                "operationId": "invoices.lines.store",
+                "summary": "Ajouter une ligne \u00e0 la main",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddInvoiceLineRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/discounts": {
+            "post": {
+                "operationId": "invoices.discounts.store",
+                "description": "Montant et motif ; r\u00e9partie \u00e0 partir de la derni\u00e8re \u00e9ch\u00e9ance. 409 `discount_exceeds`.",
+                "summary": "Accorder une remise",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddDiscountRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/invoices/{invoice}/lines/{line}": {
+            "delete": {
+                "operationId": "invoices.lines.destroy",
+                "summary": "Retirer une ligne manuelle ou une remise",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "line",
+                        "in": "path",
+                        "required": true,
+                        "description": "The line ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`InvoiceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
             }
         },
         "/files/person-photos/{file}": {
@@ -3090,6 +3729,66 @@
                 ],
                 "title": "AcademicYearStatus"
             },
+            "AddDiscountRequest": {
+                "type": "object",
+                "description": "Remise (direction : billing.discount) : montant (FCFA, entier) et motif obligatoire.",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100000000
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "amount",
+                    "reason"
+                ],
+                "title": "AddDiscountRequest"
+            },
+            "AddInvoiceLineRequest": {
+                "type": "object",
+                "description": "Ligne ajout\u00e9e \u00e0 la main : libell\u00e9, montant (FCFA, entier) et date d'\u00e9ch\u00e9ance (aujourd'hui par d\u00e9faut).",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "amount": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100000000
+                    },
+                    "due_on": {
+                        "type": "string",
+                        "format": "date"
+                    }
+                },
+                "required": [
+                    "label",
+                    "amount"
+                ],
+                "title": "AddInvoiceLineRequest"
+            },
+            "AddOptionRequest": {
+                "type": "object",
+                "description": "Ajouter un service optionnel (cantine, transport\u2026) \u00e0 partir d'aujourd'hui : \u00e9ch\u00e9ances restantes seulement.",
+                "properties": {
+                    "fee_type_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "fee_type_id"
+                ],
+                "title": "AddOptionRequest"
+            },
             "AssignUserRoleRequest": {
                 "type": "object",
                 "properties": {
@@ -3109,6 +3808,145 @@
                     "role"
                 ],
                 "title": "AssignUserRoleRequest"
+            },
+            "BillingGridResource": {
+                "type": "object",
+                "properties": {
+                    "academic_year": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "label": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "open",
+                                    "closed"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "label",
+                            "status"
+                        ]
+                    },
+                    "fee_types": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FeeTypeResource"
+                        }
+                    },
+                    "cycles": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "code": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "billing_period": {
+                                    "type": "string"
+                                },
+                                "can_manage": {
+                                    "type": "boolean"
+                                },
+                                "dates": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "position": {
+                                                "type": "integer"
+                                            },
+                                            "due_on": {
+                                                "type": "string"
+                                            },
+                                            "label": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "position",
+                                            "due_on",
+                                            "label"
+                                        ]
+                                    }
+                                },
+                                "levels": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "code": {
+                                                "type": "string"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "amounts": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "fee_type_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "amount": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "fee_type_id",
+                                                        "amount"
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "code",
+                                            "name",
+                                            "amounts"
+                                        ]
+                                    }
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "code",
+                                "name",
+                                "billing_period",
+                                "can_manage",
+                                "dates",
+                                "levels"
+                            ]
+                        }
+                    },
+                    "pending_invoices": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "academic_year",
+                    "fee_types",
+                    "cycles",
+                    "pending_invoices"
+                ],
+                "title": "BillingGridResource"
             },
             "BloodType": {
                 "type": "string",
@@ -3419,7 +4257,7 @@
             },
             "EnrollStudentRequest": {
                 "type": "object",
-                "description": "Inscription compl\u00e8te d'un nouvel \u00e9l\u00e8ve : `student` (dossier), `guardians` (1 \u00e0 4 ; un seul payeur et un seul\ncontact principal, le premier tuteur par d\u00e9faut) et `classroom_id`. Droits : students.manage sur le cycle de la\nclasse ; champs m\u00e9dicaux de `student` refus\u00e9s sans students.medical.view sur ce cycle.",
+                "description": "Inscription compl\u00e8te d'un nouvel \u00e9l\u00e8ve : `student` (dossier), `guardians` (1 \u00e0 4 ; un seul payeur et un seul\ncontact principal, le premier tuteur par d\u00e9faut), `classroom_id` et `options` (codes des services optionnels). Droits : students.manage sur le cycle de la\nclasse ; champs m\u00e9dicaux de `student` refus\u00e9s sans students.medical.view sur ce cycle.",
                 "properties": {
                     "student": {
                         "type": "object",
@@ -3494,6 +4332,14 @@
                     "enrolled_on": {
                         "type": "string",
                         "format": "date"
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "maxItems": 10,
+                        "uniqueItems": true
                     },
                     "guardians": {
                         "type": "array",
@@ -3655,6 +4501,38 @@
                 ],
                 "title": "EnrollmentResource"
             },
+            "FeeTypeResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "billing": {
+                        "type": "string",
+                        "enum": [
+                            "once",
+                            "recurring"
+                        ]
+                    },
+                    "is_optional": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "code",
+                    "name",
+                    "billing",
+                    "is_optional"
+                ],
+                "title": "FeeTypeResource"
+            },
             "Gender": {
                 "type": "string",
                 "enum": [
@@ -3662,6 +4540,20 @@
                     "M"
                 ],
                 "title": "Gender"
+            },
+            "GenerateInvoicesRequest": {
+                "type": "object",
+                "description": "Factures des \u00e9l\u00e8ves d\u00e9j\u00e0 inscrits sans facture : billing.manage, dans la limite de ses cycles.",
+                "properties": {
+                    "academic_year_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "title": "GenerateInvoicesRequest"
             },
             "GuardianLinkResource": {
                 "type": "object",
@@ -3765,6 +4657,198 @@
                     "redis"
                 ],
                 "title": "HealthResource"
+            },
+            "InvoiceLineResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "fee",
+                            "discount",
+                            "manual"
+                        ]
+                    },
+                    "fee_type_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "fee_type_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "is_optional": {
+                        "type": "boolean"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "kind",
+                    "fee_type_id",
+                    "fee_type_code",
+                    "is_optional",
+                    "label",
+                    "amount",
+                    "reason"
+                ],
+                "title": "InvoiceLineResource"
+            },
+            "InvoiceOptionResource": {
+                "type": "object",
+                "properties": {
+                    "fee_type_id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "fee_type_id",
+                    "code",
+                    "name",
+                    "amount"
+                ],
+                "title": "InvoiceOptionResource"
+            },
+            "InvoiceResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "academic_year": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "label": {
+                                "type": "string"
+                            },
+                            "is_current": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "label",
+                            "is_current"
+                        ]
+                    },
+                    "classroom_name": {
+                        "type": "string"
+                    },
+                    "payer": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    },
+                    "total": {
+                        "type": "integer"
+                    },
+                    "discount_total": {
+                        "type": "integer"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InvoiceLineResource"
+                        }
+                    },
+                    "schedule": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "due_on": {
+                                    "type": "string"
+                                },
+                                "label": {
+                                    "anyOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "string",
+                                            "enum": [
+                                                ""
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "amount": {
+                                    "type": "integer"
+                                }
+                            },
+                            "required": [
+                                "due_on",
+                                "label",
+                                "amount"
+                            ]
+                        }
+                    },
+                    "available_options": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InvoiceOptionResource"
+                        }
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    },
+                    "can_discount": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "academic_year",
+                    "classroom_name",
+                    "payer",
+                    "total",
+                    "discount_total",
+                    "lines",
+                    "schedule",
+                    "available_options",
+                    "can_manage",
+                    "can_discount"
+                ],
+                "title": "InvoiceResource"
             },
             "LevelResource": {
                 "type": "object",
@@ -4024,6 +5108,46 @@
                 ],
                 "title": "SaveAcademicYearRequest"
             },
+            "SaveCalendarRequest": {
+                "type": "object",
+                "description": "Dates des \u00e9ch\u00e9ances d'un cycle pour une ann\u00e9e : autant de dates que la p\u00e9riodicit\u00e9 du cycle en pr\u00e9voit (1, 3 ou 10),\ncroissantes, dans l'ann\u00e9e scolaire. billing.manage sur le cycle.",
+                "properties": {
+                    "academic_year_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "dates": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "due_on": {
+                                    "type": "string",
+                                    "format": "date"
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 60
+                                }
+                            },
+                            "required": [
+                                "due_on",
+                                "label"
+                            ]
+                        },
+                        "minItems": 0,
+                        "maxItems": 0
+                    }
+                },
+                "required": [
+                    "dates"
+                ],
+                "title": "SaveCalendarRequest"
+            },
             "SaveClassroomRequest": {
                 "type": "object",
                 "description": "Cr\u00e9ation (POST : niveau et section obligatoires ; ann\u00e9e en cours par d\u00e9faut) ou modification (PATCH).\nDroits : school.settings.manage sur le cycle du niveau, et sur celui du nouveau niveau en cas de changement.",
@@ -4069,6 +5193,75 @@
                     "section"
                 ],
                 "title": "SaveClassroomRequest"
+            },
+            "SaveFeeGridRequest": {
+                "type": "object",
+                "description": "Montants annuels de la grille (FCFA, entiers, 0 = pas de frais) : billing.manage sur le cycle de chaque niveau.\nAnn\u00e9e cl\u00f4tur\u00e9e : 409 `year_closed`.",
+                "properties": {
+                    "academic_year_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "amounts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "level_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "fee_type_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "amount": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 100000000
+                                }
+                            },
+                            "required": [
+                                "level_id",
+                                "fee_type_id",
+                                "amount"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 500
+                    }
+                },
+                "required": [
+                    "amounts"
+                ],
+                "title": "SaveFeeGridRequest"
+            },
+            "ScheduleRowResource": {
+                "type": "object",
+                "properties": {
+                    "due_on": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "expected": {
+                        "type": "integer"
+                    },
+                    "invoices": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "due_on",
+                    "label",
+                    "expected",
+                    "invoices"
+                ],
+                "title": "ScheduleRowResource"
             },
             "SchoolMembershipResource": {
                 "type": "object",

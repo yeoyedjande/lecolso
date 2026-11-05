@@ -21,7 +21,7 @@ use LogicException;
 
 /**
  * Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
- * contact principal, le premier tuteur par défaut) et `classroom_id`. Droits : students.manage sur le cycle de la
+ * contact principal, le premier tuteur par défaut), `classroom_id` et `options` (codes des services optionnels). Droits : students.manage sur le cycle de la
  * classe ; champs médicaux de `student` refusés sans students.medical.view sur ce cycle.
  */
 final class EnrollStudentRequest extends FormRequest
@@ -54,6 +54,8 @@ final class EnrollStudentRequest extends FormRequest
             ...self::studentRules('student.', true, $this->medicalAllowed()),
             'classroom_id' => ['required', 'uuid', 'exists:classrooms,id'],
             'enrolled_on' => ['sometimes', 'date_format:Y-m-d'],
+            'options' => ['sometimes', 'array', 'max:10'],
+            'options.*' => ['string', 'distinct', 'exists:fee_types,code,is_optional,1'],
             'guardians' => ['required', 'array', 'min:1', 'max:4'],
             ...self::guardianRules('guardians.*.', true),
         ];
@@ -139,6 +141,18 @@ final class EnrollStudentRequest extends FormRequest
                 $guardians,
             ),
         );
+    }
+
+    /**
+     * Codes des services optionnels choisis (cantine, transport…), facturés avec l'inscription.
+     *
+     * @return list<string>
+     */
+    public function options(): array
+    {
+        $options = $this->validated('options', []);
+
+        return is_array($options) ? array_values(array_filter($options, 'is_string')) : [];
     }
 
     private function targetClassroom(): ?Classroom

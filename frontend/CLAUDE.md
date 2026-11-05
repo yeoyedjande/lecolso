@@ -101,6 +101,10 @@ src/
   que s'il est renseigné (fiche) ou si l'utilisateur a la permission sur le cycle de la classe (assistant).
   Photos (élève et parents, facultatives) : `photo_url` signée de 10 minutes, affichée par `<Avatar photoUrl>`
   (initiales si absente ou illisible), envoyée par `<PhotoControl>` (`useStudentPhoto`, JPEG/PNG/WebP, 5 Mo au plus).
+  **Facturation** (`features/billing/api.ts`) : grille de frais et calendriers (`useBillingGrid`, `useSaveFeeGrid`,
+  `useSaveCalendar`, `useGenerateInvoices`), échéancier (`useBillingSchedules`), factures d'un élève
+  (`useStudentInvoices`, `useChangeInvoice` : service, ligne manuelle, remise) dans l'onglet « Frais » de la fiche,
+  services optionnels choisis à l'inscription. Encaissements, reçus, caisse et impayés restent en démonstration (lot 5b, 5c).
   Encaissements, espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
