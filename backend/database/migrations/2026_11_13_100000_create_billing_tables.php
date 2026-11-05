@@ -159,7 +159,7 @@ return new class extends Migration
             $table->uuid('invoice_id');
             $table->uuid('invoice_line_id');
             $table->date('due_on');
-            $table->string('label', 60);
+            $table->string('label', 120); // libellé de l'échéance du calendrier, ou de la ligne (120 au plus)
             $table->bigInteger('amount'); // FCFA ; négatif pour la part d'une remise
             $table->timestamps();
 

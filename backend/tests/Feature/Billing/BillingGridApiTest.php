@@ -116,6 +116,8 @@ it('modifie les dates des échéances d’un cycle', function (): void {
 it('facture les élèves déjà inscrits, une seule fois, dans les cycles gérés', function (): void {
     $school = makeSchool(['kindergarten', 'primary']);
     setFees($school, 'CE1', ['tuition' => 90000]);
+    setFees($school, 'CE2', ['tuition' => 90000]);
+    setFees($school, 'PS', ['tuition' => 90000]);
     enrollStudent($school, classroomOf($school, 'CE1'));
     enrollStudent($school, classroomOf($school, 'CE2'), ['guardian_phone' => '+2250102030405']);
     enrollStudent($school, classroomOf($school, 'PS'), ['guardian_phone' => '+2250102030406']);
@@ -132,15 +134,18 @@ it('facture les élèves déjà inscrits, une seule fois, dans les cycles géré
     expect(inSchool($school, static fn (): int => Invoice::query()->count()))->toBe(2);
     spa('GET', '/api/v1/billing/schedules', [], $school)->assertOk()
         ->assertJsonPath('data.0.due_on', '2026-09-14')
-        ->assertJsonPath('data.0.expected', 30000)
-        ->assertJsonPath('data.0.invoices', 1);
+        ->assertJsonPath('data.0.expected', 60000)
+        ->assertJsonPath('data.0.invoices', 2);
 });
 
-it('réserve la facturation à qui la voit', function (): void {
+it('réserve la grille et l’échéancier au personnel : ni enseignant ni parent', function (Role $role): void {
     $school = makeSchool(['primary']);
-    currentYearOf($school);
-    actingAsRole(Role::Teacher, $school);
+    setFees($school, 'CE1', ['tuition' => 90000]);
+    enrollStudent($school, classroomOf($school, 'CE1'));
+    actingAsRole($role, $school);
 
+    // Le parent a billing.view (factures de ses enfants), jamais les montants des autres familles
     spa('GET', '/api/v1/billing/grid', [], $school)->assertForbidden();
+    spa('GET', '/api/v1/billing/schedules', [], $school)->assertForbidden();
     spa('POST', '/api/v1/billing/invoices/generate', [], $school)->assertForbidden();
-});
+})->with([Role::Teacher, Role::Guardian]);
