@@ -6,8 +6,10 @@ declare(strict_types=1);
 
 use App\Domains\Billing\Http\Controllers\BillingGridController;
 use App\Domains\Billing\Http\Controllers\CashDeskController;
+use App\Domains\Billing\Http\Controllers\DashboardController;
 use App\Domains\Billing\Http\Controllers\InvoiceController;
 use App\Domains\Billing\Http\Controllers\PaymentController;
+use App\Domains\Billing\Http\Controllers\UnpaidController;
 use Illuminate\Support\Facades\Route;
 
 // Routes d'un établissement (en-tête X-School-Id)
@@ -35,4 +37,8 @@ Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::post('billing/cash-sessions/{cashSession}/close', [CashDeskController::class, 'close'])->name('billing.cash-sessions.close');
     Route::get('billing/policy', [CashDeskController::class, 'policy'])->name('billing.policy.show');
     Route::put('billing/policy', [CashDeskController::class, 'savePolicy'])->name('billing.policy.update');
+
+    Route::get('billing/unpaid', [UnpaidController::class, 'index'])->name('billing.unpaid.index');
+    Route::post('billing/reminders', [UnpaidController::class, 'remind'])->name('billing.reminders.store');
+    Route::get('billing/dashboard', [DashboardController::class, 'show'])->name('billing.dashboard.show');
 });

@@ -1319,6 +1319,45 @@
                 }
             }
         },
+        "/billing/dashboard": {
+            "get": {
+                "operationId": "billing.dashboard.show",
+                "description": "Ann\u00e9e en cours, cycles de l'utilisateur : effectifs ; finances avec `billing.view` (sinon `finance` null).",
+                "summary": "Chiffres du tableau de bord",
+                "tags": [
+                    "Dashboard"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`DashboardResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DashboardResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/enrollments": {
             "post": {
                 "operationId": "enrollments.store",
@@ -4190,6 +4229,121 @@
                     }
                 }
             }
+        },
+        "/billing/unpaid": {
+            "get": {
+                "operationId": "billing.unpaid.index",
+                "description": "Factures dont l'\u00e9chu \u00e0 aujourd'hui n'est pas r\u00e9gl\u00e9, toutes ann\u00e9es, dans les cycles de l'utilisateur ; le plus\ngros retard d'abord. Filtres `cycle_id`, `classroom_id`.",
+                "summary": "Impay\u00e9s",
+                "tags": [
+                    "Unpaid"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "classroom_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `UnpaidRowResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/UnpaidRowResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/billing/reminders": {
+            "post": {
+                "operationId": "billing.reminders.store",
+                "description": "Un SMS par payeur pour les factures choisies en retard, au plus une fois tous les 7 jours ; envoi en file.",
+                "summary": "Relancer par SMS",
+                "tags": [
+                    "Unpaid"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RemindRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ReminderOutcomeResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReminderOutcomeResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -5048,6 +5202,113 @@
                     "levels"
                 ],
                 "title": "CycleResource"
+            },
+            "DashboardCycleResource": {
+                "type": "object",
+                "properties": {
+                    "cycle_id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "students": {
+                        "type": "integer"
+                    },
+                    "classrooms": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "cycle_id",
+                    "code",
+                    "name",
+                    "students",
+                    "classrooms"
+                ],
+                "title": "DashboardCycleResource"
+            },
+            "DashboardFinanceResource": {
+                "type": "object",
+                "properties": {
+                    "collected_month": {
+                        "type": "integer"
+                    },
+                    "payments_month": {
+                        "type": "integer"
+                    },
+                    "expected_month": {
+                        "type": "integer"
+                    },
+                    "overdue": {
+                        "type": "integer"
+                    },
+                    "collection_rate": {
+                        "type": "integer"
+                    },
+                    "monthly": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "recent_payments": {
+                        "type": "array",
+                        "items": {}
+                    }
+                },
+                "required": [
+                    "collected_month",
+                    "payments_month",
+                    "expected_month",
+                    "overdue",
+                    "collection_rate",
+                    "monthly",
+                    "recent_payments"
+                ],
+                "title": "DashboardFinanceResource"
+            },
+            "DashboardResource": {
+                "type": "object",
+                "properties": {
+                    "today": {
+                        "type": "string"
+                    },
+                    "academic_year_label": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "students": {
+                        "type": "integer"
+                    },
+                    "by_cycle": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DashboardCycleResource"
+                        }
+                    },
+                    "finance": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/DashboardFinanceResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "today",
+                    "academic_year_label",
+                    "students",
+                    "by_cycle",
+                    "finance"
+                ],
+                "title": "DashboardResource"
             },
             "DeparturePolicy": {
                 "type": "string",
@@ -6256,6 +6517,50 @@
                 ],
                 "title": "RefundResource"
             },
+            "RemindRequest": {
+                "type": "object",
+                "description": "Relance SMS des payeurs de factures en retard (billing.manage sur le cycle de chaque facture). `invoice_ids` : 1 \u00e0\n200 factures ; une facture inconnue ou hors du p\u00e9rim\u00e8tre est refus\u00e9e comme inexistante (422), une facture vue mais\nnon relan\u00e7able donne 403.",
+                "properties": {
+                    "invoice_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "invoice_ids"
+                ],
+                "title": "RemindRequest"
+            },
+            "ReminderOutcomeResource": {
+                "type": "object",
+                "properties": {
+                    "queued": {
+                        "type": "integer"
+                    },
+                    "recent": {
+                        "type": "integer"
+                    },
+                    "no_phone": {
+                        "type": "integer"
+                    },
+                    "not_overdue": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "queued",
+                    "recent",
+                    "no_phone",
+                    "not_overdue"
+                ],
+                "title": "ReminderOutcomeResource"
+            },
             "RoleAssignmentResource": {
                 "type": "object",
                 "properties": {
@@ -7187,6 +7492,128 @@
                     "reason"
                 ],
                 "title": "TransferCreditRequest"
+            },
+            "UnpaidRowResource": {
+                "type": "object",
+                "properties": {
+                    "invoice_id": {
+                        "type": "string"
+                    },
+                    "student": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "full_name": {
+                                "type": "string"
+                            },
+                            "matricule": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "full_name",
+                            "matricule"
+                        ]
+                    },
+                    "classroom_name": {
+                        "type": "string"
+                    },
+                    "cycle": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "code"
+                        ]
+                    },
+                    "academic_year_label": {
+                        "type": "string"
+                    },
+                    "payer": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "phone": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "phone"
+                        ]
+                    },
+                    "overdue": {
+                        "type": "integer"
+                    },
+                    "remaining": {
+                        "type": "integer"
+                    },
+                    "oldest_due_on": {
+                        "type": "string"
+                    },
+                    "days_late": {
+                        "type": "integer"
+                    },
+                    "last_reminder": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "at": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "queued",
+                                    "sent",
+                                    "failed"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "at",
+                            "status"
+                        ]
+                    },
+                    "can_remind": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "invoice_id",
+                    "student",
+                    "classroom_name",
+                    "cycle",
+                    "academic_year_label",
+                    "payer",
+                    "overdue",
+                    "remaining",
+                    "oldest_due_on",
+                    "days_late",
+                    "last_reminder",
+                    "can_remind"
+                ],
+                "title": "UnpaidRowResource"
             },
             "UpdateCycleRequest": {
                 "type": "object",

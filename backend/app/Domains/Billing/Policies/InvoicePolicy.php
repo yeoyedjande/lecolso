@@ -45,6 +45,12 @@ final readonly class InvoicePolicy
         return $this->allowsOnCycle($user, 'billing.manage', $invoice);
     }
 
+    /** Relancer le payeur (SMS) : qui encaisse, sur le cycle (décision du 05/11/2026). */
+    public function remind(User $user, Invoice $invoice): bool
+    {
+        return $this->allowsOnCycle($user, 'billing.manage', $invoice);
+    }
+
     public function cancel(User $user, Invoice $invoice): bool
     {
         return $this->allowsOnCycle($user, 'billing.cancel', $invoice);

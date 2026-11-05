@@ -284,3 +284,26 @@ function assertBalanced(School $school, Invoice $invoice): int
 
     return $lines;
 }
+
+/**
+ * École du primaire, CE1 : inscription 25 000 + scolarité 180 000 (3 × 60 000) ; facture de l'élève.
+ *
+ * @return array{0: School, 1: Invoice}
+ */
+function billedSchool(): array
+{
+    $school = makeSchool(['kindergarten', 'primary']);
+    setFees($school, 'CE1', ['registration' => 25000, 'tuition' => 180000]);
+    $student = enrollStudent($school, classroomOf($school, 'CE1'));
+
+    return [$school, invoiceOf($school, $student)];
+}
+
+/** Encaisse par l'API et renvoie l'identifiant du paiement. */
+function pay(School $school, string $invoiceId, int $amount, string $method = 'cash', ?string $reference = null): string
+{
+    $id = spa('POST', '/api/v1/invoices/'.$invoiceId.'/payments', ['amount' => $amount, 'method' => $method, 'reference' => $reference], $school)
+        ->assertCreated()->json('data.payment.id');
+
+    return is_string($id) ? $id : throw new LogicException('Paiement non créé.');
+}
