@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
   }, LAURIERS)
 })
 
-test.describe('parcours parent (démo)', () => {
+test.describe('parcours parent', () => {
   test.beforeEach(async ({ page }) => {
     await mockApi(page, { session: ACCOUNTS.guardian })
   })
@@ -23,53 +23,41 @@ test.describe('parcours parent (démo)', () => {
     await expect(page.getByRole('heading', { name: 'Bonjour, Kouadio', level: 1 })).toBeVisible()
     await expect(page.getByRole('link', { name: /Voir la fiche de/ })).toHaveCount(2)
 
-    // Enfant de primaire : carte avec une moyenne
-    await page
-      .getByRole('link', { name: /Voir la fiche de/ })
-      .filter({ hasText: 'Moyenne' })
-      .click()
+    await page.getByRole('link', { name: /Voir la fiche de Ange/ }).click()
     await expect(page.getByRole('tab', { name: 'Notes' })).toHaveAttribute('aria-selected', 'true')
-    await expect(page.getByText('Moyenne générale')).toBeVisible()
     await expect(page.getByText('Français')).toBeVisible()
+    await expect(page.getByText('Évaluation 1')).toBeVisible()
+    // Ni moyenne générale ni rang au fil de l'eau : seulement sur le bulletin validé
+    await expect(page.getByText('Moyenne générale', { exact: true })).toHaveCount(0)
   })
 
-  test('payer par Mobile Money (simulé) et obtenir le reçu', async ({ page }) => {
+  test('paiements : situation réelle, Mobile Money bientôt disponible', async ({ page }) => {
     await page.goto('/les-lauriers/parent/paiements')
-    await page.getByRole('button', { name: 'Payer par Mobile Money' }).first().click()
+    await expect(page.getByRole('heading', { name: 'Paiements', level: 1 })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Payer par Mobile Money' })).toBeDisabled()
+    await expect(page.getByText(/sera bientôt disponible/)).toBeVisible()
 
-    const sheet = page.getByRole('dialog', { name: 'Payer par Mobile Money' })
-    await sheet.getByLabel('Montant (FCFA)').fill('15000')
-    await sheet.getByText('Wave').click()
-    await sheet.getByRole('button', { name: /^Payer 15/ }).click()
-
-    await expect(sheet.getByText('Validez le paiement sur votre téléphone…')).toBeVisible()
-    await expect(sheet.getByText('Paiement réussi')).toBeVisible({ timeout: 10_000 })
-    await sheet.getByRole('link', { name: 'Voir le reçu' }).click()
-    await expect(page.getByText(/quinze mille francs CFA/)).toBeVisible()
-    await expect(page.getByText('Wave')).toBeVisible()
+    await page.getByRole('link', { name: 'Voir les frais de Ange' }).click()
+    await expect(page.getByRole('tab', { name: 'Frais' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByText('Échéancier')).toBeVisible()
   })
 
-  test('numéro Mobile Money invalide : refusé avant tout paiement', async ({ page }) => {
-    await page.goto('/les-lauriers/parent/paiements')
-    await page.getByRole('button', { name: 'Payer par Mobile Money' }).first().click()
-    const sheet = page.getByRole('dialog', { name: 'Payer par Mobile Money' })
-    await sheet.getByLabel('Numéro Mobile Money').fill('1234')
-    await sheet.getByRole('button', { name: /^Payer/ }).click()
-    await expect(sheet.getByText('Saisissez un numéro ivoirien à 10 chiffres.')).toBeVisible()
-  })
-
-  test('justifier une absence depuis l’accueil, en deux écrans', async ({ page }) => {
+  test('justifier une absence depuis l’accueil : envoyée à l’école', async ({ page }) => {
     await page.goto('/les-lauriers/parent')
+    await expect(page.getByText('1 à justifier').first()).toBeVisible()
     await page.getByRole('link', { name: 'Justifier une absence' }).click()
-    await page.getByLabel('Motif').selectOption({ label: 'Rendez-vous médical' })
+
+    await expect(page.getByRole('radio')).toHaveCount(1)
+    await page.getByLabel('Motif').fill('Fièvre, rendez-vous chez le médecin')
     await page.getByRole('button', { name: 'Envoyer la justification' }).click()
 
-    await expect(page.getByText(/Merci ! 1 jour\(s\) justifié\(s\)\./).first()).toBeVisible()
-    await expect(page).toHaveURL(/\/les-lauriers\/parent$/)
+    await expect(page.getByText('Justification envoyée à l’école').first()).toBeVisible()
+    await expect(page).toHaveURL(/\/les-lauriers\/parent\/enfants\/.*onglet=absences/)
+    await expect(page.getByText('Justification envoyée, en attente')).toBeVisible()
   })
 
   test('la fiche d’un enfant d’une autre famille est introuvable', async ({ page }) => {
-    await page.goto('/les-lauriers/parent/enfants/lau-el-0002')
+    await page.goto('/les-lauriers/parent/enfants/0195f000-0000-7000-8000-100000000001')
     await expect(page.getByRole('heading', { name: 'Page introuvable', level: 1 })).toBeVisible()
   })
 })

@@ -1,85 +1,78 @@
-import { useMe } from '@/features/auth/api'
-import { useDemoMutation, useDemoQuery } from '@/lib/demo/hooks'
-import type { PaymentMethod } from '@/lib/demo/types'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import {
-  absencesToJustify,
-  childDetail,
-  justifyAbsence,
-  myChildren,
-  parentConversations,
-  parentPayments,
-  parentReply,
-  payMobile,
-  type JustifyReason,
-} from './demo'
+import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
+import { api } from '@/lib/api/client'
+import type { components } from '@/lib/api/schema'
 
-/** Téléphone du compte connecté : rattache le parent à ses enfants (démonstration ; l'API filtrera côté serveur). */
-function usePhone(): string {
-  return useMe().data?.phone ?? ''
+export type ChildSummary = components['schemas']['ChildSummaryResource']
+export type Child = components['schemas']['ChildResource']
+export type ChildMark = components['schemas']['ChildMarkResource']
+
+function useParentKey() {
+  const school = useCurrentSchool()
+  return { school, key: ['school', school?.id ?? null, 'parent'] as const }
 }
 
+/** Enfants du parent connecté : classe, présence du jour, reste à payer, absences à justifier. */
 export function useMyChildren() {
-  const phone = usePhone()
-  return useDemoQuery(['parent', 'children', phone], (school, today) =>
-    myChildren(school, phone, today),
-  )
+  const { school, key } = useParentKey()
+  return useQuery({
+    queryKey: [...key, 'children'],
+    enabled: school !== null,
+    queryFn: async ({ signal }): Promise<ChildSummary[]> => {
+      const { data, error } = await api.GET('/guardian/children', { signal })
+      if (data === undefined) throw new Error('Enfants indisponibles', { cause: error })
+      return data.data
+    },
+  })
 }
 
-export function useChild(studentId: string) {
-  const phone = usePhone()
-  return useDemoQuery(['parent', 'child', phone, studentId], (school, today) =>
-    childDetail(school, phone, studentId, today),
-  )
+/** Fiche d'un enfant (notes de la période `termId`, celle du jour si `null`) ; `null` si ce n'est pas son enfant. */
+export function useChild(studentId: string, termId: string | null = null) {
+  const { school, key } = useParentKey()
+  return useQuery({
+    queryKey: [...key, 'child', studentId, termId],
+    enabled: school !== null && studentId !== '',
+    queryFn: async ({ signal }): Promise<Child | null> => {
+      const { data, error, response } = await api.GET('/guardian/children/{student}', {
+        params: { path: { student: studentId }, query: { term_id: termId } },
+        signal,
+      })
+      if (response.status === 404) return null
+      if (data === undefined) throw new Error('Fiche indisponible', { cause: error })
+      return data.data
+    },
+  })
 }
 
-export function useAbsencesToJustify() {
-  const phone = usePhone()
-  return useDemoQuery(['parent', 'absences', phone], (school) => absencesToJustify(school, phone))
-}
-
+/** Justification d'une absence par le parent (motif, photo facultative) : à valider par l'école. */
 export function useJustifyAbsence() {
-  const phone = usePhone()
-  return useDemoMutation(
-    (
-      school,
-      input: {
-        studentId: string
-        from: string
-        to: string
-        reason: JustifyReason
-        comment: string
-      },
-    ) => justifyAbsence(school, { ...input, phone }),
-  )
-}
-
-export function useParentPayments() {
-  const phone = usePhone()
-  return useDemoQuery(['parent', 'payments', phone], (school) => parentPayments(school, phone))
-}
-
-export function usePayMobile() {
-  const phone = usePhone()
-  return useDemoMutation(
-    (
-      school,
-      input: { studentId: string; amount: number; operator: PaymentMethod; walletPhone: string },
-    ) => payMobile(school, { ...input, phone }, new Date()),
-  )
-}
-
-export function useParentConversations() {
-  const phone = usePhone()
-  return useDemoQuery(['parent', 'conversations', phone], (school) =>
-    parentConversations(school, phone),
-  )
-}
-
-export function useParentReply() {
-  const phone = usePhone()
-  const author = useMe().data?.name ?? ''
-  return useDemoMutation((school, input: { conversationId: string; body: string }) => {
-    parentReply(school, { ...input, phone, author }, new Date())
+  const { key } = useParentKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      markId,
+      reason,
+      proof,
+    }: {
+      markId: string
+      reason: string
+      proof: File | null
+    }): Promise<void> => {
+      const form = new FormData()
+      form.append('reason', reason)
+      if (proof !== null) form.append('proof', proof)
+      // Corps réel : le formulaire multipart ci-dessus (motif et photo du certificat)
+      const { data, response } = await api.POST('/attendance/marks/{mark}/justification', {
+        params: { path: { mark: markId } },
+        body: { reason },
+        bodySerializer: () => form,
+      })
+      if (data === undefined)
+        throw new Error(`Justification impossible (${String(response.status)})`)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: key })
+    },
   })
 }

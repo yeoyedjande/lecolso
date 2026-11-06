@@ -4,7 +4,7 @@ import { DemoBanner } from '@/components/states/DemoBanner'
 import { QueryState } from '@/components/states/QueryState'
 import { MobileConversations } from '@/features/messaging/components/MobileConversations'
 
-import { useParentConversations, useParentReply } from '../api'
+import { useParentConversations, useParentReply } from '../demoApi'
 
 /** Messages du parent avec l'école. */
 export function ParentMessages() {

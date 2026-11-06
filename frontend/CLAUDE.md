@@ -128,9 +128,14 @@ src/
   grille mise à jour aussitôt). **Bulletins** (`useReportCards` — relu toutes les 5 s tant qu'un PDF est en cours —,
   `useSaveAppreciation`, `useCloseTerm`, `useReopenTerm`, `useRetryReportCards`, seuils `useSaveMentionThresholds`) :
   écran Bulletins (appréciations, mention, validation et déverrouillage motivé, PDF par `pdf_url` signée) ; une période
-  validée met les grilles Notes et Compétences en lecture seule (`closed`). L'espace parent garde les hooks de
-  démonstration de `features/grades/demoApi.ts` (bulletin `ReportDocument`) jusqu'au lot 8b.
-  Les paiements et reçus de l'espace parent restent en démonstration (`useDemoReceipt`).
+  validée met les grilles Notes et Compétences en lecture seule (`closed`).
+  **Espace parent** (`features/parent/api.ts` : `useMyChildren` — `/guardian/children` —, `useChild(studentId, termId)`
+  — `null` si ce n'est pas son enfant —, `useJustifyAbsence` — multipart, en attente de l'école) : accueil (présence du
+  jour, reste à payer, absences à justifier), fiche (`ChildPage`, onglet ouvrable par `?onglet=notes|absences|bulletins|frais`) :
+  notes au fil de l'eau (moyenne par matière seulement ; moyenne générale, rang et mention sur le bulletin validé),
+  compétences, absences, bulletins validés (PDF signé), frais et reçus (`ParentReceipt` : `useReceipt` et
+  `receiptContent` de `features/billing/receipt.ts`). Paiement Mobile Money « bientôt disponible » jusqu'au lot 10 ;
+  seuls les messages restent en démonstration (`features/parent/demoApi.ts`, lot 9).
   Les messages de l'espace enseignant et l'import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
