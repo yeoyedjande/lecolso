@@ -261,14 +261,19 @@ test('paramètres des notes : coefficients du primaire et compétences de la mat
   await expect(page.getByText('Référentiel de compétences')).toBeVisible()
 })
 
-test('bulletins : appréciation, mention, validation puis déverrouillage motivé', async ({ page }) => {
+test('bulletins : appréciation, mention, validation puis déverrouillage motivé', async ({
+  page,
+}) => {
   await mockApi(page, { session: ACCOUNTS.director })
   await page.goto('/les-lauriers/bulletins')
   await expect(page.getByText('Bulletins non validés').first()).toBeVisible()
   await page.getByRole('combobox', { name: 'Classe' }).selectOption({ label: 'CE1 A' })
   await expect(page.getByText('Bulletin de notes')).toBeVisible()
 
-  await page.getByRole('button', { name: /^Appréciations de / }).first().click()
+  await page
+    .getByRole('button', { name: /^Appréciations de / })
+    .first()
+    .click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Appréciation générale de l’enseignant(e)').fill('Très bon trimestre.')
   await dialog.getByLabel('Observation de la direction').fill('Continuez ainsi.')
