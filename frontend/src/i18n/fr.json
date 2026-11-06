@@ -960,7 +960,7 @@
   },
   "grades": {
     "title": "Notes",
-    "description": "Saisie rapide au clavier : flèches pour se déplacer, Entrée pour descendre. Enregistrement automatique.",
+    "description": "Saisie au clavier : flèches pour se déplacer, Entrée pour descendre, « abs » pour une absence. Enregistrement automatique, même hors connexion.",
     "classroom": "Classe",
     "subject": "Matière",
     "term": "Période",
@@ -978,7 +978,7 @@
     "average": "Moyenne",
     "outOf": "sur {{count}}",
     "cell": "Note de {{student}}, {{assessment}}",
-    "invalid": "Note entre 0 et 20, par pas de 0,25",
+    "invalid": "Note entre 0 et {{max}} (par pas de 0,25), ou « abs »",
     "saving": "Enregistrement…",
     "saved": "Enregistré",
     "addAssessment": "Nouvelle évaluation",
@@ -991,7 +991,22 @@
     "generalAverage": "Moyenne générale",
     "rank": "Rang",
     "classAverage": "Moyenne de la classe : {{value}}",
-    "coefficient": "coef. {{count}}"
+    "coefficient": "coef. {{count}}",
+    "saveFailed": "Note non enregistrée : réessayez.",
+    "queued": "Enregistré sur l’appareil, envoi au retour du réseau",
+    "editAssessment": "Modifier « {{title}} »",
+    "editTitle": "Modifier l’évaluation",
+    "averageOutOf": "Moyenne /{{count}}",
+    "assessmentFor": "{{subject}} · {{term}}",
+    "assessmentOutOf": "Barème (noté sur)",
+    "deleteAssessment": "Supprimer",
+    "deleteConfirm": "Supprimer « {{title}} » et toutes ses notes ?",
+    "noSubject": "Aucune matière n’est définie pour ce niveau : la direction les règle dans Paramètres > Notes.",
+    "noStudent": "Aucun élève inscrit dans cette classe pendant la période.",
+    "classAverageLabel": "Moyenne de la classe",
+    "highest": "Plus forte",
+    "lowest": "Plus faible",
+    "scale": "Échelle"
   },
   "skills": {
     "title": "Compétences",
@@ -1189,7 +1204,8 @@
       "identity": "Identité",
       "cycles": "Cycles",
       "users": "Utilisateurs et rôles",
-      "years": "Années scolaires"
+      "years": "Années scolaires",
+      "grading": "Notes"
     },
     "identity": {
       "name": "Nom de l’établissement",
@@ -1267,7 +1283,12 @@
       "save": "Enregistrer le cycle",
       "saved": "Cycle « {{name}} » enregistré",
       "forbidden": "Modification réservée à la direction pour ce cycle.",
-      "failed": "Enregistrement impossible. Réessayez."
+      "failed": "Enregistrement impossible. Réessayez.",
+      "gradeScale": "Moyennes",
+      "gradeScales": {
+        "10": "Sur 10",
+        "20": "Sur 20"
+      }
     },
     "users": {
       "name": "Nom",
@@ -1780,5 +1801,33 @@
   "sync": {
     "done": "{{count}} saisie(s) hors connexion envoyée(s)",
     "rejected": "Saisie hors connexion refusée : {{message}}"
+  },
+  "gradingSettings": {
+    "description": "Périodes, matières et coefficients (ou compétences) de l’année en cours, par cycle. Les enseignants saisissent ensuite les notes dans ce cadre.",
+    "cycle": "Cycle",
+    "noCycle": "Aucun cycle n’est évalué par notes ou par compétences.",
+    "year": "Année {{year}}",
+    "readOnly": "lecture seule",
+    "terms": "Périodes",
+    "termLabel": "Nom de la période {{position}}",
+    "termStart": "Début de {{label}}",
+    "termEnd": "Fin de {{label}}",
+    "saveTerms": "Enregistrer les périodes",
+    "subjects": "Matières et coefficients",
+    "subjectsHint": "Les moyennes générales sont pondérées par ces coefficients. Une matière déjà évaluée ne peut plus être retirée.",
+    "level": "Niveau",
+    "subjectName": "Matière",
+    "coefficientOf": "Coefficient de {{subject}}",
+    "addSubject": "Ajouter une matière",
+    "saveSubjects": "Enregistrer les matières de {{level}}",
+    "skills": "Référentiel de compétences",
+    "domain": "Domaine",
+    "skillLabel": "Compétence",
+    "addSkill": "Ajouter une compétence",
+    "saveSkills": "Enregistrer le référentiel",
+    "remove": "Retirer {{name}}",
+    "used": "Déjà évaluée : ne peut plus être retirée",
+    "saved": "Réglages enregistrés",
+    "failed": "Enregistrement impossible"
   }
 }

@@ -186,6 +186,27 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   droits qu'en ligne ; une opération déjà traitée renvoie son premier résultat (`replayed`).
 - Jour de l'école : `Support\Time\SchoolClock::date()` (Africa/Abidjan).
 
+## Notes et compétences (domaine Grading)
+
+- `terms` (périodes d'un cycle pour une année, nombre d'après `term_type` : `Support\DefaultTerms`), `subjects` (matières et
+  coefficients 1 à 20 par niveau et par année), `assessments` (évaluation d'une classe : matière, période, date dans la
+  période, barème `out_of` de 1 à 100), `grades` (`value` décimal à 2 chiffres au barème, ou `absent` ; pas de ligne :
+  non saisie), `skills` (référentiel par cycle et par année, rangé par domaine), `skill_evaluations` (A, EA, NA par
+  période). Périodes, matières et compétences créées à la première lecture par `Support\GradingCatalog`
+  (`config/grading.php`), sous un verrou consultatif (`Support\GradingLock`, aussi pour les notes d'une évaluation).
+- Calcul : interface `Contracts\GradingStrategy` choisie d'après `assessment_mode` (`Support\GradingStrategies`) —
+  `WeightedAverageStrategy` (notes ramenées sur `CycleSettings::gradeScale`, sur 10 par défaut ; moyennes de matière
+  arrondies puis pondérées ; rang de compétition 1, 1, 3 ; moyenne de classe, plus forte, plus faible) et
+  `CompetencyStrategy` (nombre de A, EA, NA). Calcul pur, lecture par `Support\GradingResults`.
+- Droits : `Support\GradingAccess` — saisir : titulaire (`grades.manage`) ou personnel du cycle avec `grades.manage` ;
+  voir : `grades.view` (personnel) ou titulaire ; classe non visible : 404 ; régler périodes, matières et compétences :
+  `school.settings.manage` sur le cycle. Année clôturée : 409 `year_closed` ; mode du cycle différent : 409 `wrong_mode` ;
+  matière ou compétence déjà utilisée retirée : 409 `subject_used`, `skill_used`.
+- Élèves d'une période : `Support\GradingRoster` (inscrits avant la fin, pas partis avant le début).
+- Hors connexion (`POST /sync`) : `grades.assessment` (UUID de l'appareil), `grades.save`, `skills.save` ; une saisie est
+  datée de son heure sur l'appareil (`updated_at`) et une saisie plus récente n'est jamais écrasée.
+- Validation par la direction, appréciations et bulletins PDF : lot 7b.
+
 ## Fichiers
 
 - Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).

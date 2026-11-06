@@ -217,3 +217,46 @@ test('garderie hors connexion : arrivée puis départ pendant la même coupure',
   await expect(page.getByText('2 saisie(s) hors connexion envoyée(s)').first()).toBeVisible()
   await expect(page.getByText('Parti(e) à 12:10').first()).toBeVisible()
 })
+
+test('nouvelle évaluation, absence, puis moyennes et rangs de la classe', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/notes')
+  await expect(page.getByText('Évaluation 1').first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Nouvelle évaluation' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Intitulé').fill('Dictée')
+  await dialog.getByLabel('Barème (noté sur)').fill('10')
+  await dialog.getByRole('button', { name: 'Créer' }).click()
+  await expect(page.getByRole('columnheader', { name: /Dictée/ })).toBeVisible()
+
+  const dictation = page.getByRole('textbox', { name: /^Note de .*, Dictée$/ })
+  await dictation.first().fill('abs')
+  await dictation.first().press('Enter')
+  await expect(dictation.first()).toHaveAttribute('aria-invalid', 'false')
+  await dictation.nth(1).fill('8')
+  await dictation.nth(1).press('Enter')
+  await expect(page.getByText('Enregistré')).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Moyennes et rangs' }).click()
+  await expect(page.getByText('Moyenne de la classe')).toBeVisible()
+  await expect(page.getByRole('cell', { name: '1er' })).toBeVisible()
+})
+
+test('paramètres des notes : coefficients du primaire et compétences de la maternelle', async ({
+  page,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/parametres')
+  await page.getByRole('tab', { name: 'Notes' }).click()
+  await expect(page.getByLabel('Nom de la période 1')).toBeVisible()
+
+  await page.getByRole('combobox', { name: 'Cycle' }).selectOption({ label: 'Primaire' })
+  await expect(page.getByLabel('Nom de la période 1')).toHaveValue('1er trimestre')
+  await page.getByLabel('Coefficient de Anglais').fill('2')
+  await page.getByRole('button', { name: /Enregistrer les matières de/ }).click()
+  await expect(page.getByText('Réglages enregistrés').first()).toBeVisible()
+
+  await page.getByRole('combobox', { name: 'Cycle' }).selectOption({ label: 'Maternelle' })
+  await expect(page.getByText('Référentiel de compétences')).toBeVisible()
+})

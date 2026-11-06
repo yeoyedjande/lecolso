@@ -2,7 +2,7 @@ import { db, type OutboxItem } from './db'
 import { uuidv7 } from './uuid'
 
 /**
- * File des saisies hors connexion (appel, garderie ; notes au lot 7). Chaque opération porte un UUID v7 généré ici :
+ * File des saisies hors connexion (appel, garderie, évaluations, notes, compétences). Chaque opération porte un UUID v7 généré ici :
  * POST /sync l'applique une seule fois, même rejouée. Les écouteurs sont prévenus à chaque changement (compteur
  * « X éléments en attente »).
  */

@@ -24,7 +24,7 @@ final class SettingsTermResource extends JsonResource
 
         return [
             'id' => $term->id,
-            'position' => $term->position,
+            'position' => (int) $term->position,
             'label' => $term->label,
             'starts_on' => $term->starts_on->toDateString(),
             'ends_on' => $term->ends_on->toDateString(),

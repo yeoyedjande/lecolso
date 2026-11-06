@@ -82,6 +82,7 @@ const CYCLES = [
       billing_period: 'quarterly',
       report_document: 'report_card',
       daily_log: 'none',
+      grade_scale: '10',
     },
     levels: ['CP1', 'CP2', 'CE1', 'CE2', 'CM1', 'CM2'].map((code, index) => ({
       id: `l${String(index + 5)}`,
@@ -1679,6 +1680,354 @@ export async function mockApi(
     }
     rollCalls.set(`${classroomId}:${date}`, next)
   }
+  // Notes et compétences (lot 7a) : mêmes règles que le domaine Grading du backend
+  const GRADE_SUBJECTS: [string, number][] = [
+    ['Français', 3],
+    ['Mathématiques', 3],
+    ['Éveil (histoire, géographie, sciences)', 2],
+    ['Anglais', 1],
+    ['Éducation physique et sportive', 1],
+    ['Arts et musique', 1],
+  ]
+  const GRADE_SKILLS: [string, string][] = [
+    ['Langage oral', 'S’exprime par une phrase complète'],
+    ['Langage oral', 'Récite une comptine'],
+    ['Langage écrit', 'Reconnaît son prénom'],
+    ['Mathématiques', 'Dénombre une collection jusqu’à 10'],
+    ['Motricité', 'Tient correctement son crayon'],
+    ['Vivre ensemble', 'Respecte les règles de la classe'],
+  ]
+  interface MockTerm {
+    id: string
+    position: number
+    label: string
+    starts_on: string
+    ends_on: string
+  }
+  interface MockAssessment {
+    id: string
+    classroom_id: string
+    subject_id: string
+    term_id: string
+    title: string
+    date: string
+    out_of: number
+  }
+  const gradingTerms = new Map<string, MockTerm[]>()
+  const gradingSubjects = new Map<
+    string,
+    { id: string; name: string; coefficient: number; position: number }[]
+  >()
+  const gradingSkills = new Map<
+    string,
+    { id: string; domain: string; label: string; position: number }[]
+  >()
+  const assessments = new Map<string, MockAssessment>()
+  const seededGrids = new Set<string>()
+  const grades = new Map<string, { value: number | null; absent: boolean }>()
+  const skillLevels = new Map<string, string>()
+  const termsOf = (cycleId: string, termType: string): MockTerm[] => {
+    const existing = gradingTerms.get(cycleId)
+    if (existing !== undefined) return existing
+    const bounds: [string, string, string][] =
+      termType === 'trimester'
+        ? [
+            ['1er trimestre', '2026-09-07', '2026-12-22'],
+            ['2e trimestre', '2027-01-05', '2027-03-31'],
+            ['3e trimestre', '2027-04-01', '2027-07-16'],
+          ]
+        : termType === 'semester'
+          ? [
+              ['1er semestre', '2026-09-07', '2027-01-31'],
+              ['2e semestre', '2027-02-01', '2027-07-16'],
+            ]
+          : [['Année', '2026-09-07', '2027-07-16']]
+    const terms = bounds.map(([label, starts_on, ends_on], index) => ({
+      id: `${cycleId}-t${String(index + 1)}`,
+      position: index + 1,
+      label,
+      starts_on,
+      ends_on,
+    }))
+    gradingTerms.set(cycleId, terms)
+    return terms
+  }
+  const subjectsOf = (levelId: string) => {
+    const existing = gradingSubjects.get(levelId)
+    if (existing !== undefined) return existing
+    const subjects = GRADE_SUBJECTS.map(([name, coefficient], index) => ({
+      id: `${levelId}-s${String(index + 1)}`,
+      name,
+      coefficient,
+      position: index + 1,
+    }))
+    gradingSubjects.set(levelId, subjects)
+    return subjects
+  }
+  const skillsOf = (cycleId: string) => {
+    const existing = gradingSkills.get(cycleId)
+    if (existing !== undefined) return existing
+    const skills = GRADE_SKILLS.map(([domain, label], index) => ({
+      id: `${cycleId}-k${String(index + 1)}`,
+      domain,
+      label,
+      position: index + 1,
+    }))
+    gradingSkills.set(cycleId, skills)
+    return skills
+  }
+  const gradingClassrooms = (schoolId: string) =>
+    classroomsOf(schoolId).flatMap((classroom) => {
+      const found = levelOf(schoolId, classroom.level_id)
+      if (found === undefined || !staffHolds(schoolId, 'grades.view', found.cycle.id)) return []
+      return [
+        {
+          id: classroom.id,
+          name: `${found.level.code} ${classroom.section}`,
+          level_id: classroom.level_id,
+          cycle: { id: found.cycle.id, code: found.cycle.code, name: found.cycle.name },
+          mode: found.cycle.settings.assessment_mode,
+          grade_scale: Number(found.cycle.settings.grade_scale ?? '10'),
+          can_manage: staffHolds(schoolId, 'grades.manage', found.cycle.id),
+          is_homeroom: false,
+          cycleSettings: found.cycle.settings,
+        },
+      ]
+    })
+  const pickTerm = (terms: MockTerm[], termId: string | null) =>
+    terms.find((term) => term.id === termId) ??
+    [...terms].reverse().find((term) => term.starts_on <= TODAY) ??
+    terms[0]
+  const gradeGridResource = (
+    schoolId: string,
+    classroomId: string,
+    termId: string | null,
+    subjectId: string | null,
+  ) => {
+    const classroom = gradingClassrooms(schoolId).find((candidate) => candidate.id === classroomId)
+    if (classroom === undefined) return undefined
+    const terms = termsOf(classroom.cycle.id, classroom.cycleSettings.term_type)
+    const term = pickTerm(terms, termId)
+    const subjects = subjectsOf(classroom.level_id)
+    const subject = subjects.find((candidate) => candidate.id === subjectId) ?? subjects[0]
+    const roster = rosterOf(schoolId, classroomId)
+    // Première évaluation de démonstration : « Évaluation 1 » en français au 1er trimestre
+    if (!seededGrids.has(classroomId) && subjects[0] !== undefined && terms[0] !== undefined) {
+      seededGrids.add(classroomId)
+      const id = `${classroomId}-a1`
+      assessments.set(id, {
+        id,
+        classroom_id: classroomId,
+        subject_id: subjects[0].id,
+        term_id: terms[0].id,
+        title: 'Évaluation 1',
+        date: '2026-10-02',
+        out_of: 20,
+      })
+      roster.slice(0, 3).forEach((student, index) => {
+        grades.set(`${id}:${student.id}`, { value: [14, 9.5, 17][index] ?? 12, absent: false })
+      })
+    }
+    const columns = [...assessments.values()]
+      .filter(
+        (assessment) =>
+          assessment.classroom_id === classroomId &&
+          assessment.term_id === term?.id &&
+          assessment.subject_id === subject?.id,
+      )
+      .sort((a, b) => a.date.localeCompare(b.date))
+    const scale = classroom.grade_scale
+    return {
+      classroom: { id: classroomId, name: classroom.name },
+      grade_scale: scale,
+      terms,
+      term,
+      subjects,
+      subject: subject ?? null,
+      assessments: columns,
+      rows: roster.map((student) => {
+        const cells = columns.map((assessment) => ({
+          assessment_id: assessment.id,
+          ...(grades.get(`${assessment.id}:${student.id}`) ?? { value: null, absent: false }),
+        }))
+        const scores = cells.flatMap((cell, index) =>
+          cell.value === null || cell.absent
+            ? []
+            : [(cell.value / (columns[index]?.out_of ?? 20)) * scale],
+        )
+        return {
+          student: attendanceStudent(schoolId, student),
+          grades: cells,
+          average:
+            scores.length === 0
+              ? null
+              : Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100) /
+                100,
+        }
+      }),
+      can_manage: classroom.can_manage,
+    }
+  }
+  const classResultsResource = (schoolId: string, classroomId: string, termId: string | null) => {
+    const classroom = gradingClassrooms(schoolId).find((candidate) => candidate.id === classroomId)
+    if (classroom === undefined) return undefined
+    const terms = termsOf(classroom.cycle.id, classroom.cycleSettings.term_type)
+    const term = pickTerm(terms, termId)
+    const subjects = classroom.mode === 'weighted_average' ? subjectsOf(classroom.level_id) : []
+    const rows = rosterOf(schoolId, classroomId).map((student) => {
+      const bySubject = subjects.map((subject) => {
+        const average =
+          gradeGridResource(schoolId, classroomId, term?.id ?? null, subject.id)?.rows.find(
+            (row) => row.student.id === student.id,
+          )?.average ?? null
+        return { subject_id: subject.id, average, coefficient: subject.coefficient }
+      })
+      const graded = bySubject.filter((cell) => cell.average !== null)
+      const weights = graded.reduce((sum, cell) => sum + cell.coefficient, 0)
+      const average =
+        weights === 0
+          ? null
+          : Math.round(
+              (graded.reduce((sum, cell) => sum + (cell.average ?? 0) * cell.coefficient, 0) /
+                weights) *
+                100,
+            ) / 100
+      const counts = { A: 0, EA: 0, NA: 0 }
+      for (const skill of classroom.mode === 'competency' ? skillsOf(classroom.cycle.id) : []) {
+        const level = skillLevels.get(`${term?.id ?? ''}:${student.id}:${skill.id}`)
+        if (level === 'A' || level === 'EA' || level === 'NA') counts[level] += 1
+      }
+      return {
+        student: attendanceStudent(schoolId, student),
+        subjects: bySubject.map(({ subject_id, average: value }) => ({
+          subject_id,
+          average: value,
+        })),
+        average,
+        skills: classroom.mode === 'competency' ? counts : null,
+      }
+    })
+    const averages = rows.flatMap((row) => (row.average === null ? [] : [row.average]))
+    const ranked = rows.map((row) => ({
+      ...row,
+      rank:
+        row.average === null
+          ? null
+          : averages.filter((other) => other > (row.average ?? 0)).length + 1,
+    }))
+    return {
+      classroom: { id: classroomId, name: classroom.name },
+      mode: classroom.mode,
+      grade_scale: classroom.grade_scale,
+      terms,
+      term,
+      subjects,
+      rows: ranked,
+      class_average:
+        averages.length === 0
+          ? null
+          : Math.round((averages.reduce((sum, value) => sum + value, 0) / averages.length) * 100) /
+            100,
+      highest: averages.length === 0 ? null : Math.max(...averages),
+      lowest: averages.length === 0 ? null : Math.min(...averages),
+      ranked_count: averages.length,
+    }
+  }
+  const skillGridResource = (schoolId: string, classroomId: string, termId: string | null) => {
+    const classroom = gradingClassrooms(schoolId).find((candidate) => candidate.id === classroomId)
+    if (classroom === undefined) return undefined
+    const terms = termsOf(classroom.cycle.id, classroom.cycleSettings.term_type)
+    const term = pickTerm(terms, termId)
+    const skills = skillsOf(classroom.cycle.id)
+    return {
+      classroom: { id: classroomId, name: classroom.name },
+      terms,
+      term,
+      skills,
+      rows: rosterOf(schoolId, classroomId).map((student) => ({
+        student: attendanceStudent(schoolId, student),
+        levels: skills.map((skill) => ({
+          skill_id: skill.id,
+          level: skillLevels.get(`${term?.id ?? ''}:${student.id}:${skill.id}`) ?? null,
+        })),
+      })),
+      can_manage: classroom.can_manage,
+    }
+  }
+  const saveGrades = (assessmentId: string, rows: unknown) => {
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const parsed = z
+        .object({
+          student_id: z.string(),
+          value: z.nullable(z.number()).optional(),
+          absent: z.boolean(),
+        })
+        .parse(row)
+      const key = `${assessmentId}:${parsed.student_id}`
+      if ((parsed.value ?? null) === null && !parsed.absent) grades.delete(key)
+      else
+        grades.set(key, {
+          value: parsed.absent ? null : (parsed.value ?? null),
+          absent: parsed.absent,
+        })
+    }
+  }
+  const saveSkillLevels = (termId: string, rows: unknown) => {
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const parsed = z
+        .object({ student_id: z.string(), skill_id: z.string(), level: z.nullable(z.string()) })
+        .parse(row)
+      const key = `${termId}:${parsed.student_id}:${parsed.skill_id}`
+      if (parsed.level === null) skillLevels.delete(key)
+      else skillLevels.set(key, parsed.level)
+    }
+  }
+  const gradingSettingsResource = (schoolId: string, cycleId: string) => {
+    const cycle = cyclesOf(schoolId).find((candidate) => candidate.id === cycleId)
+    if (cycle === undefined) return undefined
+    const year = yearsOf(schoolId).find((candidate) => candidate.is_current)
+    const used = new Set(
+      [...assessments.values()].flatMap((assessment) => [
+        assessment.subject_id,
+        assessment.term_id,
+      ]),
+    )
+    for (const key of skillLevels.keys()) {
+      const [termId = '', , skillId = ''] = key.split(':')
+      used.add(termId)
+      used.add(skillId)
+    }
+    return {
+      cycle: {
+        id: cycle.id,
+        name: cycle.name,
+        mode: cycle.settings.assessment_mode,
+        term_type: cycle.settings.term_type,
+        grade_scale: Number(cycle.settings.grade_scale ?? '10'),
+      },
+      academic_year: { id: year?.id ?? '', label: year?.label ?? '', closed: false },
+      terms: termsOf(cycle.id, cycle.settings.term_type).map((term) => ({
+        ...term,
+        used: used.has(term.id),
+      })),
+      levels:
+        cycle.settings.assessment_mode === 'weighted_average'
+          ? cycle.levels.map((level) => ({
+              id: level.id,
+              name: level.name,
+              subjects: subjectsOf(level.id).map((subject) => ({
+                ...subject,
+                used: used.has(subject.id),
+              })),
+            }))
+          : [],
+      skills:
+        cycle.settings.assessment_mode === 'competency'
+          ? skillsOf(cycle.id).map((skill) => ({ ...skill, used: used.has(skill.id) }))
+          : [],
+      can_manage: holds(schoolId, 'school.settings.manage', cycle.id),
+    }
+  }
   const absenceRows = (schoolId: string, date: string | null, pending: boolean) =>
     attendanceClassrooms(schoolId).flatMap((classroom) =>
       [...rollCalls.entries()]
@@ -2966,6 +3315,205 @@ export async function mockApi(
           )
           return route.fulfill({ json: { data: closed } })
         }
+        if (request.method() === 'GET' && path === '/grading/classrooms') {
+          return route.fulfill({
+            json: {
+              data: gradingClassrooms(schoolHeader ?? '').map((classroom) => ({
+                id: classroom.id,
+                name: classroom.name,
+                level_id: classroom.level_id,
+                cycle: classroom.cycle,
+                mode: classroom.mode,
+                grade_scale: classroom.grade_scale,
+                can_manage: classroom.can_manage,
+                is_homeroom: classroom.is_homeroom,
+              })),
+            },
+          })
+        }
+        if (request.method() === 'GET' && path === '/grading/settings') {
+          const schoolId = schoolHeader ?? ''
+          const cycleId = new URL(request.url()).searchParams.get('cycle_id') ?? ''
+          if (!holds(schoolId, 'school.settings.view', cycleId)) return route.fulfill(forbidden)
+          const settings = gradingSettingsResource(schoolId, cycleId)
+          if (settings === undefined)
+            return route.fulfill({
+              status: 422,
+              json: { message: 'Cycle inconnu.', errors: { cycle_id: ['Cycle inconnu.'] } },
+            })
+          return route.fulfill({ json: { data: settings } })
+        }
+        {
+          const match = /^\/grading\/(cycles|levels)\/([^/]+)\/(terms|subjects|skills)$/.exec(path)
+          if (request.method() === 'PUT' && match !== null) {
+            const schoolId = schoolHeader ?? ''
+            const [, scope = '', id = '', list = ''] = match
+            const cycle =
+              scope === 'cycles'
+                ? cyclesOf(schoolId).find((candidate) => candidate.id === id)
+                : levelOf(schoolId, id)?.cycle
+            if (cycle === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (!holds(schoolId, 'school.settings.manage', cycle.id))
+              return route.fulfill(forbidden)
+            const body = z.record(z.string(), z.unknown()).parse(request.postDataJSON())
+            if (list === 'terms') {
+              const terms = z
+                .array(z.object({ label: z.string(), starts_on: z.string(), ends_on: z.string() }))
+                .parse(body.terms)
+              gradingTerms.set(
+                cycle.id,
+                termsOf(cycle.id, cycle.settings.term_type).map((term, index) => ({
+                  ...term,
+                  ...(terms[index] ?? {}),
+                })),
+              )
+            } else if (list === 'subjects') {
+              const subjects = z
+                .array(
+                  z.object({
+                    id: z.nullable(z.string()).optional(),
+                    name: z.string(),
+                    coefficient: z.number(),
+                  }),
+                )
+                .parse(body.subjects)
+              gradingSubjects.set(
+                id,
+                subjects.map((subject, index) => ({
+                  id: subject.id ?? `${id}-n${String(Date.now())}-${String(index)}`,
+                  name: subject.name,
+                  coefficient: subject.coefficient,
+                  position: index + 1,
+                })),
+              )
+            } else {
+              const skills = z
+                .array(
+                  z.object({
+                    id: z.nullable(z.string()).optional(),
+                    domain: z.string(),
+                    label: z.string(),
+                  }),
+                )
+                .parse(body.skills)
+              gradingSkills.set(
+                cycle.id,
+                skills.map((skill, index) => ({
+                  id: skill.id ?? `${cycle.id}-n${String(Date.now())}-${String(index)}`,
+                  domain: skill.domain,
+                  label: skill.label,
+                  position: index + 1,
+                })),
+              )
+            }
+            return route.fulfill({ json: { data: gradingSettingsResource(schoolId, cycle.id) } })
+          }
+        }
+        {
+          const match = /^\/classrooms\/([^/]+)\/(grade-grid|results|skills|assessments)$/.exec(
+            path,
+          )
+          if (match !== null) {
+            const schoolId = schoolHeader ?? ''
+            const [, classroomId = '', resource = ''] = match
+            const classroom = gradingClassrooms(schoolId).find(
+              (candidate) => candidate.id === classroomId,
+            )
+            if (classroom === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            const query = new URL(request.url()).searchParams
+            const termId = query.get('term_id')
+            if (request.method() === 'GET' && resource === 'grade-grid') {
+              if (classroom.mode !== 'weighted_average')
+                return route.fulfill({
+                  status: 409,
+                  json: { message: 'Mode.', code: 'wrong_mode' },
+                })
+              return route.fulfill({
+                json: {
+                  data: gradeGridResource(schoolId, classroomId, termId, query.get('subject_id')),
+                },
+              })
+            }
+            if (request.method() === 'GET' && resource === 'results')
+              return route.fulfill({
+                json: { data: classResultsResource(schoolId, classroomId, termId) },
+              })
+            if (request.method() === 'GET' && resource === 'skills')
+              return route.fulfill({
+                json: { data: skillGridResource(schoolId, classroomId, termId) },
+              })
+            if (!classroom.can_manage) return route.fulfill(forbidden)
+            if (request.method() === 'PUT' && resource === 'skills') {
+              const body = z
+                .object({ term_id: z.string(), evaluations: z.array(z.unknown()) })
+                .parse(request.postDataJSON())
+              saveSkillLevels(body.term_id, body.evaluations)
+              return route.fulfill({
+                json: { data: skillGridResource(schoolId, classroomId, body.term_id) },
+              })
+            }
+            if (request.method() === 'POST' && resource === 'assessments') {
+              const body = z
+                .object({
+                  id: z.nullable(z.string()).optional(),
+                  subject_id: z.string(),
+                  term_id: z.string(),
+                  title: z.string(),
+                  date: z.string(),
+                  out_of: z.number(),
+                })
+                .parse(request.postDataJSON())
+              const assessment = {
+                ...body,
+                id: body.id ?? `a-${String(Date.now())}`,
+                classroom_id: classroomId,
+              }
+              assessments.set(assessment.id, assessment)
+              return route.fulfill({ status: 201, json: { data: assessment } })
+            }
+          }
+        }
+        {
+          const match = /^\/assessments\/([^/]+)(\/grades)?$/.exec(path)
+          if (match !== null) {
+            const schoolId = schoolHeader ?? ''
+            const assessment = assessments.get(match[1] ?? '')
+            const classroom = gradingClassrooms(schoolId).find(
+              (candidate) => candidate.id === assessment?.classroom_id,
+            )
+            if (assessment === undefined || classroom === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (!classroom.can_manage) return route.fulfill(forbidden)
+            if (request.method() === 'PUT' && match[2] === '/grades') {
+              const body = z.object({ grades: z.array(z.unknown()) }).parse(request.postDataJSON())
+              saveGrades(assessment.id, body.grades)
+              return route.fulfill({
+                json: {
+                  data: gradeGridResource(
+                    schoolId,
+                    classroom.id,
+                    assessment.term_id,
+                    assessment.subject_id,
+                  ),
+                },
+              })
+            }
+            if (request.method() === 'DELETE') {
+              assessments.delete(assessment.id)
+              return route.fulfill({ status: 204, body: '' })
+            }
+            if (request.method() === 'PATCH') {
+              const body = z
+                .object({ title: z.string(), date: z.string(), out_of: z.number() })
+                .parse(request.postDataJSON())
+              const next = { ...assessment, ...body }
+              assessments.set(assessment.id, next)
+              return route.fulfill({ json: { data: next } })
+            }
+          }
+        }
         if (request.method() === 'GET' && path === '/attendance/classrooms') {
           return route.fulfill({ json: { data: attendanceClassrooms(schoolHeader ?? '') } })
         }
@@ -3137,6 +3685,21 @@ export async function mockApi(
                     )
                   : []
                 saveCall(text('classroom_id'), text('date'), marks)
+              } else if (operation.type === 'grades.assessment') {
+                const id = text('assessment_id')
+                assessments.set(id, {
+                  id,
+                  classroom_id: text('classroom_id'),
+                  subject_id: text('subject_id'),
+                  term_id: text('term_id'),
+                  title: text('title'),
+                  date: text('date'),
+                  out_of: typeof payload.out_of === 'number' ? payload.out_of : 20,
+                })
+              } else if (operation.type === 'grades.save') {
+                saveGrades(text('assessment_id'), payload.grades)
+              } else if (operation.type === 'skills.save') {
+                saveSkillLevels(text('term_id'), payload.evaluations)
               } else if (operation.type === 'daycare.check') {
                 recordDaycare(text('student_id'), {
                   kind: 'check',

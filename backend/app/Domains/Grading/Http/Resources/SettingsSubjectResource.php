@@ -25,8 +25,8 @@ final class SettingsSubjectResource extends JsonResource
         return [
             'id' => $subject->id,
             'name' => $subject->name,
-            'coefficient' => $subject->coefficient,
-            'position' => $subject->position,
+            'coefficient' => (int) $subject->coefficient,
+            'position' => (int) $subject->position,
             'used' => (bool) $this->resource['used'],
         ];
     }

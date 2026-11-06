@@ -10112,7 +10112,7 @@
                         "type": "string"
                     },
                     "position": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "used": {
                         "type": "boolean"
@@ -10137,10 +10137,10 @@
                         "type": "string"
                     },
                     "coefficient": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "position": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "used": {
                         "type": "boolean"
@@ -10162,7 +10162,7 @@
                         "type": "string"
                     },
                     "position": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "label": {
                         "type": "string"

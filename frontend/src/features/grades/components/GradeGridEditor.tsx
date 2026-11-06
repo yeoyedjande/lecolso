@@ -1,6 +1,8 @@
+import { Pencil } from 'lucide-react'
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Avatar } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -13,9 +15,8 @@ import {
 import { formatAverage, formatDayMonth } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { useSaveGrade } from '../api'
-import { average, type GradeGrid } from '../demo'
-import { formatGrade, parseGrade } from '../gradeInput'
+import { useSaveGrades, type Assessment, type GradeGrid } from '../api'
+import { formatCell, parseCell, subjectAverage } from '../gradeInput'
 
 const MOVES: Record<string, [number, number]> = {
   ArrowDown: [1, 0],
@@ -26,20 +27,26 @@ const MOVES: Record<string, [number, number]> = {
 }
 
 /**
- * Grille de saisie au clavier : flèches pour se déplacer, Entrée pour descendre, enregistrement de chaque
- * cellule à la sortie. Une note invalide reste affichée en erreur et n'est pas enregistrée.
+ * Grille de saisie au clavier : flèches pour se déplacer, Entrée pour descendre, « abs » pour une absence ;
+ * chaque cellule est enregistrée à la sortie (dans la file locale hors connexion). Une note invalide reste affichée
+ * en erreur et n'est pas enregistrée.
  */
-export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable: boolean }) {
+export function GradeGridEditor({
+  grid,
+  onEdit,
+}: {
+  grid: GradeGrid
+  onEdit: (assessment: Assessment) => void
+}) {
   const { t } = useTranslation()
-  const save = useSaveGrade()
+  const save = useSaveGrades()
   const table = useRef<HTMLTableElement>(null)
+  const editable = grid.can_manage
+  const scale = grid.grade_scale
   const [texts, setTexts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       grid.rows.flatMap((row) =>
-        grid.assessments.map((a) => [
-          `${row.student.id}|${a.id}`,
-          formatGrade(row.values[a.id] ?? null),
-        ]),
+        row.grades.map((cell) => [`${row.student.id}|${cell.assessment_id}`, formatCell(cell)]),
       ),
     ),
   )
@@ -52,19 +59,19 @@ export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable:
     input?.select()
   }
 
-  const commit = (studentId: string, assessmentId: string) => {
-    const key = `${studentId}|${assessmentId}`
-    const value = parseGrade(texts[key] ?? '')
-    const row = grid.rows.find((candidate) => candidate.student.id === studentId)
-    // Lecture seule sans grades.manage (le backend refusera aussi l'écriture)
+  const commit = (studentId: string, assessment: Assessment) => {
+    const parsed = parseCell(texts[`${studentId}|${assessment.id}`] ?? '', assessment.out_of)
+    const current = grid.rows
+      .find((row) => row.student.id === studentId)
+      ?.grades.find((cell) => cell.assessment_id === assessment.id)
     if (
       !editable ||
-      value === undefined ||
-      row === undefined ||
-      (row.values[assessmentId] ?? null) === value
+      parsed === undefined ||
+      current === undefined ||
+      (current.value === parsed.value && current.absent === parsed.absent)
     )
       return
-    save.mutate({ assessmentId, studentId, value })
+    save.mutate({ assessment, grades: [{ student_id: studentId, ...parsed }] })
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
@@ -77,9 +84,17 @@ export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable:
   return (
     <div className="grid gap-2">
       <p className="h-5 text-right text-xs text-muted-foreground" aria-live="polite">
-        {save.isPending ? t('grades.saving') : save.isSuccess ? t('grades.saved') : ''}
+        {save.isPending
+          ? t('grades.saving')
+          : save.isError
+            ? t('grades.saveFailed')
+            : save.data?.queued === true
+              ? t('grades.queued')
+              : save.isSuccess
+                ? t('grades.saved')
+                : ''}
       </p>
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
+      <div className="overflow-x-auto rounded-2xl border bg-card shadow-soft">
         <Table ref={table}>
           <TableHeader>
             <TableRow>
@@ -88,34 +103,66 @@ export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable:
               </TableHead>
               {grid.assessments.map((assessment) => (
                 <TableHead key={assessment.id} className="min-w-28 text-center">
-                  <span className="grid">
-                    <span>{assessment.title}</span>
+                  <span className="grid justify-items-center">
+                    <span className="inline-flex items-center gap-1">
+                      {assessment.title}
+                      {editable && (
+                        <button
+                          type="button"
+                          className="inline-grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-muted"
+                          aria-label={t('grades.editAssessment', { title: assessment.title })}
+                          onClick={() => {
+                            onEdit(assessment)
+                          }}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                        </button>
+                      )}
+                    </span>
                     <span className="text-xs font-normal text-muted-foreground">
                       {formatDayMonth(assessment.date)} ·{' '}
-                      {t('grades.outOf', { count: assessment.outOf })}
+                      {t('grades.outOf', { count: assessment.out_of })}
                     </span>
                   </span>
                 </TableHead>
               ))}
-              <TableHead className="text-right">{t('grades.average')}</TableHead>
+              <TableHead className="text-right">
+                {t('grades.averageOutOf', { count: scale })}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {grid.rows.map((row, rowIndex) => {
-              const live = average(
-                grid.assessments.map(
-                  (a) => parseGrade(texts[`${row.student.id}|${a.id}`] ?? '') ?? null,
-                ),
+              const live = subjectAverage(
+                grid.assessments.map((assessment) => {
+                  const parsed = parseCell(
+                    texts[`${row.student.id}|${assessment.id}`] ?? '',
+                    assessment.out_of,
+                  )
+                  return {
+                    value: parsed?.value ?? null,
+                    absent: parsed?.absent ?? false,
+                    outOf: assessment.out_of,
+                  }
+                }),
+                scale,
               )
               return (
                 <TableRow key={row.student.id}>
                   <TableCell className="sticky left-0 z-10 bg-card font-medium">
-                    {row.name}
+                    <span className="flex items-center gap-2">
+                      <Avatar
+                        name={row.student.full_name}
+                        photoUrl={row.student.photo_url}
+                        size="sm"
+                      />
+                      {row.student.full_name}
+                    </span>
                   </TableCell>
                   {grid.assessments.map((assessment, colIndex) => {
                     const key = `${row.student.id}|${assessment.id}`
                     const text = texts[key] ?? ''
-                    const invalid = parseGrade(text) === undefined
+                    const invalid = parseCell(text, assessment.out_of) === undefined
                     return (
                       <TableCell key={assessment.id} className="p-1.5 text-center">
                         <Input
@@ -124,11 +171,13 @@ export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable:
                           inputMode="decimal"
                           readOnly={!editable}
                           aria-label={t('grades.cell', {
-                            student: row.name,
+                            student: row.student.full_name,
                             assessment: assessment.title,
                           })}
                           aria-invalid={invalid}
-                          title={invalid ? t('grades.invalid') : undefined}
+                          title={
+                            invalid ? t('grades.invalid', { max: assessment.out_of }) : undefined
+                          }
                           className={cn(
                             'mx-auto h-10 w-20 text-center font-semibold tabular',
                             invalid && 'bg-destructive-soft',
@@ -141,7 +190,7 @@ export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable:
                             setTexts((previous) => ({ ...previous, [key]: event.target.value }))
                           }}
                           onBlur={() => {
-                            commit(row.student.id, assessment.id)
+                            commit(row.student.id, assessment)
                           }}
                           onKeyDown={(event) => {
                             onKeyDown(event, rowIndex, colIndex)
@@ -153,7 +202,7 @@ export function GradeGridEditor({ grid, editable }: { grid: GradeGrid; editable:
                   <TableCell
                     className={cn(
                       'text-right font-display font-bold tabular',
-                      live !== null && live < 10 && 'text-destructive-ink',
+                      live !== null && live < scale / 2 && 'text-destructive-ink',
                     )}
                   >
                     {formatAverage(live)}

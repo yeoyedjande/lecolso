@@ -26,7 +26,7 @@ final class SettingsSkillResource extends JsonResource
             'id' => $skill->id,
             'domain' => $skill->domain,
             'label' => $skill->label,
-            'position' => $skill->position,
+            'position' => (int) $skill->position,
             'used' => (bool) $this->resource['used'],
         ];
     }

@@ -2821,21 +2821,21 @@ export interface components {
             id: string;
             domain: string;
             label: string;
-            position: string;
+            position: number;
             used: boolean;
         };
         /** SettingsSubjectResource */
         SettingsSubjectResource: {
             id: string;
             name: string;
-            coefficient: string;
-            position: string;
+            coefficient: number;
+            position: number;
             used: boolean;
         };
         /** SettingsTermResource */
         SettingsTermResource: {
             id: string;
-            position: string;
+            position: number;
             label: string;
             starts_on: string;
             ends_on: string;
