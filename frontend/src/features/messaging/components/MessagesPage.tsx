@@ -39,9 +39,12 @@ function Conversations() {
         if (conversations.length === 0) return <EmptyState title={t('messaging.empty')} />
         const current = conversations.find((conversation) => conversation.id === selected)
         return (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <ul
-              className={cn('grid content-start gap-2', current !== undefined && 'hidden lg:grid')}
+              className={cn(
+                'grid grid-cols-1 content-start gap-2',
+                current !== undefined && 'hidden lg:grid',
+              )}
             >
               {conversations.map((conversation) => (
                 <li key={conversation.id}>

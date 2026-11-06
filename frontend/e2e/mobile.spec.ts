@@ -69,7 +69,7 @@ test.describe('parcours parent', () => {
     await page
       .getByLabel('Message', { exact: true })
       .fill('Bonjour, il me faut un certificat pour Ange.')
-    await page.getByRole('button', { name: 'Envoyer', exact: true }).press('Enter')
+    await page.getByRole('button', { name: 'Envoyer', exact: true }).click()
 
     await expect(page.getByText('Message envoyé').first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Certificat de scolarité' })).toBeVisible()
@@ -80,8 +80,11 @@ test.describe('parcours parent', () => {
     const mock = await mockApi(page, { session: ACCOUNTS.guardian })
     await page.goto('/les-lauriers/parent/justifier')
     await page.getByRole('link', { name: 'Absence à venir ? Prévenez l’école' }).click()
-    await page.getByLabel('Du').fill('2026-11-05')
-    await page.getByLabel('Au').fill('2026-11-06')
+    await expect(
+      page.getByRole('heading', { name: 'Prévenir d’une absence', level: 1 }),
+    ).toBeVisible()
+    await page.getByLabel('Du', { exact: true }).fill('2026-11-05')
+    await page.getByLabel('Au', { exact: true }).fill('2026-11-06')
     await page.getByLabel('Motif').fill('Mariage au village')
     await page.getByRole('button', { name: 'Prévenir l’école' }).click()
 
@@ -166,7 +169,7 @@ test('enseignante : réponse à un parent dans le fil de sa classe', async ({ pa
     .locator('form')
     .filter({ has: page.getByLabel('Votre réponse') })
     .getByRole('button', { name: 'Envoyer' })
-    .press('Enter')
+    .click()
   await expect(page.getByText('N’oubliez pas la règle demain.')).toBeVisible()
   // Le fil de l'administration (Junior) n'est pas le sien
   await page.getByRole('button', { name: 'Retour aux conversations' }).click()

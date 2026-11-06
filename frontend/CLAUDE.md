@@ -121,7 +121,7 @@ src/
   back-office), élèves et fiche en lecture seule (`useStudentList`, `useStudentFile`), messages aux parents de ses
   élèves (tuteur choisi dans la fiche).
   **Messagerie** (`features/messaging/api.ts` : `useConversations`, `useConversation` — `null` si introuvable —,
-  `useStartConversation`, `useReply`, `useMarkRead`, `useUnreadCount`, relus toutes les 60 s) : écran Messages du
+  `useStartConversation`, `useReply`, `useMarkRead`, `useUnreadCount`, relus toutes les 90 s) : écran Messages du
   back-office, de l'enseignant et du parent ; fil partagé `ConversationThread` (marqué lu à l'ouverture, lecture seule
   si `can_write` est faux), liste mobile `MobileConversations`, pastille `UnreadBadge` sur le menu « Messages ».
   **Absences annoncées** : le parent prévient d'une absence à venir (`/{slug}/parent/prevenir`, `usePlanAbsence`),

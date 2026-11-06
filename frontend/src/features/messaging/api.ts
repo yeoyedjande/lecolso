@@ -15,7 +15,7 @@ function useMessagingKey() {
 }
 
 /** Relecture : les messages de l'autre côté arrivent sans notification (pas de push en V1). */
-const REFRESH_MS = 60_000
+const REFRESH_MS = 90_000
 
 /** Fils visibles par l'utilisateur (parent, titulaire, administration du cycle), le plus récent d'abord. */
 export function useConversations() {

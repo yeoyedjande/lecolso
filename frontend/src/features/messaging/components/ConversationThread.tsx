@@ -67,7 +67,7 @@ export function ConversationThread({ conversationId }: { conversationId: string 
                       : 'justify-self-start rounded-bl-md bg-muted',
                   )}
                 >
-                  <span className="whitespace-pre-line">{message.body}</span>
+                  <span className="break-words whitespace-pre-line">{message.body}</span>
                   {message.planned_absence !== null && (
                     <PlannedCard planned={message.planned_absence} />
                   )}

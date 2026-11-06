@@ -60,8 +60,9 @@ export function MobileConversations({
 
   if (conversations.length === 0) return <EmptyState title={emptyLabel} />
 
+  // grid-cols-1 (minmax(0, 1fr)) : les aperçus sur une ligne ne débordent pas à 360 px
   return (
-    <ul className="grid gap-2">
+    <ul className="grid grid-cols-1 gap-2">
       {conversations.map((conversation) => (
         <li key={conversation.id}>
           <button
