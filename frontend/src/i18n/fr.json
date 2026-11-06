@@ -822,6 +822,15 @@
         "keep_all": "Garder toutes les échéances dues",
         "saved": "Politique enregistrée",
         "readOnly": "Seule la direction de l’établissement modifie cette règle."
+      },
+      "mobileMoney": {
+        "title": "Frais Mobile Money",
+        "description": "Pour les paiements faits par les parents depuis leur téléphone.",
+        "school": "À la charge de l’école (déduits au reversement)",
+        "guardian": "Ajoutés au montant payé par le parent",
+        "rate": "Taux des frais (%)",
+        "rateHint": "Taux du prestataire, par exemple 1,5.",
+        "rateError": "Saisissez un taux entre 0 et 10 %."
       }
     },
     "invoice": {
@@ -1453,14 +1462,42 @@
       "noNext": "Aucune échéance à venir",
       "detailsOf": "Voir les frais de {{name}}",
       "pay": "Payer par Mobile Money",
-      "soon": "Le paiement par Mobile Money sera bientôt disponible. En attendant, réglez au guichet de l’école : votre reçu apparaît ici.",
+      "soon": "Le paiement par Mobile Money n’est pas encore disponible dans votre école. En attendant, réglez au guichet : votre reçu apparaît ici.",
       "schedule": "Échéancier",
       "installment": "{{settled}} / {{amount}}",
       "history": "Paiements",
       "noPayment": "Aucun paiement pour l’instant.",
       "noInvoice": "Pas de facture pour cette année.",
       "receipt": "Reçu {{number}}",
-      "cancelled": "annulé"
+      "cancelled": "annulé",
+      "flow": {
+        "title": "Payer par Mobile Money",
+        "amountTitle": "Montant à payer",
+        "next": "Prochaine échéance ({{label}})",
+        "overdue": "Montant en retard",
+        "remaining": "Tout le reste à payer",
+        "custom": "Autre montant",
+        "amount": "Montant (FCFA)",
+        "operator": "Opérateur",
+        "wallet": "Numéro Mobile Money",
+        "walletHint": "Le numéro qui recevra la demande de validation.",
+        "feeGuardian": "Frais Mobile Money : {{fee}}. Montant débité : {{charged}}.",
+        "feeSchool": "Les frais Mobile Money sont pris en charge par l’école.",
+        "submit": "Payer {{amount}}",
+        "pending": "Validez le paiement sur votre téléphone…",
+        "pendingHint": "Une demande a été envoyée au {{phone}} : composez votre code secret Mobile Money pour confirmer.",
+        "success": "Paiement réussi",
+        "successDescription": "{{amount}} payés. Reçu {{number}}.",
+        "seeReceipt": "Voir le reçu",
+        "failed": "Paiement non abouti",
+        "expired": "Paiement non validé à temps",
+        "retry": "Réessayer",
+        "errors": {
+          "wallet": "Saisissez un numéro ivoirien à 10 chiffres.",
+          "tooMuch": "Le montant dépasse le reste à payer."
+        }
+      },
+      "payFor": "Payer pour {{name}}"
     },
     "justify": {
       "title": "Justifier une absence",

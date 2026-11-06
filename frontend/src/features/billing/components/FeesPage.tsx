@@ -395,7 +395,7 @@ function DeparturePolicyCard() {
                     checked={current.departure === value}
                     onChange={() => {
                       save
-                        .mutateAsync(value)
+                        .mutateAsync({ departure: value })
                         .then(() => {
                           toast(t('billing.fees.policy.saved'), { tone: 'success' })
                         })
@@ -414,6 +414,100 @@ function DeparturePolicyCard() {
         {!editable && (
           <p className="text-sm text-muted-foreground">{t('billing.fees.policy.readOnly')}</p>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Frais Mobile Money : à la charge de l'école ou ajoutés au montant payé par le parent, avec leur taux. */
+function MobileMoneyFeesCard() {
+  const { t } = useTranslation()
+  const membership = useCurrentSchool()
+  const policy = useFinancialPolicy()
+  const save = useSaveFinancialPolicy()
+  const editable = membership !== null && membership.permissions['school.settings.manage'] === null
+  const [rate, setRate] = useState<string | null>(null)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('billing.fees.mobileMoney.title')}</CardTitle>
+        <p className="text-sm text-muted-foreground">{t('billing.fees.mobileMoney.description')}</p>
+      </CardHeader>
+      <CardContent>
+        <QueryState query={policy}>
+          {(current) => {
+            const value = rate ?? String(current.mobile_money.fee_rate_bps / 100)
+            const bps = Math.round(Number(value.replace(',', '.')) * 100)
+            const valid = /^\d+([.,]\d{1,2})?$/.test(value.trim()) && bps >= 0 && bps <= 1000
+            const submit = (payer: string, rateBps: number) => {
+              save
+                .mutateAsync({
+                  mobile_money: {
+                    fee_payer: payer === 'guardian' ? 'guardian' : 'school',
+                    fee_rate_bps: rateBps,
+                  },
+                })
+                .then(() => {
+                  setRate(null)
+                  toast(t('billing.fees.policy.saved'), { tone: 'success' })
+                })
+                .catch(() => {
+                  toast(t('common.error'), { tone: 'error' })
+                })
+            }
+            return (
+              <fieldset className="grid gap-3" disabled={!editable || save.isPending}>
+                <legend className="sr-only">{t('billing.fees.mobileMoney.title')}</legend>
+                {(['school', 'guardian'] as const).map((payer) => (
+                  <label
+                    key={payer}
+                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-surface px-3 text-sm font-medium has-[:checked]:border-accent has-[:disabled]:cursor-default"
+                  >
+                    <input
+                      type="radio"
+                      name="mobile-money-payer"
+                      checked={current.mobile_money.fee_payer === payer}
+                      onChange={() => {
+                        submit(payer, current.mobile_money.fee_rate_bps)
+                      }}
+                      className="size-4 accent-accent"
+                    />
+                    {t(`billing.fees.mobileMoney.${payer}`)}
+                  </label>
+                ))}
+                <form
+                  className="flex flex-wrap items-end gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    if (valid) submit(current.mobile_money.fee_payer, bps)
+                  }}
+                >
+                  <Field
+                    label={t('billing.fees.mobileMoney.rate')}
+                    hint={t('billing.fees.mobileMoney.rateHint')}
+                    error={valid ? undefined : t('billing.fees.mobileMoney.rateError')}
+                    className="max-w-48"
+                  >
+                    {(control) => (
+                      <Input
+                        {...control}
+                        inputMode="decimal"
+                        value={value}
+                        onChange={(event) => {
+                          setRate(event.target.value)
+                        }}
+                      />
+                    )}
+                  </Field>
+                  <Button type="submit" variant="outline" disabled={!valid || rate === null}>
+                    {t('common.save')}
+                  </Button>
+                </form>
+              </fieldset>
+            )
+          }}
+        </QueryState>
       </CardContent>
     </Card>
   )
@@ -442,6 +536,7 @@ export function FeesPage() {
       )}
       <QueryState query={query}>{(grid) => <FeesGrid grid={grid} />}</QueryState>
       <DeparturePolicyCard />
+      <MobileMoneyFeesCard />
     </div>
   )
 }

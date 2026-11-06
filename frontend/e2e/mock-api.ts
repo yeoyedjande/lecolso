@@ -1270,6 +1270,29 @@ export async function mockApi(
   >()
   const PAID_AT = '2026-11-04T09:30:00+00:00'
   const policies = new Map<string, string>()
+  // Mobile Money (lot 10a) : frais par école, demandes de paiement (prestataire factice : 2e lecture = payé)
+  const mobileMoneyFees = new Map<
+    string,
+    { fee_payer: 'school' | 'guardian'; fee_rate_bps: number }
+  >()
+  const feesOf = (schoolId: string) =>
+    mobileMoneyFees.get(schoolId) ?? { fee_payer: 'school' as const, fee_rate_bps: 0 }
+  interface MockIntent {
+    id: string
+    studentId: string
+    invoiceId: string
+    method: string
+    phone: string
+    amount: number
+    fee: number
+    charged: number
+    feePayer: 'school' | 'guardian'
+    status: 'pending' | 'succeeded' | 'failed' | 'expired'
+    reads: number
+    paymentId: string | null
+    failureReason: string | null
+  }
+  const intents = new Map<string, MockIntent>()
   /** Paiement tel que l'API le renvoie (sans les champs internes de la simulation). */
   const paymentResource = (payment: MockPayment) => ({
     id: payment.id,
@@ -2798,6 +2821,23 @@ export async function mockApi(
     const scope = audienceScope(schoolId)
     return event.cycleId === null || scope.staffAll || scope.cycles.has(event.cycleId)
   }
+  const intentResource = (schoolId: string, intent: MockIntent) => ({
+    id: intent.id,
+    status: intent.status,
+    method: intent.method,
+    phone: `${intent.phone.slice(0, 4)}********${intent.phone.slice(-2)}`,
+    amount: intent.amount,
+    fee: intent.fee,
+    charged: intent.charged,
+    fee_payer: intent.feePayer,
+    failure_reason: intent.failureReason,
+    payment_id: intent.paymentId,
+    receipt_number:
+      paymentsOf(schoolId).find((payment) => payment.id === intent.paymentId)?.receipt_number ??
+      null,
+    expires_at: '2026-11-04T10:00:00+00:00',
+    created_at: '2026-11-04T09:30:00+00:00',
+  })
   const childResource = (schoolId: string, student: MockStudent, termId: string | null) => {
     seedAbsence(student)
     const found = levelOfStudent(schoolId, student)
@@ -2899,6 +2939,7 @@ export async function mockApi(
           paid_at: payment.paid_at,
           cancelled: payment.cancellation !== null,
         })) ?? [],
+      mobile_money: { available: true, ...feesOf(schoolId) },
       planned_absences: plannedOf(schoolId)
         .filter((planned) => planned.studentId === student.id)
         .map((planned) => ({
@@ -4932,6 +4973,90 @@ export async function mockApi(
                 mark.justification.status = planned.status
           return route.fulfill({ json: { data: plannedResource(schoolId, planned) } })
         }
+        if (request.method() === 'POST' && /^\/guardian\/children\/[^/]+\/payments$/.test(path)) {
+          const schoolId = schoolHeader ?? ''
+          const student = guardianChildren(schoolId).find(
+            (candidate) => path === `/guardian/children/${candidate.id}/payments`,
+          )
+          const invoice =
+            student === undefined
+              ? undefined
+              : invoicesOf(schoolId).find((candidate) => candidate.student_id === student.id)
+          if (student === undefined || invoice === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          const body = z
+            .object({ amount: z.number(), method: z.string(), phone: z.string() })
+            .parse(request.postDataJSON())
+          const remaining = invoiceResource(schoolId, invoice).balance.remaining
+          if (body.amount > remaining)
+            return route.fulfill({
+              status: 409,
+              json: {
+                message: 'Le montant dépasse le reste à payer de la facture.',
+                code: 'amount_exceeds',
+              },
+            })
+          const fees = feesOf(schoolId)
+          const fee = Math.ceil((body.amount * fees.fee_rate_bps) / 10000)
+          const intent: MockIntent = {
+            id: nextBillingId(),
+            studentId: student.id,
+            invoiceId: invoice.id,
+            method: body.method,
+            phone: body.phone,
+            amount: body.amount,
+            fee,
+            charged: fees.fee_payer === 'guardian' ? body.amount + fee : body.amount,
+            feePayer: fees.fee_payer,
+            status: 'pending',
+            reads: 0,
+            paymentId: null,
+            failureReason: null,
+          }
+          intents.set(intent.id, intent)
+          return route.fulfill({ status: 201, json: { data: intentResource(schoolId, intent) } })
+        }
+        if (request.method() === 'GET' && path.startsWith('/guardian/payment-intents/')) {
+          const schoolId = schoolHeader ?? ''
+          const intent = intents.get(path.split('/')[3] ?? '')
+          if (
+            intent === undefined ||
+            !guardianChildren(schoolId).some((child) => child.id === intent.studentId)
+          )
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          intent.reads += 1
+          if (intent.status === 'pending' && intent.reads >= 2) {
+            if (intent.phone.endsWith('99')) {
+              intent.status = 'failed'
+              intent.failureReason = 'Solde insuffisant.'
+            } else {
+              const invoice = invoicesOf(schoolId).find(
+                (candidate) => candidate.id === intent.invoiceId,
+              )
+              const list = paymentsOf(schoolId)
+              const payment: MockPayment = {
+                id: nextBillingId(),
+                invoice_id: intent.invoiceId,
+                receipt_number: `REC-2026-${String(list.length + 1).padStart(6, '0')}`,
+                amount: intent.amount,
+                method: intent.method,
+                reference: `OM${String(list.length + 1).padStart(8, '0')}`,
+                payer_name:
+                  invoice === undefined
+                    ? ''
+                    : (invoiceResource(schoolId, invoice).payer?.name ?? ''),
+                cashier_name: 'Mobile Money',
+                cashier_phone: current?.phone ?? '',
+                paid_at: PAID_AT,
+                cancellation: null,
+              }
+              list.push(payment)
+              intent.status = 'succeeded'
+              intent.paymentId = payment.id
+            }
+          }
+          return route.fulfill({ json: { data: intentResource(schoolId, intent) } })
+        }
         if (request.method() === 'GET' && path === '/guardian/children') {
           const schoolId = schoolHeader ?? ''
           if (!isGuardianHere(schoolId)) return route.fulfill(forbidden)
@@ -5177,11 +5302,24 @@ export async function mockApi(
           const schoolId = schoolHeader ?? ''
           if (request.method() === 'PUT') {
             if (!canEditSchool(schoolId)) return route.fulfill(forbidden)
-            const body = z.object({ departure: z.string() }).parse(request.postDataJSON())
-            policies.set(schoolId, body.departure)
+            const body = z
+              .object({
+                departure: z.optional(z.string()),
+                mobile_money: z.optional(
+                  z.object({ fee_payer: z.enum(['school', 'guardian']), fee_rate_bps: z.number() }),
+                ),
+              })
+              .parse(request.postDataJSON())
+            if (body.departure !== undefined) policies.set(schoolId, body.departure)
+            if (body.mobile_money !== undefined) mobileMoneyFees.set(schoolId, body.mobile_money)
           }
           return route.fulfill({
-            json: { data: { departure: policies.get(schoolId) ?? 'cancel_unstarted' } },
+            json: {
+              data: {
+                departure: policies.get(schoolId) ?? 'cancel_unstarted',
+                mobile_money: feesOf(schoolId),
+              },
+            },
           })
         }
         if (path.startsWith('/invoices/')) {

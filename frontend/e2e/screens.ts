@@ -108,7 +108,7 @@ export const SCREENS: Screen[] = [
         '/les-lauriers/parent/enfants/0195f000-0000-7000-8000-100000000023',
         'Français',
       ],
-      ['parent-paiements', '/les-lauriers/parent/paiements', 'Payer par Mobile Money'],
+      ['parent-paiements', '/les-lauriers/parent/paiements', 'Payer pour Ange'],
       ['parent-messages', '/les-lauriers/parent/messages', 'Devoirs de la semaine'],
       ['parent-justifier', '/les-lauriers/parent/justifier', 'Envoyer la justification'],
       ['parent-prevenir', '/les-lauriers/parent/prevenir', 'Prévenir l’école'],

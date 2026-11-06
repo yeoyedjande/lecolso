@@ -31,15 +31,37 @@ test.describe('parcours parent', () => {
     await expect(page.getByText('Moyenne générale', { exact: true })).toHaveCount(0)
   })
 
-  test('paiements : situation réelle, Mobile Money bientôt disponible', async ({ page }) => {
+  test('payer par Mobile Money : validation sur le téléphone, puis reçu', async ({ page }) => {
     await page.goto('/les-lauriers/parent/paiements')
     await expect(page.getByRole('heading', { name: 'Paiements', level: 1 })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Payer par Mobile Money' })).toBeDisabled()
-    await expect(page.getByText(/sera bientôt disponible/)).toBeVisible()
+    await page.getByRole('button', { name: 'Payer pour Ange' }).click()
 
-    await page.getByRole('link', { name: 'Voir les frais de Ange' }).click()
-    await expect(page.getByRole('tab', { name: 'Frais' })).toHaveAttribute('aria-selected', 'true')
-    await expect(page.getByText('Échéancier')).toBeVisible()
+    const dialog = page.getByRole('dialog', { name: 'Payer par Mobile Money' })
+    await dialog.getByLabel('Autre montant').check()
+    await dialog.getByLabel('Montant (FCFA)').fill('15000')
+    await dialog.getByLabel('Wave').check()
+    await expect(dialog.getByLabel('Numéro Mobile Money')).not.toHaveValue('')
+    await dialog.getByRole('button', { name: /^Payer 15/ }).click()
+
+    await expect(dialog.getByText('Validez le paiement sur votre téléphone…')).toBeVisible()
+    await expect(dialog.getByText('Paiement réussi')).toBeVisible({ timeout: 10_000 })
+    await dialog.getByRole('link', { name: 'Voir le reçu' }).click()
+    await expect(page.getByText(/quinze mille francs CFA/)).toBeVisible()
+    await expect(page.getByText('Wave')).toBeVisible()
+  })
+
+  test('paiement Mobile Money refusé : motif et nouvel essai', async ({ page }) => {
+    await page.goto('/les-lauriers/parent/paiements')
+    await page.getByRole('button', { name: 'Payer pour Ange' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Payer par Mobile Money' })
+    await dialog.getByLabel('Numéro Mobile Money').fill('1234')
+    await expect(dialog.getByText('Saisissez un numéro ivoirien à 10 chiffres.')).toBeVisible()
+    await dialog.getByLabel('Numéro Mobile Money').fill('0701020399')
+    await dialog.getByRole('button', { name: /^Payer/ }).click()
+    await expect(dialog.getByText('Paiement non abouti')).toBeVisible({ timeout: 10_000 })
+    await expect(dialog.getByText('Solde insuffisant.')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Réessayer' }).click()
+    await expect(dialog.getByRole('button', { name: /^Payer/ })).toBeVisible()
   })
 
   test('justifier une absence depuis l’accueil : envoyée à l’école', async ({ page }) => {

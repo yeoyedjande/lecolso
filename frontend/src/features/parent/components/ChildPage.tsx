@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, CalendarPlus, FileDown, Receipt } from 'lucide-react'
+import { ArrowLeft, CalendarPlus, FileDown, Receipt, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -17,6 +17,8 @@ import { formatAverage, formatDate, formatDateTime, formatDay, formatMoney } fro
 import { cn } from '@/lib/utils'
 
 import { useChild, type Child } from '../api'
+
+import { MobileMoneyDialog } from './MobileMoneyDialog'
 import { type ChildTab } from '../tabs'
 
 const LEVEL_TONE: Record<string, string> = {
@@ -273,6 +275,33 @@ function Reports({ child }: { child: Child }) {
   )
 }
 
+function PayButton({ child }: { child: Child }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  if (!child.mobile_money.available)
+    return (
+      <p className="rounded-xl bg-muted p-3 text-sm" role="note">
+        {t('parent.payments.soon')}
+      </p>
+    )
+  if (child.balance === null || child.balance.remaining <= 0) return null
+  return (
+    <>
+      <Button
+        size="lg"
+        variant="accent"
+        onClick={() => {
+          setOpen(true)
+        }}
+      >
+        <Wallet aria-hidden />
+        {t('parent.payments.pay')}
+      </Button>
+      <MobileMoneyDialog studentId={child.student.id} open={open} onOpenChange={setOpen} />
+    </>
+  )
+}
+
 export function Fees({ child }: { child: Child }) {
   const { t } = useTranslation()
   const balance = child.balance
@@ -298,9 +327,7 @@ export function Fees({ child }: { child: Child }) {
               })}
             </p>
           )}
-          <p className="rounded-xl bg-muted p-3 text-sm" role="note">
-            {t('parent.payments.soon')}
-          </p>
+          <PayButton child={child} />
         </CardContent>
       </Card>
       <Card>

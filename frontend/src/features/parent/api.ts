@@ -111,3 +111,64 @@ export function usePlanAbsence() {
     },
   })
 }
+
+export type PaymentIntent = components['schemas']['PaymentIntentResource']
+export type MobileMoneyMethod = 'orange_money' | 'mtn_momo' | 'moov_money' | 'wave'
+export const MOBILE_MONEY_METHODS: MobileMoneyMethod[] = [
+  'orange_money',
+  'mtn_momo',
+  'moov_money',
+  'wave',
+]
+
+/** Frais Mobile Money (même calcul que l'API : points de base, arrondi à l'entier supérieur). */
+export function mobileMoneyCharge(
+  amount: number,
+  fees: { fee_payer: string; fee_rate_bps: number },
+): { fee: number; charged: number } {
+  const fee = Math.ceil((amount * fees.fee_rate_bps) / 10000)
+  return { fee, charged: fees.fee_payer === 'guardian' ? amount + fee : amount }
+}
+
+/** Lancer un paiement Mobile Money pour un enfant (le parent valide ensuite sur son téléphone). */
+export function usePayForChild() {
+  return useMutation({
+    mutationFn: async (input: {
+      studentId: string
+      amount: number
+      method: MobileMoneyMethod
+      phone: string
+    }): Promise<PaymentIntent> => {
+      const { data, response } = await api.POST('/guardian/children/{student}/payments', {
+        params: { path: { student: input.studentId } },
+        body: { amount: input.amount, method: input.method, phone: input.phone },
+      })
+      if (data === undefined) throw new Error(`Paiement impossible (${String(response.status)})`)
+      return data.data
+    },
+  })
+}
+
+/** Suivi d'un paiement Mobile Money : relu toutes les 3 s tant qu'il est en attente ; enfants relus une fois payé. */
+export function usePaymentIntent(id: string | null) {
+  const { school, key } = useParentKey()
+  const queryClient = useQueryClient()
+  return useQuery({
+    queryKey: [...key, 'payment-intent', id],
+    enabled: school !== null && id !== null,
+    queryFn: async ({ signal }): Promise<PaymentIntent> => {
+      const { data, error } = await api.GET('/guardian/payment-intents/{paymentIntent}', {
+        params: { path: { paymentIntent: id ?? '' } },
+        signal,
+      })
+      if (data === undefined) throw new Error('Paiement introuvable', { cause: error })
+      if (data.data.status === 'succeeded') {
+        await queryClient.invalidateQueries({ queryKey: [...key, 'children'] })
+        await queryClient.invalidateQueries({ queryKey: [...key, 'child'] })
+      }
+      return data.data
+    },
+    // Après queryFn : le type des données en est déduit
+    refetchInterval: (query) => (query.state.data?.status === 'pending' ? 3000 : false),
+  })
+}

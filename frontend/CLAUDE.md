@@ -147,7 +147,12 @@ src/
   jour, reste à payer, absences à justifier), fiche (`ChildPage`, onglet ouvrable par `?onglet=notes|absences|bulletins|frais`) :
   notes au fil de l'eau (moyenne par matière seulement ; moyenne générale, rang et mention sur le bulletin validé),
   compétences, absences, bulletins validés (PDF signé), frais et reçus (`ParentReceipt` : `useReceipt` et
-  `receiptContent` de `features/billing/receipt.ts`). Paiement Mobile Money « bientôt disponible » jusqu'au lot 10.
+  `receiptContent` de `features/billing/receipt.ts`). **Paiement Mobile Money** (lot 10a : `usePayForChild`,
+  `usePaymentIntent` — relu toutes les 3 s tant qu'il est en attente —, `mobileMoneyCharge` : même calcul de frais que
+  l'API) : `MobileMoneyDialog` (montant proposé ou libre plafonné au reste dû, opérateur et numéro, attente de
+  validation, reçu ou nouvel essai) depuis Paiements et l'onglet Frais ; « bientôt disponible » si
+  `mobile_money.available` est faux (aucun prestataire configuré). Réglage des frais par la direction dans l'écran Frais
+  (`useSaveFinancialPolicy({ mobile_money })`).
   L'import Excel reste sur les élèves de démonstration (`useDemoStudents`, `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).

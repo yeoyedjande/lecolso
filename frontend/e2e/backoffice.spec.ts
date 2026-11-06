@@ -369,3 +369,26 @@ test('calendrier : la direction ajoute, modifie et supprime un événement', asy
   await expect(page.getByText('Événement supprimé').first()).toBeVisible()
   await expect(page.getByText('Journée sportive et culturelle')).toHaveCount(0)
 })
+
+test('frais Mobile Money à la charge des parents : affichés avant le paiement', async ({
+  page,
+}) => {
+  const mock = await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/frais')
+  // Bouton radio piloté par l'API : coché une fois la politique enregistrée
+  await page.getByLabel('Ajoutés au montant payé par le parent').click()
+  await expect(page.getByText('Politique enregistrée').first()).toBeVisible()
+  await expect(page.getByLabel('Ajoutés au montant payé par le parent')).toBeChecked()
+  await page.getByLabel('Taux des frais (%)').fill('1,5')
+  await page.getByRole('button', { name: 'Enregistrer' }).last().click()
+  await expect(page.getByLabel('Taux des frais (%)')).toHaveValue('1.5')
+
+  mock.switchSession(ACCOUNTS.guardian)
+  await page.goto('/les-lauriers/parent/paiements')
+  await page.getByRole('button', { name: 'Payer pour Ange' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Payer par Mobile Money' })
+  await dialog.getByLabel('Autre montant').check()
+  await dialog.getByLabel('Montant (FCFA)').fill('15000')
+  await expect(dialog.getByText(/Frais Mobile Money : 225/)).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /^Payer 15\s?225/ })).toBeVisible()
+})
