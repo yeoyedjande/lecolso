@@ -12,8 +12,9 @@ use App\Domains\Billing\Models\PaymentIntent;
 use Illuminate\Support\Carbon;
 
 /**
- * Réconciliation d'une demande en attente (le webhook a pu se perdre) : interroge le prestataire et applique sa
- * réponse ; toujours en attente après le délai, la demande expire.
+ * Réconciliation (le webhook a pu se perdre) : une demande en attente, ou expirée localement, est vérifiée auprès du
+ * prestataire et sa réponse appliquée ; toujours en attente après le délai, la demande expire. Un paiement confirmé
+ * après l'expiration est donc enregistré à la lecture suivante.
  */
 final readonly class RefreshMobilePayment
 {
@@ -24,7 +25,7 @@ final readonly class RefreshMobilePayment
 
     public function handle(PaymentIntent $intent, Carbon $now): PaymentIntent
     {
-        if ($intent->status !== PaymentIntentStatus::Pending) {
+        if ($intent->status !== PaymentIntentStatus::Pending && $intent->status !== PaymentIntentStatus::Expired) {
             return $intent;
         }
         if ($intent->provider_reference !== null && $intent->provider === $this->gateway->name()) {

@@ -42,7 +42,9 @@ final readonly class HandlePaymentWebhook
             throw new NotFoundHttpException;
         }
 
-        $this->context->run($schoolId, function () use ($provider, $result, $now): void {
+        // Marque de notification et règlement dans une même transaction : un règlement qui échoue n'est pas marqué
+        // comme traité, la notification suivante du prestataire le refera
+        $this->context->run($schoolId, fn () => DB::transaction(function () use ($provider, $result, $now): void {
             $intent = PaymentIntent::query()->where('provider', $provider)->where('provider_reference', $result->reference)->firstOrFail();
             $event = PaymentWebhookEvent::query()->createOrFirst(
                 ['provider' => $provider, 'event_key' => $result->reference.':'.$result->status->value],
@@ -52,6 +54,6 @@ final readonly class HandlePaymentWebhook
                 return;
             }
             $this->settle->handle($intent, $result, $now);
-        });
+        }));
     }
 }

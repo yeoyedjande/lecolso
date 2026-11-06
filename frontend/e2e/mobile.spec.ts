@@ -95,7 +95,11 @@ test.describe('parcours parent', () => {
 
     await expect(page.getByText('Message envoyé').first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Certificat de scolarité' })).toBeVisible()
-    await expect(page.getByText('Bonjour, il me faut un certificat pour Ange.')).toBeVisible()
+    await expect(
+      page
+        .getByRole('list', { name: 'Messages de la conversation' })
+        .getByText('Bonjour, il me faut un certificat pour Ange.'),
+    ).toBeVisible()
   })
 
   test('prévenir d’une absence à venir : l’école la voit et l’accepte', async ({ page }) => {
@@ -192,7 +196,11 @@ test('enseignante : réponse à un parent dans le fil de sa classe', async ({ pa
     .filter({ has: page.getByLabel('Votre réponse') })
     .getByRole('button', { name: 'Envoyer' })
     .click()
-  await expect(page.getByText('N’oubliez pas la règle demain.')).toBeVisible()
+  await expect(
+    page
+      .getByRole('list', { name: 'Messages de la conversation' })
+      .getByText('N’oubliez pas la règle demain.'),
+  ).toBeVisible()
   // Le fil de l'administration (Junior) n'est pas le sien
   await page.getByRole('button', { name: 'Retour aux conversations' }).click()
   await expect(page.getByRole('button', { name: /Retard du matin/ })).toHaveCount(0)

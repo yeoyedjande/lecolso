@@ -188,7 +188,11 @@ it('fait expirer une demande restée sans réponse et en permet une nouvelle', f
 
         public function parseWebhook(string $payload, array $headers): GatewayResult
         {
-            throw new LogicException('Aucune notification.');
+            // Confirmation tardive du prestataire (signature supposée vérifiée)
+            $data = json_decode($payload, true);
+            $reference = is_array($data) && is_string($data['reference'] ?? null) ? $data['reference'] : '';
+
+            return new GatewayResult($reference, PaymentIntentStatus::Succeeded, 'LATE-'.substr($reference, -6));
         }
 
         public function status(string $reference): GatewayResult
@@ -210,6 +214,14 @@ it('fait expirer une demande restée sans réponse et en permet une nouvelle', f
     spa('GET', "/api/v1/guardian/payment-intents/{$id}", [], $school)->assertOk()
         ->assertJsonPath('data.status', 'expired')
         ->assertJsonPath('data.failure_reason', 'Paiement non validé à temps.');
+
+    // Le prestataire confirme finalement : l'argent est débité, le paiement est enregistré malgré l'expiration locale
+    fakeWebhook('silent_'.$id, 'succeeded')->assertOk();
+    fakeWebhook('silent_'.$id, 'succeeded')->assertOk();
+    spa('GET', "/api/v1/guardian/payment-intents/{$id}", [], $school)->assertOk()
+        ->assertJsonPath('data.status', 'succeeded')
+        ->assertJsonPath('data.failure_reason', null);
+    expect(inSchool($school, static fn (): int => Payment::query()->count()))->toBe(1);
 });
 
 it('isole les paiements Mobile Money entre familles et entre établissements', function (): void {

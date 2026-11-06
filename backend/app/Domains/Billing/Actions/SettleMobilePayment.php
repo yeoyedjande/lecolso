@@ -11,8 +11,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Applique la réponse du prestataire à une demande en attente (webhook ou interrogation) : réussie → paiement enregistré
- * (reçu REC-…), échouée → motif noté. Une demande déjà traitée n'est jamais modifiée (notification rejouée sans effet).
+ * Applique la réponse du prestataire à une demande (webhook ou interrogation) : réussie → paiement enregistré (reçu
+ * REC-…), échouée → motif noté. Une demande réussie n'est jamais modifiée (notification rejouée sans effet). Une
+ * confirmation de paiement l'emporte sur une expiration ou un échec notés localement : l'argent a été débité, il est
+ * enregistré (la référence de l'opérateur empêche un second enregistrement).
  */
 final readonly class SettleMobilePayment
 {
@@ -22,10 +24,14 @@ final readonly class SettleMobilePayment
     {
         return DB::transaction(function () use ($intent, $result, $now): PaymentIntent {
             $locked = PaymentIntent::query()->whereKey($intent->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status !== PaymentIntentStatus::Pending || $result->status === PaymentIntentStatus::Pending) {
+            $confirmed = $result->status === PaymentIntentStatus::Succeeded;
+            if ($locked->status === PaymentIntentStatus::Succeeded || $result->status === PaymentIntentStatus::Pending) {
                 return $locked;
             }
-            if ($result->status === PaymentIntentStatus::Succeeded) {
+            if ($locked->status !== PaymentIntentStatus::Pending && ! $confirmed) {
+                return $locked;
+            }
+            if ($confirmed) {
                 $payment = $this->record->online(
                     $locked->invoice,
                     $locked->amount,
@@ -35,7 +41,7 @@ final readonly class SettleMobilePayment
                     $locked->requested_by_name,
                     $now,
                 );
-                $locked->fill(['status' => PaymentIntentStatus::Succeeded, 'payment_id' => $payment->id])->save();
+                $locked->fill(['status' => PaymentIntentStatus::Succeeded, 'payment_id' => $payment->id, 'failure_reason' => null])->save();
 
                 return $locked;
             }
