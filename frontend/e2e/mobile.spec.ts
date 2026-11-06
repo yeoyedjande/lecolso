@@ -98,3 +98,49 @@ test('enseignante : saisie d’une note sur téléphone', async ({ page }) => {
   await first.blur()
   await expect(page.getByText('Enregistré', { exact: true })).toBeVisible()
 })
+
+test('enseignante : élèves de la classe, fiche et appel d’un parent', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.teacher })
+  await page.goto('/les-lauriers/enseignant')
+  await page.getByRole('main').getByRole('link', { name: 'Élèves' }).first().click()
+  await expect(page.getByRole('heading', { name: 'Mes élèves', level: 1 })).toBeVisible()
+  await page.getByRole('main').getByRole('listitem').getByRole('link').first().click()
+  await expect(page.getByText('Parents', { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Appeler / }).first()).toHaveAttribute(
+    'href',
+    /^tel:\+225/,
+  )
+})
+
+test('enseignante : appréciation d’un élève depuis le téléphone', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.teacher })
+  await page.goto('/les-lauriers/enseignant')
+  await page.getByRole('main').getByRole('link', { name: 'Appréciations' }).first().click()
+  await page
+    .getByRole('button', { name: /^Écrire l’appréciation de / })
+    .first()
+    .click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Appréciation générale de l’enseignant(e)').fill('Élève attentive.')
+  await expect(dialog.getByLabel('Observation de la direction')).toBeDisabled()
+  await dialog.getByRole('button', { name: 'Enregistrer' }).click()
+  await expect(page.getByText('Rédigée').first()).toBeVisible()
+})
+
+test('enseignante : appel hors connexion, envoyé au retour du réseau', async ({
+  page,
+  context,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.teacher })
+  await page.goto('/les-lauriers/enseignant/appel')
+  await expect(page.getByRole('button', { name: 'Enregistrer l’appel' })).toBeVisible()
+  await context.setOffline(true)
+  await page
+    .getByRole('button', { name: /^Absent — / })
+    .first()
+    .click()
+  await page.getByRole('button', { name: 'Enregistrer l’appel' }).click()
+  await expect(page.getByText(/1 élément\(s\) en attente d’envoi/)).toBeVisible()
+  await context.setOffline(false)
+  await expect(page.getByText(/en attente d’envoi/)).toHaveCount(0)
+})

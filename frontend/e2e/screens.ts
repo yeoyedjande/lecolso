@@ -86,8 +86,10 @@ export const SCREENS: Screen[] = [
       [
         'enseignant-journal',
         '/les-lauriers/enseignant/journal',
-        'Aucune de vos classes ne tient de journal quotidien (paramètre du cycle).',
+        'Aucun cycle de l’école n’est suivi en arrivées et départs.',
       ],
+      ['enseignant-appreciations', '/les-lauriers/enseignant/appreciations', 'À rédiger'],
+      ['enseignant-eleves', '/les-lauriers/enseignant/eleves', 'Mes élèves'],
       ['enseignant-messages', '/les-lauriers/enseignant/messages', 'Nouveau message'],
       ['enseignant-profil', '/les-lauriers/enseignant/profil', 'Changer mon mot de passe'],
     ] as const

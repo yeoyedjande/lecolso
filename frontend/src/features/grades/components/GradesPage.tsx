@@ -142,7 +142,7 @@ function defaultDate(grid: GradeGrid): string {
   return today
 }
 
-function AssessmentDialog({
+export function AssessmentDialog({
   grid,
   classroomId,
   assessment,

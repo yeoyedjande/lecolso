@@ -59,7 +59,7 @@ function failure(error: unknown, fallback: string): string {
 }
 
 /** Appréciations d'un élève : titulaire (générale, par matière) et direction (observation, mention). */
-function AppreciationDialog({
+export function AppreciationDialog({
   data,
   row,
   onClose,

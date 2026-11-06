@@ -1,26 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useTranslation } from 'react-i18next'
 
-import { ListSkeleton } from '@/components/states/QueryState'
-import { DemoDaycarePage } from '@/features/attendance/components/DemoDaycarePage'
-import { useMyClasses } from '@/features/teacher/api'
+import { DaycarePage } from '@/features/attendance/components/DaycarePage'
 
 export const Route = createFileRoute('/$school/enseignant/journal')({
-  component: JournalRoute,
+  component: DaycarePage,
 })
-
-/** Journal de la journée pour les classes de l'enseignant qui en tiennent un (paramètre daily_log du cycle). */
-function JournalRoute() {
-  const { t } = useTranslation()
-  const classes = useMyClasses()
-  if (classes.data === undefined) return <ListSkeleton />
-  return (
-    <DemoDaycarePage
-      journal={{
-        classroomIds: classes.data.map((classroom) => classroom.id),
-        title: t('teacher.journal.title'),
-        description: t('teacher.journal.subtitle'),
-      }}
-    />
-  )
-}
