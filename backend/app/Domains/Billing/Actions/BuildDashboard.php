@@ -7,6 +7,10 @@ namespace App\Domains\Billing\Actions;
 use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Academic\Models\Cycle;
+use App\Domains\Attendance\Enums\AttendanceStatus;
+use App\Domains\Attendance\Models\AttendanceMark;
+use App\Domains\Attendance\Models\RollCall;
+use App\Domains\Attendance\Support\ClassRoster;
 use App\Domains\Billing\Data\DashboardView;
 use App\Domains\Billing\Models\Installment;
 use App\Domains\Billing\Models\Invoice;
@@ -18,6 +22,7 @@ use App\Domains\Billing\Support\InvoiceTotals;
 use App\Domains\Identity\Models\User;
 use App\Domains\Students\Enums\EnrollmentStatus;
 use App\Domains\Students\Models\Enrollment;
+use App\Support\Cycles\Enums\AttendanceMode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
@@ -38,6 +43,7 @@ final readonly class BuildDashboard
         $year = AcademicYear::query()->where('is_current', true)->first();
         $studentCycles = $this->scope->cycles($user, 'students.view');
         $billingCycles = $this->scope->cycles($user, 'billing.view');
+        $attendanceCycles = $this->scope->cycles($user, 'attendance.view');
 
         $byCycle = [];
         $students = 0;
@@ -68,7 +74,55 @@ final readonly class BuildDashboard
             $students,
             $byCycle,
             $year === null || $billingCycles === [] ? null : $this->finance($year, $billingCycles, $now, $today),
+            $year === null || $attendanceCycles === [] ? null : $this->attendance($year, $attendanceCycles, $today),
         );
+    }
+
+    /**
+     * Présences du jour et taux des 10 derniers jours d'appel, dans les classes qui font l'appel (paramètre du cycle).
+     *
+     * @param  list<string>|null  $cycles
+     * @return array{absent_today: int, late_today: int, roll_calls_missing: int, rates: list<array{date: string, rate: int}>}
+     */
+    private function attendance(AcademicYear $year, ?array $cycles, string $today): array
+    {
+        $classrooms = Classroom::query()->where('academic_year_id', $year->id)
+            ->when($cycles !== null, static fn (Builder $q) => $q->whereHas('level', static fn (Builder $level) => $level->whereIn('cycle_id', $cycles ?? [])))
+            ->with('level.cycle')
+            ->get()
+            ->filter(static fn (Classroom $classroom): bool => $classroom->level->cycle->settings->attendanceMode === AttendanceMode::RollCall);
+        $ids = $classrooms->modelKeys();
+        $byId = $classrooms->keyBy('id');
+
+        $marksOn = static fn (string $date, AttendanceStatus $status): int => AttendanceMark::query()->whereDate('date', $date)->where('status', $status)
+            ->whereHas('rollCall', static fn (Builder $call) => $call->whereIn('classroom_id', $ids))
+            ->whereHas('student')
+            ->count();
+        $takenToday = RollCall::query()->whereIn('classroom_id', $ids)->whereDate('date', $today)->count();
+
+        $rates = [];
+        $byDay = [];
+        foreach (RollCall::query()->whereIn('classroom_id', $ids)->where('date', '<=', $today)->orderByDesc('date')->get() as $call) {
+            $byDay[$call->date->toDateString()][] = $call->classroom_id;
+        }
+        foreach (array_slice($byDay, 0, 10, true) as $date => $calls) {
+            $date = (string) $date;
+            // Effectif de chaque classe à la date de l'appel (inscriptions et départs du moment)
+            $expected = array_sum(array_map(static function (string $id) use ($byId, $date): int {
+                $classroom = $byId->get($id);
+
+                return $classroom instanceof Classroom ? ClassRoster::on($classroom, $date)->count() : 0;
+            }, $calls));
+            $absent = $marksOn($date, AttendanceStatus::Absent);
+            $rates[] = ['date' => $date, 'rate' => $expected === 0 ? 100 : (int) round(max(0, $expected - $absent) / $expected * 100)];
+        }
+
+        return [
+            'absent_today' => $marksOn($today, AttendanceStatus::Absent),
+            'late_today' => $marksOn($today, AttendanceStatus::Late),
+            'roll_calls_missing' => Carbon::parse($today)->isWeekend() ? 0 : max(0, count($ids) - $takenToday),
+            'rates' => array_reverse($rates),
+        ];
     }
 
     /**

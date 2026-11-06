@@ -5,8 +5,8 @@ import { ClassPicker } from '@/components/ClassPicker'
 import { DemoBanner } from '@/components/states/DemoBanner'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ListSkeleton, QueryState } from '@/components/states/QueryState'
-import { useRollCall } from '@/features/attendance/api'
-import { RollCallPanel } from '@/features/attendance/components/RollCallPanel'
+import { useDemoRollCall } from '@/features/attendance/demoApi'
+import { DemoRollCallPanel } from '@/features/attendance/components/DemoRollCallPanel'
 import { can } from '@/features/auth/access'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { useCycleSettings } from '@/features/cycles/useCycleSettings'
@@ -16,11 +16,11 @@ import { demoToday } from '@/lib/demo/dates'
 import { useMyClasses } from '../api'
 
 function Call({ classroomId, editable }: { classroomId: string; editable: boolean }) {
-  const query = useRollCall(classroomId)
+  const query = useDemoRollCall(classroomId)
   return (
     <QueryState query={query}>
       {(call) => (
-        <RollCallPanel
+        <DemoRollCallPanel
           key={`${classroomId}-${call.taken?.at ?? ''}`}
           call={call}
           editable={editable}

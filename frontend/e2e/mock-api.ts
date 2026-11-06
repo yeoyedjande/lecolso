@@ -1554,6 +1554,240 @@ export async function mockApi(
       can_refund: holds(schoolId, 'billing.refund', cycleId),
     }
   }
+  // --- Présences (comme le domaine Attendance) ---
+  interface MockMark {
+    id: string
+    status: 'absent' | 'late'
+    justification: {
+      id: string
+      status: 'pending' | 'accepted' | 'refused'
+      source: 'guardian' | 'school'
+      reason: string
+      by: string
+      at: string
+    } | null
+  }
+  interface MockCall {
+    by: string
+    at: string
+    marks: Map<string, MockMark>
+  }
+  const rollCalls = new Map<string, MockCall>()
+  const daycare = new Map<
+    string,
+    {
+      visit: {
+        arrived_at: string | null
+        left_at: string | null
+        dropped_by: string | null
+        picked_up_by: string | null
+      } | null
+      logs: { id: string; time: string; kind: string; note: string }[]
+    }
+  >()
+  const syncDone = new Set<string>()
+  const TODAY = '2026-11-04'
+  /** Personnel (hors parents et enseignants) avec la permission sur le cycle, ou sur toute l'école. */
+  const staffHolds = (schoolId: string, permission: string, cycleId: string | null) => {
+    const schoolKey = schoolKeyOf(schoolId)
+    return (
+      current?.roles.some(
+        (assignment) =>
+          assignment.school === schoolKey &&
+          assignment.role !== 'teacher' &&
+          assignment.role !== 'guardian' &&
+          (assignment.cycle === undefined || assignment.cycle === cycleId) &&
+          PERMISSIONS[permission]?.includes(assignment.role) === true,
+      ) ?? false
+    )
+  }
+  const attendanceClassrooms = (schoolId: string) =>
+    classroomsOf(schoolId).flatMap((classroom) => {
+      const found = levelOf(schoolId, classroom.level_id)
+      if (found === undefined || !staffHolds(schoolId, 'attendance.view', found.cycle.id)) return []
+      return [
+        {
+          id: classroom.id,
+          name: `${found.level.code} ${classroom.section}`,
+          cycle: { id: found.cycle.id, code: found.cycle.code, name: found.cycle.name },
+          mode: found.cycle.settings.attendance_mode,
+          can_take: staffHolds(schoolId, 'attendance.manage', found.cycle.id),
+          is_homeroom: false,
+        },
+      ]
+    })
+  const rosterOf = (schoolId: string, classroomId: string) =>
+    studentsOf(schoolId)
+      .filter((student) => latestEnrollment(student)?.classroom_id === classroomId)
+      .sort(
+        (a, b) =>
+          a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name),
+      )
+  const attendanceStudent = (schoolId: string, student: MockStudent) => ({
+    id: student.id,
+    full_name: studentRow(schoolId, student).full_name,
+    first_name: student.first_name,
+    matricule: student.matricule,
+    photo_url: null,
+  })
+  const rollCallResource = (schoolId: string, classroomId: string, date: string) => {
+    const classroom = attendanceClassrooms(schoolId).find(
+      (candidate) => candidate.id === classroomId,
+    )
+    const call = rollCalls.get(`${classroomId}:${date}`)
+    return {
+      classroom: { id: classroomId, name: classroom?.name ?? '' },
+      date,
+      taken: call === undefined ? null : { by: call.by, at: call.at },
+      corrections: [],
+      rows: rosterOf(schoolId, classroomId).map((student) => {
+        const mark = call?.marks.get(student.id)
+        return {
+          student: attendanceStudent(schoolId, student),
+          mark_id: mark?.id ?? null,
+          status: mark?.status ?? 'present',
+          late_minutes: null,
+          justification:
+            mark?.justification == null
+              ? null
+              : { status: mark.justification.status, source: mark.justification.source },
+        }
+      }),
+      can_edit: date === TODAY && (classroom?.can_take ?? false),
+      needs_reason: date < TODAY,
+    }
+  }
+  const saveCall = (
+    classroomId: string,
+    date: string,
+    marks: { student_id: string; status: string }[],
+  ) => {
+    const previous = rollCalls.get(`${classroomId}:${date}`)
+    const next: MockCall = {
+      by: current?.name ?? '',
+      at: `${TODAY}T08:05:00+00:00`,
+      marks: new Map(),
+    }
+    for (const mark of marks) {
+      if (mark.status !== 'absent' && mark.status !== 'late') continue
+      const old = previous?.marks.get(mark.student_id)
+      next.marks.set(mark.student_id, {
+        id: old?.id ?? nextBillingId(),
+        status: mark.status,
+        justification: old?.justification ?? null,
+      })
+    }
+    rollCalls.set(`${classroomId}:${date}`, next)
+  }
+  const absenceRows = (schoolId: string, date: string | null, pending: boolean) =>
+    attendanceClassrooms(schoolId).flatMap((classroom) =>
+      [...rollCalls.entries()]
+        .filter(
+          ([key]) => key.startsWith(`${classroom.id}:`) && (date === null || key.endsWith(date)),
+        )
+        .flatMap(([key, call]) =>
+          [...call.marks.entries()].flatMap(([studentId, mark]) => {
+            const student = studentsOf(schoolId).find((candidate) => candidate.id === studentId)
+            if (student === undefined) return []
+            if (pending && mark.justification?.status !== 'pending') return []
+            return [
+              {
+                id: mark.id,
+                date: key.slice(classroom.id.length + 1),
+                status: mark.status,
+                late_minutes: null,
+                student: attendanceStudent(schoolId, student),
+                classroom: { id: classroom.id, name: classroom.name },
+                justification:
+                  mark.justification === null
+                    ? null
+                    : {
+                        id: mark.justification.id,
+                        status: mark.justification.status,
+                        source: mark.justification.source,
+                        reason: mark.justification.reason,
+                        proof_url: null,
+                        submitted_by_name: mark.justification.by,
+                        submitted_at: mark.justification.at,
+                        decided_by_name: null,
+                        decided_at: null,
+                        decision_note: null,
+                      },
+                can_decide: staffHolds(schoolId, 'attendance.manage', classroom.cycle.id),
+              },
+            ]
+          }),
+        ),
+    )
+  const findMark = (markId: string) => {
+    for (const call of rollCalls.values())
+      for (const [studentId, mark] of call.marks)
+        if (mark.id === markId || mark.justification?.id === markId) return { studentId, mark }
+    return undefined
+  }
+  const daycareBoard = (schoolId: string) => ({
+    date: TODAY,
+    classrooms: attendanceClassrooms(schoolId)
+      .filter((classroom) => classroom.mode === 'check_in_out')
+      .map((classroom) => ({
+        id: classroom.id,
+        name: classroom.name,
+        can_record: classroom.can_take,
+        children: rosterOf(schoolId, classroom.id).map((student) => ({
+          student: attendanceStudent(schoolId, student),
+          visit: daycare.get(student.id)?.visit ?? null,
+          logs: daycare.get(student.id)?.logs ?? [],
+        })),
+      })),
+  })
+  const recordDaycare = (
+    studentId: string,
+    input:
+      | { kind: 'check'; direction: string; time: string; person: string | null }
+      | { kind: 'log'; time: string; logKind: string; note: string },
+  ) => {
+    const entry = daycare.get(studentId) ?? { visit: null, logs: [] }
+    if (input.kind === 'check') {
+      const visit = entry.visit ?? {
+        arrived_at: null,
+        left_at: null,
+        dropped_by: null,
+        picked_up_by: null,
+      }
+      entry.visit =
+        input.direction === 'in'
+          ? { ...visit, arrived_at: input.time, dropped_by: input.person }
+          : { ...visit, left_at: input.time, picked_up_by: input.person }
+    } else {
+      entry.logs.push({
+        id: nextBillingId(),
+        time: input.time,
+        kind: input.logKind,
+        note: input.note,
+      })
+    }
+    daycare.set(studentId, entry)
+  }
+  const attendanceSummary = (schoolId: string) => {
+    if (!cyclesOf(schoolId).some((cycle) => staffHolds(schoolId, 'attendance.view', cycle.id)))
+      return null
+    const callClasses = attendanceClassrooms(schoolId).filter(
+      (classroom) => classroom.mode === 'roll_call',
+    )
+    const today = absenceRows(schoolId, TODAY, false)
+    return {
+      absent_today: today.filter((row) => row.status === 'absent').length,
+      late_today: today.filter((row) => row.status === 'late').length,
+      roll_calls_missing: callClasses.filter(
+        (classroom) => !rollCalls.has(`${classroom.id}:${TODAY}`),
+      ).length,
+      rates: [
+        { date: '2026-11-02', rate: 97 },
+        { date: '2026-11-03', rate: 95 },
+        { date: TODAY, rate: 96 },
+      ],
+    }
+  }
   const reminders = new Map<string, { at: string; status: string }>()
   /** Comme ListUnpaid : factures dont l'échu au 04/11/2026 n'est pas réglé, le plus gros retard d'abord. */
   const unpaidRows = (schoolId: string) =>
@@ -2732,6 +2966,197 @@ export async function mockApi(
           )
           return route.fulfill({ json: { data: closed } })
         }
+        if (request.method() === 'GET' && path === '/attendance/classrooms') {
+          return route.fulfill({ json: { data: attendanceClassrooms(schoolHeader ?? '') } })
+        }
+        {
+          const match =
+            /^\/classrooms\/([^/]+)\/(roll-calls\/(\d{4}-\d{2}-\d{2})|attendance)$/.exec(path)
+          if (match !== null) {
+            const schoolId = schoolHeader ?? ''
+            const classroomId = match[1] ?? ''
+            const classroom = attendanceClassrooms(schoolId).find(
+              (candidate) => candidate.id === classroomId,
+            )
+            if (classroom === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (match[2] === 'attendance') {
+              const url = new URL(request.url())
+              const days = []
+              for (
+                let day = new Date(`${url.searchParams.get('from') ?? TODAY}T00:00:00Z`);
+                day.toISOString().slice(0, 10) <= (url.searchParams.get('to') ?? TODAY) &&
+                day.toISOString().slice(0, 10) <= TODAY;
+                day.setUTCDate(day.getUTCDate() + 1)
+              ) {
+                if (day.getUTCDay() === 0 || day.getUTCDay() === 6) continue
+                const date = day.toISOString().slice(0, 10)
+                const call = rollCalls.get(`${classroomId}:${date}`)
+                const marks = [...(call?.marks.values() ?? [])]
+                const absent = marks.filter((mark) => mark.status === 'absent').length
+                days.push({
+                  date,
+                  taken: call !== undefined,
+                  present: call === undefined ? 0 : rosterOf(schoolId, classroomId).length - absent,
+                  absent,
+                  late: marks.filter((mark) => mark.status === 'late').length,
+                })
+              }
+              return route.fulfill({ json: { data: days } })
+            }
+            const date = match[3] ?? TODAY
+            if (request.method() === 'PUT') {
+              if (classroom.mode !== 'roll_call')
+                return route.fulfill({
+                  status: 409,
+                  json: { message: 'Mode.', code: 'wrong_mode' },
+                })
+              if (!classroom.can_take) return route.fulfill(forbidden)
+              const body = z
+                .object({
+                  marks: z.array(z.object({ student_id: z.string(), status: z.string() })),
+                })
+                .parse(request.postDataJSON())
+              saveCall(classroomId, date, body.marks)
+            }
+            return route.fulfill({ json: { data: rollCallResource(schoolId, classroomId, date) } })
+          }
+        }
+        if (request.method() === 'GET' && path === '/attendance/absences') {
+          const url = new URL(request.url())
+          const pending =
+            url.searchParams.get('pending') === 'true' || url.searchParams.get('pending') === '1'
+          return route.fulfill({
+            json: {
+              data: absenceRows(
+                schoolHeader ?? '',
+                pending ? null : (url.searchParams.get('date') ?? TODAY),
+                pending,
+              ),
+            },
+          })
+        }
+        {
+          const match =
+            /^\/attendance\/(marks|justifications)\/([^/]+)\/(justification|decision)$/.exec(path)
+          if (match !== null && request.method() === 'POST') {
+            const schoolId = schoolHeader ?? ''
+            const found = findMark(match[2] ?? '')
+            if (found === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (match[3] === 'decision') {
+              const body = z.object({ decision: z.string() }).parse(request.postDataJSON())
+              if (found.mark.justification?.status !== 'pending')
+                return route.fulfill({
+                  status: 409,
+                  json: { message: 'Déjà traitée.', code: 'already_decided' },
+                })
+              found.mark.justification.status =
+                body.decision === 'accepted' ? 'accepted' : 'refused'
+            } else {
+              const reason =
+                /name="reason"\r\n\r\n([^\r]*)/.exec(request.postData() ?? '')?.[1] ?? ''
+              found.mark.justification = {
+                id: nextBillingId(),
+                status: 'accepted',
+                source: 'school',
+                reason,
+                by: current?.name ?? '',
+                at: `${TODAY}T09:00:00+00:00`,
+              }
+            }
+            const row = absenceRows(schoolId, null, false).find(
+              (candidate) => candidate.id === found.mark.id,
+            )
+            return route.fulfill({ json: { data: row } })
+          }
+        }
+        if (request.method() === 'GET' && path === '/daycare/board') {
+          return route.fulfill({ json: { data: daycareBoard(schoolHeader ?? '') } })
+        }
+        if (
+          request.method() === 'POST' &&
+          (path === '/daycare/visits' || path === '/daycare/logs')
+        ) {
+          const schoolId = schoolHeader ?? ''
+          const body = z
+            .object({
+              student_id: z.string(),
+              time: z.string(),
+              direction: z.optional(z.string()),
+              person: z.optional(z.nullable(z.string())),
+              kind: z.optional(z.string()),
+              note: z.optional(z.string()),
+            })
+            .parse(request.postDataJSON())
+          recordDaycare(
+            body.student_id,
+            path === '/daycare/visits'
+              ? {
+                  kind: 'check',
+                  direction: body.direction ?? 'in',
+                  time: body.time,
+                  person: body.person ?? null,
+                }
+              : {
+                  kind: 'log',
+                  time: body.time,
+                  logKind: body.kind ?? 'activity',
+                  note: body.note ?? '',
+                },
+          )
+          return route.fulfill({ json: { data: daycareBoard(schoolId) } })
+        }
+        if (request.method() === 'POST' && path === '/sync') {
+          const body = z
+            .object({
+              operations: z.array(
+                z.object({
+                  id: z.string(),
+                  type: z.string(),
+                  payload: z.record(z.string(), z.unknown()),
+                }),
+              ),
+            })
+            .parse(request.postDataJSON())
+          const data = body.operations.map((operation) => {
+            const replayed = syncDone.has(operation.id)
+            if (!replayed) {
+              syncDone.add(operation.id)
+              const payload = operation.payload
+              const text = (key: string) => (typeof payload[key] === 'string' ? payload[key] : '')
+              if (operation.type === 'attendance.roll_call') {
+                const marks = Array.isArray(payload.marks)
+                  ? payload.marks.flatMap((mark: unknown) =>
+                      typeof mark === 'object' &&
+                      mark !== null &&
+                      'student_id' in mark &&
+                      'status' in mark
+                        ? [{ student_id: String(mark.student_id), status: String(mark.status) }]
+                        : [],
+                    )
+                  : []
+                saveCall(text('classroom_id'), text('date'), marks)
+              } else if (operation.type === 'daycare.check') {
+                recordDaycare(text('student_id'), {
+                  kind: 'check',
+                  direction: text('direction'),
+                  time: text('time'),
+                  person: text('person') === '' ? null : text('person'),
+                })
+              } else {
+                recordDaycare(text('student_id'), {
+                  kind: 'log',
+                  time: text('time'),
+                  logKind: text('kind'),
+                  note: text('note'),
+                })
+              }
+            }
+            return { id: operation.id, status: 'applied', code: null, message: null, replayed }
+          })
+          return route.fulfill({ json: { data } })
+        }
         if (request.method() === 'GET' && path === '/billing/unpaid') {
           const schoolId = schoolHeader ?? ''
           const cycles = cyclesOf(schoolId).filter((cycle) =>
@@ -2848,6 +3273,7 @@ export async function mockApi(
                 students: students.length,
                 by_cycle: byCycle,
                 finance,
+                attendance: attendanceSummary(schoolId),
               },
             },
           })

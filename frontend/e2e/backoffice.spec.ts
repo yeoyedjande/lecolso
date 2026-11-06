@@ -86,7 +86,7 @@ test('clôture de la caisse : espèces comptées, écart justifié, caisse figé
   await expect(page.getByText('Monnaie rendue en trop')).toBeVisible()
 })
 
-test('appel de classe (démo) : absent en un geste, enregistrement', async ({ page }) => {
+test('appel de classe : absent en un geste, enregistrement', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.director })
   await page.goto('/les-lauriers/presences')
 
@@ -105,7 +105,49 @@ test('appel de classe (démo) : absent en un geste, enregistrement', async ({ pa
 
   await page.getByRole('button', { name: 'Enregistrer l’appel' }).click()
   await expect(page.getByText('Appel enregistré : 1 absent(s)', { exact: true })).toBeVisible()
-  await expect(page.getByText(/Appel fait par Yao Directeur/)).toBeVisible()
+  await expect(page.getByText(/Appel enregistré par Yao Directeur/)).toBeVisible()
+})
+
+test('appel hors connexion : gardé sur l’appareil, envoyé au retour du réseau', async ({
+  page,
+  context,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/presences')
+  await page.getByRole('combobox', { name: 'Classe' }).selectOption({ label: 'CE2 A' })
+  await expect(page.getByText(/· 0 absent\(s\) ·/)).toBeVisible()
+
+  await context.setOffline(true)
+  await page
+    .getByRole('button', { name: /^Absent — / })
+    .first()
+    .click()
+  await page.getByRole('button', { name: 'Enregistrer l’appel' }).click()
+  await expect(page.getByText(/enregistré sur cet appareil/).first()).toBeVisible()
+  await expect(page.getByText('1 élément(s) en attente d’envoi')).toBeVisible()
+
+  await context.setOffline(false)
+  await expect(page.getByText('1 saisie(s) hors connexion envoyée(s)').first()).toBeVisible()
+  await expect(page.getByText('1 élément(s) en attente d’envoi')).toHaveCount(0)
+})
+
+test('garderie : arrivée d’un enfant et journal de la journée', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/garderie')
+
+  await page.getByRole('button', { name: 'Arrivée' }).first().click()
+  const arrival = page.getByRole('dialog')
+  await arrival.getByLabel('Accompagné(e) par').fill('Maman')
+  await arrival.getByLabel('Heure').fill('07:45')
+  await arrival.getByRole('button', { name: 'Confirmer' }).click()
+  await expect(page.getByText('Arrivé(e) à 07:45').first()).toBeVisible()
+  await expect(page.getByText('Déposé(e) par Maman').first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Ajouter au journal' }).first().click()
+  const log = page.getByRole('dialog')
+  await log.getByLabel('Note').fill('Bouillie, tout mangé')
+  await log.getByRole('button', { name: 'Ajouter' }).click()
+  await expect(page.getByText('Bouillie, tout mangé')).toBeVisible()
 })
 
 test('saisie des notes au clavier : Entrée descend, note invalide signalée', async ({ page }) => {
@@ -149,4 +191,29 @@ test('directrice limitée à la maternelle : seuls les élèves de maternelle', 
   await expect(cycle.locator('option')).toHaveText(['Tous les cycles', 'Maternelle'])
   await expect(page.getByText(/^\d+ élèves$/)).toBeVisible()
   await expect(page.getByText(/^CE1 A$/)).toHaveCount(0)
+})
+
+test('garderie hors connexion : arrivée puis départ pendant la même coupure', async ({
+  page,
+  context,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/garderie')
+  await expect(page.getByRole('button', { name: 'Arrivée' }).first()).toBeVisible()
+
+  await context.setOffline(true)
+  await page.getByRole('button', { name: 'Arrivée' }).first().click()
+  await page.getByRole('dialog').getByLabel('Heure').fill('07:40')
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmer' }).click()
+  await expect(page.getByText('Arrivé(e) à 07:40').first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Départ' }).first().click()
+  await page.getByRole('dialog').getByLabel('Heure').fill('12:10')
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmer' }).click()
+  await expect(page.getByText('Parti(e) à 12:10').first()).toBeVisible()
+  await expect(page.getByText('2 élément(s) en attente d’envoi')).toBeVisible()
+
+  await context.setOffline(false)
+  await expect(page.getByText('2 saisie(s) hors connexion envoyée(s)').first()).toBeVisible()
+  await expect(page.getByText('Parti(e) à 12:10').first()).toBeVisible()
 })

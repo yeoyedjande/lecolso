@@ -16,7 +16,7 @@ final class DashboardRequest extends FormRequest
         $user = $this->user();
         $scope = app(BillingScope::class);
 
-        return $user instanceof User && ($scope->cycles($user, 'students.view') !== [] || $scope->cycles($user, 'billing.view') !== []);
+        return $user instanceof User && ($scope->cycles($user, 'students.view') !== [] || $scope->cycles($user, 'billing.view') !== [] || $scope->cycles($user, 'attendance.view') !== []);
     }
 
     /**

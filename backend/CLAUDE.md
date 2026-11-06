@@ -169,6 +169,23 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   caisse : la sienne, toutes avec `billing.manage` sur toute l'école. Payeur suivi par l'événement
   `Students\Events\StudentPayerChanged`.
 
+## Présences (domaine Attendance)
+
+- `roll_calls` (un appel par classe et par jour), `attendance_marks` (absents et retards seulement),
+  `attendance_corrections` (direction, motif), `absence_justifications` (motif, photo privée `absence-proofs/`,
+  source guardian ou school, statut pending/accepted/refused), `daycare_visits`, `daycare_logs` (note non journalisée),
+  `sync_operations` (idempotence de `POST /sync`). Identifiants UUID, éventuellement fournis par l'appareil.
+- Droits : `Support\AttendanceAccess` — faire l'appel : titulaire (`attendance.manage`) ou personnel du cycle
+  (`Identity\Authorization\StaffScope`, hors rôles Parent et Enseignant) ; voir : `attendance.view` ou titulaire ;
+  corriger une journée passée : `attendance.correct` ; décider d'une justification : personnel avec `attendance.manage`.
+  Classe non visible : 404.
+- `SaveRollCall` : mode du cycle `roll_call` (sinon 409 `wrong_mode`), année ouverte, jour ≤ aujourd'hui ;
+  `RollCallWindow::isClosed` (jour passé, sauf saisie hors connexion de moins de 72 h) → direction et motif ;
+  élèves inscrits ce jour-là (`ClassRoster::on`). Nouvelles absences : événement `Events\StudentMarkedAbsent`.
+- `ApplySyncOperations` (`POST /sync`) : `attendance.roll_call`, `daycare.check`, `daycare.log`, mêmes Actions et
+  droits qu'en ligne ; une opération déjà traitée renvoie son premier résultat (`replayed`).
+- Jour de l'école : `Support\Time\SchoolClock::date()` (Africa/Abidjan).
+
 ## Fichiers
 
 - Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).

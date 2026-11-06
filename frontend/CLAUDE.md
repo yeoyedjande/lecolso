@@ -109,7 +109,13 @@ src/
   `useCancelPayment`), **caisse du jour** (`useCashDesk`, `useCloseCashSession`), situation, paiements, remboursement et
   report d'un trop-perçu dans l'onglet « Frais » (`useChangeInvoice` : `refund`, `transfer`), politique de départ dans
   l'écran Frais (`useFinancialPolicy`), **impayés et relances SMS** (`useUnpaid`, `useRemind`), **tableau de bord**
-  (`features/dashboard` : `useDashboard`, effectifs et finances ; présences en démonstration, `useDashboardAttendance`).
+  (`features/dashboard` : `useDashboard`, effectifs, finances et présences). **Présences** (`features/attendance/api.ts` :
+  `useAttendanceClassrooms`, `useRollCall`, `useSaveRollCall`, `useAttendanceHistory`, `useAbsences`,
+  `useJustifyAbsence`, `useDecideJustification`, `useDaycareBoard`, `useDaycareRecord`) : écrans Présences et Garderie.
+  Saisies hors connexion (`networkMode: 'always'`) : `lib/offline/outbox.ts` (`enqueue`), envoi par
+  `features/sync` (`flushOutbox`, `<OutboxSync>` dans le back-office), compteur dans `<OfflineBanner>`.
+  L'espace enseignant garde l'appel et le journal de démonstration (`demoApi.ts`, `DemoRollCallPanel`,
+  `DemoDaycarePage`) jusqu'au lot 8.
   Les paiements et reçus de l'espace parent restent en démonstration (`useDemoReceipt`).
   Espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).

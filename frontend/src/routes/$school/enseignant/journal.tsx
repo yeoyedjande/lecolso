@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { ListSkeleton } from '@/components/states/QueryState'
-import { DaycarePage } from '@/features/attendance/components/DaycarePage'
+import { DemoDaycarePage } from '@/features/attendance/components/DemoDaycarePage'
 import { useMyClasses } from '@/features/teacher/api'
 
 export const Route = createFileRoute('/$school/enseignant/journal')({
@@ -15,7 +15,7 @@ function JournalRoute() {
   const classes = useMyClasses()
   if (classes.data === undefined) return <ListSkeleton />
   return (
-    <DaycarePage
+    <DemoDaycarePage
       journal={{
         classroomIds: classes.data.map((classroom) => classroom.id),
         title: t('teacher.journal.title'),

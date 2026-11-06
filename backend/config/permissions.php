@@ -49,6 +49,8 @@ return [
     'attendance.view' => ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
     'attendance.manage' => ['director', 'secretary', 'teacher'],
     'attendance.justify' => ['guardian'],
+    // Corriger un appel après sa journée (motif obligatoire), ou le faire en retard : la direction (05/11/2026)
+    'attendance.correct' => ['director'],
 
     // Messagerie (comptable : relances ; parent : répondre)
     'messaging.send' => ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],

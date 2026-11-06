@@ -19,14 +19,11 @@ import { useChartTheme } from '@/components/charts/chartTheme'
 import { KpiCard } from '@/components/KpiCard'
 import { Reveal } from '@/components/motion/Reveal'
 import { ScreenHeader } from '@/components/ScreenHeader'
-import { DemoBanner } from '@/components/states/DemoBanner'
 import { CardsSkeleton, QueryState } from '@/components/states/QueryState'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Can } from '@/features/auth/RequirePermission'
-import { can } from '@/features/auth/access'
-import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { CYCLE_CHART, cycleTone } from '@/lib/cycles'
 import {
   formatDayMonth,
@@ -36,7 +33,7 @@ import {
   formatTime,
 } from '@/lib/format'
 
-import { useDashboard, useDashboardAttendance, type DashboardData } from './api'
+import { useDashboard, type DashboardData } from './api'
 
 function compactMoney(value: number): string {
   if (value >= 1_000_000)
@@ -48,9 +45,15 @@ function compactMoney(value: number): string {
 function Dashboard({ data }: { data: DashboardData }) {
   const { t } = useTranslation()
   const chart = useChartTheme()
-  const school = useCurrentSchool()
-  const presence = useDashboardAttendance()
-  const attendance = can(school, 'attendance.view') ? presence.data : undefined
+  const attendance =
+    data.attendance === null
+      ? undefined
+      : {
+          absentToday: data.attendance.absent_today,
+          lateToday: data.attendance.late_today,
+          rollCallsMissing: data.attendance.roll_calls_missing,
+          attendance: data.attendance.rates,
+        }
   const { finance } = data
   const cycleData = data.by_cycle.map((entry) => ({ ...entry, cycle: cycleTone(entry.code) }))
 
@@ -242,10 +245,7 @@ function Dashboard({ data }: { data: DashboardData }) {
           <Reveal index={6} className="xl:col-span-2">
             <Card className="h-full">
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle>{t('dashboard.attendance.title')}</CardTitle>
-                  <DemoBanner />
-                </div>
+                <CardTitle>{t('dashboard.attendance.title')}</CardTitle>
                 <CardDescription>{t('dashboard.attendance.description')}</CardDescription>
               </CardHeader>
               <CardContent>
