@@ -111,6 +111,7 @@ export const SCREENS: Screen[] = [
       ['parent-paiements', '/les-lauriers/parent/paiements', 'Payer par Mobile Money'],
       ['parent-messages', '/les-lauriers/parent/messages', 'Devoirs de la semaine'],
       ['parent-justifier', '/les-lauriers/parent/justifier', 'Envoyer la justification'],
+      ['parent-prevenir', '/les-lauriers/parent/prevenir', 'Prévenir l’école'],
       ['parent-profil', '/les-lauriers/parent/profil', 'Changer mon mot de passe'],
     ] as const
   ).map(([name, path, ready]): Screen => ({

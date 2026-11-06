@@ -269,6 +269,8 @@ export interface MockApi {
   schoolHeaders: string[]
   /** Session expirée côté serveur : toute requête suivante répond 401. */
   expireSession: () => void
+  /** Autre compte connecté (données conservées) : parcours qui passe du parent à l'école. */
+  switchSession: (account: Account) => void
 }
 
 /**
@@ -1566,6 +1568,7 @@ export async function mockApi(
       reason: string
       by: string
       at: string
+      plannedId?: string
     } | null
   }
   interface MockCall {
@@ -1653,10 +1656,13 @@ export async function mockApi(
       corrections: [],
       rows: rosterOf(schoolId, classroomId).map((student) => {
         const mark = call?.marks.get(student.id)
+        const planned = plannedOn(schoolId, student.id, date)
         return {
           student: attendanceStudent(schoolId, student),
           mark_id: mark?.id ?? null,
-          status: mark?.status ?? 'present',
+          status:
+            mark?.status ?? (planned !== undefined && call === undefined ? 'absent' : 'present'),
+          planned: planned === undefined ? null : { id: planned.id, status: planned.status },
           late_minutes: null,
           justification:
             mark?.justification == null
@@ -1689,6 +1695,13 @@ export async function mockApi(
       })
     }
     rollCalls.set(`${classroomId}:${date}`, next)
+    const schoolId = [...schoolClassrooms.entries()].find(([, list]) =>
+      list.some((classroom) => classroom.id === classroomId),
+    )?.[0]
+    for (const [studentId, mark] of next.marks) {
+      const planned = schoolId === undefined ? undefined : plannedOn(schoolId, studentId, date)
+      if (planned !== undefined) justifyFromPlanned(planned, mark)
+    }
   }
   // Notes et compétences (lot 7a) : mêmes règles que le domaine Grading du backend
   const GRADE_SUBJECTS: [string, number][] = [
@@ -2278,6 +2291,314 @@ export async function mockApi(
       absences_to_justify: childMarks(student).filter((mark) => mark.can_justify).length,
     }
   }
+  // Messagerie et absences annoncées (lot 9a) : comme les domaines Messaging et Attendance
+  interface MockPlanned {
+    id: string
+    studentId: string
+    starts_on: string
+    ends_on: string
+    reason: string
+    status: 'pending' | 'accepted' | 'refused'
+    by: string
+    at: string
+  }
+  interface MockMessage {
+    id: string
+    side: 'guardian' | 'school'
+    author: string
+    authorName: string
+    body: string
+    sentAt: string
+    plannedId: string | null
+  }
+  interface MockConversation {
+    id: string
+    studentId: string
+    guardianId: string
+    channel: 'teacher' | 'office'
+    classroomId: string
+    subject: string
+    messages: MockMessage[]
+  }
+  const plannedAbsences = new Map<string, MockPlanned[]>()
+  const plannedOf = (schoolId: string): MockPlanned[] => {
+    const existing = plannedAbsences.get(schoolId)
+    if (existing !== undefined) return existing
+    const list: MockPlanned[] = []
+    plannedAbsences.set(schoolId, list)
+    return list
+  }
+  let messageClock = 0
+  /** Heure d'envoi croissante (le mock ne lit pas l'horloge du navigateur). */
+  const sentNow = () => {
+    messageClock += 1
+    return new Date(Date.parse('2026-11-04T09:00:00Z') + messageClock * 60_000).toISOString()
+  }
+  const conversationsBySchool = new Map<string, MockConversation[]>()
+  const reads = new Map<string, string>()
+  const guardianOfStudent = (schoolId: string, student: MockStudent, phone: string) =>
+    student.links
+      .map((link) => guardiansOf(schoolId).find((guardian) => guardian.id === link.guardian_id))
+      .find((guardian) => guardian?.phone === phone)
+  const conversationsOf = (schoolId: string): MockConversation[] => {
+    const existing = conversationsBySchool.get(schoolId)
+    if (existing !== undefined) return existing
+    const list: MockConversation[] = []
+    conversationsBySchool.set(schoolId, list)
+    if (schoolKeyOf(schoolId) !== 'lauriers') return list
+    // Deux fils de démonstration du parent Kouadio : Ange avec sa titulaire, Junior avec l'administration
+    const kids = studentsOf(schoolId).filter((student) => student.last_name === 'Kouadio')
+    const seed: [string, 'teacher' | 'office', string, string, string][] = [
+      [
+        'Ange',
+        'teacher',
+        'Devoirs de la semaine',
+        'Bonjour, Ange n’a pas noté ses devoirs de mathématiques.',
+        'Bonjour, ce sont les exercices 3 et 4 page 27.',
+      ],
+      [
+        'Junior',
+        'office',
+        'Retard du matin',
+        'Junior sera en retard demain matin (rendez-vous).',
+        'Bien noté, merci de nous avoir prévenus.',
+      ],
+    ]
+    for (const [first, channel, subject, question, answer] of seed) {
+      const student = kids.find((candidate) => candidate.first_name === first)
+      const guardian =
+        student === undefined
+          ? undefined
+          : guardianOfStudent(schoolId, student, ACCOUNTS.guardian.phone)
+      const classroomId =
+        student === undefined ? undefined : latestEnrollment(student)?.classroom_id
+      if (student === undefined || guardian === undefined || classroomId === undefined) continue
+      list.push({
+        id: nextBillingId(),
+        studentId: student.id,
+        guardianId: guardian.id,
+        channel,
+        classroomId,
+        subject,
+        messages: [
+          {
+            id: nextBillingId(),
+            side: 'guardian',
+            author: ACCOUNTS.guardian.phone,
+            authorName: ACCOUNTS.guardian.name,
+            body: question,
+            sentAt: '2026-11-03T07:30:00.000Z',
+            plannedId: null,
+          },
+          {
+            id: nextBillingId(),
+            side: 'school',
+            author: channel === 'teacher' ? ACCOUNTS.teacher.phone : ACCOUNTS.director.phone,
+            authorName: channel === 'teacher' ? ACCOUNTS.teacher.name : ACCOUNTS.director.name,
+            body: answer,
+            sentAt: '2026-11-03T08:10:00.000Z',
+            plannedId: null,
+          },
+        ],
+      })
+    }
+    return list
+  }
+  const isGuardianOfConversation = (schoolId: string, conversation: MockConversation) =>
+    isGuardianHere(schoolId) &&
+    guardiansOf(schoolId).find((guardian) => guardian.id === conversation.guardianId)?.phone ===
+      current?.phone
+  const isHomeroomOfConversation = (schoolId: string, conversation: MockConversation) => {
+    const classroom = classroomsOf(schoolId).find(
+      (candidate) => candidate.id === conversation.classroomId,
+    )
+    return classroom !== undefined && isHomeroom(classroom)
+  }
+  const isOfficeOf = (schoolId: string, conversation: MockConversation) =>
+    staffHolds(schoolId, 'messaging.send', cycleOfClassroom(schoolId, conversation.classroomId))
+  const canReadConversation = (schoolId: string, conversation: MockConversation) =>
+    isGuardianOfConversation(schoolId, conversation) ||
+    isOfficeOf(schoolId, conversation) ||
+    (conversation.channel === 'teacher' && isHomeroomOfConversation(schoolId, conversation))
+  const canWriteConversation = (schoolId: string, conversation: MockConversation) =>
+    isGuardianOfConversation(schoolId, conversation) ||
+    (conversation.channel === 'teacher'
+      ? isHomeroomOfConversation(schoolId, conversation)
+      : isOfficeOf(schoolId, conversation))
+  const plannedBrief = (schoolId: string, plannedId: string | null) => {
+    const planned = plannedOf(schoolId).find((candidate) => candidate.id === plannedId)
+    return planned === undefined
+      ? null
+      : {
+          id: planned.id,
+          starts_on: planned.starts_on,
+          ends_on: planned.ends_on,
+          status: planned.status,
+        }
+  }
+  const conversationResource = (schoolId: string, conversation: MockConversation) => {
+    const side = isGuardianOfConversation(schoolId, conversation) ? 'guardian' : 'school'
+    const readAt = reads.get(`${conversation.id}:${current?.phone ?? ''}`) ?? ''
+    const student = studentsOf(schoolId).find(
+      (candidate) => candidate.id === conversation.studentId,
+    )
+    const guardian = guardiansOf(schoolId).find(
+      (candidate) => candidate.id === conversation.guardianId,
+    )
+    const classroom = classroomsOf(schoolId).find(
+      (candidate) => candidate.id === conversation.classroomId,
+    )
+    const last = conversation.messages[conversation.messages.length - 1]
+    return {
+      id: conversation.id,
+      channel: conversation.channel,
+      subject: conversation.subject,
+      student: {
+        id: conversation.studentId,
+        full_name: student === undefined ? '' : fullName(student),
+        first_name: student?.first_name ?? '',
+      },
+      classroom: {
+        id: conversation.classroomId,
+        name: classroom === undefined ? '' : classroomResource(schoolId, classroom).name,
+      },
+      guardian: {
+        id: conversation.guardianId,
+        name: guardian?.name ?? '',
+        phone: side === 'school' ? (guardian?.phone ?? null) : null,
+      },
+      last_message:
+        last === undefined
+          ? null
+          : {
+              side: last.side,
+              author_name: last.authorName,
+              preview: last.body.slice(0, 140),
+              sent_at: last.sentAt,
+            },
+      last_message_at: last?.sentAt ?? '',
+      unread: conversation.messages.filter(
+        (message) => message.side !== side && message.sentAt > readAt,
+      ).length,
+      side,
+      can_write: canWriteConversation(schoolId, conversation),
+    }
+  }
+  const conversationDetail = (schoolId: string, conversation: MockConversation) => ({
+    conversation: conversationResource(schoolId, conversation),
+    messages: conversation.messages.map((message) => ({
+      id: message.id,
+      side: message.side,
+      author_name: message.authorName,
+      body: message.body,
+      sent_at: message.sentAt,
+      mine: message.author === current?.phone,
+      planned_absence: plannedBrief(schoolId, message.plannedId),
+    })),
+  })
+  const postMessage = (
+    schoolId: string,
+    conversation: MockConversation,
+    body: string,
+    plannedId: string | null = null,
+  ) => {
+    const sentAt = sentNow()
+    conversation.messages.push({
+      id: nextBillingId(),
+      side: isGuardianOfConversation(schoolId, conversation) ? 'guardian' : 'school',
+      author: current?.phone ?? '',
+      authorName: current?.name ?? '',
+      body,
+      sentAt,
+      plannedId,
+    })
+    reads.set(`${conversation.id}:${current?.phone ?? ''}`, sentAt)
+  }
+  /** Comme StartConversation : fil existant (enfant, tuteur, destinataire) ou nouveau. */
+  const startConversation = (
+    schoolId: string,
+    student: MockStudent,
+    channel: 'teacher' | 'office',
+    subject: string,
+    guardianId: string | null,
+  ): MockConversation | number => {
+    const mine = guardianOfStudent(schoolId, student, current?.phone ?? '')
+    const asGuardian = isGuardianHere(schoolId) && mine !== undefined
+    const target = asGuardian ? mine.id : guardianId
+    if (target === null || !student.links.some((link) => link.guardian_id === target)) return 404
+    const classroomId = latestEnrollment(student)?.classroom_id
+    if (classroomId === undefined) return 409
+    const classroom = classroomsOf(schoolId).find((candidate) => candidate.id === classroomId)
+    if (channel === 'teacher' && classroom?.homeroom_teacher_id == null) return 409
+    const list = conversationsOf(schoolId)
+    const existing = list.find(
+      (candidate) =>
+        candidate.studentId === student.id &&
+        candidate.guardianId === target &&
+        candidate.channel === channel,
+    )
+    const conversation = existing ?? {
+      id: nextBillingId(),
+      studentId: student.id,
+      guardianId: target,
+      channel,
+      classroomId,
+      subject,
+      messages: [],
+    }
+    if (!asGuardian && !canWriteConversation(schoolId, conversation)) return 403
+    if (existing === undefined) list.push(conversation)
+    return conversation
+  }
+  const visibleConversations = (schoolId: string) =>
+    conversationsOf(schoolId)
+      .filter((conversation) => canReadConversation(schoolId, conversation))
+      .map((conversation) => conversationResource(schoolId, conversation))
+      .sort((a, b) => b.last_message_at.localeCompare(a.last_message_at))
+  /** Absence annoncée non refusée qui couvre ce jour (comme PlannedAbsences::covering). */
+  const plannedOn = (schoolId: string, studentId: string, date: string) =>
+    plannedOf(schoolId).find(
+      (planned) =>
+        planned.studentId === studentId &&
+        planned.status !== 'refused' &&
+        planned.starts_on <= date &&
+        date <= planned.ends_on,
+    )
+  const justifyFromPlanned = (planned: MockPlanned, mark: MockMark) => {
+    if (mark.status !== 'absent' || mark.justification !== null) return
+    mark.justification = {
+      id: nextBillingId(),
+      status: planned.status,
+      source: 'guardian',
+      reason: planned.reason,
+      by: planned.by,
+      at: planned.at,
+      plannedId: planned.id,
+    }
+  }
+  const plannedResource = (schoolId: string, planned: MockPlanned) => {
+    const student = studentsOf(schoolId).find((candidate) => candidate.id === planned.studentId)
+    const classroom = attendanceClassrooms(schoolId).find(
+      (candidate) =>
+        candidate.id === (student === undefined ? '' : latestEnrollment(student)?.classroom_id),
+    )
+    if (student === undefined || classroom === undefined) return undefined
+    return {
+      id: planned.id,
+      student: attendanceStudent(schoolId, student),
+      classroom: { id: classroom.id, name: classroom.name },
+      starts_on: planned.starts_on,
+      ends_on: planned.ends_on,
+      reason: planned.reason,
+      status: planned.status,
+      submitted_by_name: planned.by,
+      submitted_at: planned.at,
+      decided_by_name: null,
+      decided_at: null,
+      decision_note: null,
+      can_decide: staffHolds(schoolId, 'attendance.manage', classroom.cycle.id),
+    }
+  }
   const childResource = (schoolId: string, student: MockStudent, termId: string | null) => {
     seedAbsence(student)
     const found = levelOfStudent(schoolId, student)
@@ -2379,6 +2700,16 @@ export async function mockApi(
           paid_at: payment.paid_at,
           cancelled: payment.cancellation !== null,
         })) ?? [],
+      planned_absences: plannedOf(schoolId)
+        .filter((planned) => planned.studentId === student.id)
+        .map((planned) => ({
+          id: planned.id,
+          starts_on: planned.starts_on,
+          ends_on: planned.ends_on,
+          reason: planned.reason,
+          status: planned.status,
+          note: null,
+        })),
     }
   }
   const daycareBoard = (schoolId: string) => ({
@@ -4043,6 +4374,208 @@ export async function mockApi(
             return route.fulfill({ json: { data: row } })
           }
         }
+        if (path === '/conversations' || path.startsWith('/conversations/')) {
+          const schoolId = schoolHeader ?? ''
+          if (request.method() === 'GET' && path === '/conversations')
+            return route.fulfill({ json: { data: visibleConversations(schoolId) } })
+          if (request.method() === 'GET' && path === '/conversations/unread-count')
+            return route.fulfill({
+              json: {
+                data: {
+                  count: visibleConversations(schoolId).filter((row) => row.unread > 0).length,
+                },
+              },
+            })
+          if (request.method() === 'POST' && path === '/conversations') {
+            const body = z
+              .object({
+                student_id: z.string(),
+                channel: z.enum(['teacher', 'office']),
+                subject: z.string(),
+                body: z.string(),
+                guardian_id: z.optional(z.nullable(z.string())),
+              })
+              .parse(request.postDataJSON())
+            if (body.body.trim() === '')
+              return route.fulfill({
+                status: 422,
+                json: { message: 'Message vide.', errors: { body: ['Écrivez votre message.'] } },
+              })
+            const student = studentsOf(schoolId).find(
+              (candidate) => candidate.id === body.student_id,
+            )
+            if (student === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            const started = startConversation(
+              schoolId,
+              student,
+              body.channel,
+              body.subject,
+              body.guardian_id ?? null,
+            )
+            if (started === 404)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (started === 403) return route.fulfill(forbidden)
+            if (typeof started === 'number')
+              return route.fulfill({
+                status: 409,
+                json: {
+                  message:
+                    'Cette classe n’a pas encore d’enseignant(e) titulaire : écrivez à l’administration.',
+                  code: 'no_teacher',
+                },
+              })
+            postMessage(schoolId, started, body.body.trim())
+            return route.fulfill({ json: { data: conversationDetail(schoolId, started) } })
+          }
+          const [, , conversationId, sub] = path.split('/')
+          const conversation = conversationsOf(schoolId).find(
+            (candidate) => candidate.id === conversationId,
+          )
+          if (conversation === undefined || !canReadConversation(schoolId, conversation))
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (request.method() === 'POST' && sub === 'messages') {
+            if (!canWriteConversation(schoolId, conversation)) return route.fulfill(forbidden)
+            const body = z.object({ body: z.string() }).parse(request.postDataJSON())
+            postMessage(schoolId, conversation, body.body.trim())
+          }
+          if (request.method() === 'POST' && sub === 'read')
+            reads.set(`${conversation.id}:${current?.phone ?? ''}`, sentNow())
+          return route.fulfill({ json: { data: conversationDetail(schoolId, conversation) } })
+        }
+        if (
+          request.method() === 'POST' &&
+          /^\/guardian\/children\/[^/]+\/planned-absences$/.test(path)
+        ) {
+          const schoolId = schoolHeader ?? ''
+          const student = guardianChildren(schoolId).find(
+            (candidate) => path === `/guardian/children/${candidate.id}/planned-absences`,
+          )
+          if (student === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          const body = z
+            .object({
+              starts_on: z.string(),
+              ends_on: z.string(),
+              reason: z.string(),
+              message: z.optional(z.nullable(z.string())),
+            })
+            .parse(request.postDataJSON())
+          if (body.starts_on < TODAY)
+            return route.fulfill({
+              status: 422,
+              json: {
+                message: 'Jour passé.',
+                errors: {
+                  starts_on: ['Une absence passée se justifie depuis la liste des absences.'],
+                },
+              },
+            })
+          const overlap = plannedOf(schoolId).some(
+            (planned) =>
+              planned.studentId === student.id &&
+              planned.status !== 'refused' &&
+              planned.starts_on <= body.ends_on &&
+              planned.ends_on >= body.starts_on,
+          )
+          if (overlap)
+            return route.fulfill({
+              status: 409,
+              json: { message: 'Une absence est déjà annoncée sur ces jours.', code: 'overlap' },
+            })
+          const planned: MockPlanned = {
+            id: nextBillingId(),
+            studentId: student.id,
+            starts_on: body.starts_on,
+            ends_on: body.ends_on,
+            reason: body.reason,
+            status: 'pending',
+            by: current?.name ?? '',
+            at: `${TODAY}T09:00:00+00:00`,
+          }
+          plannedOf(schoolId).push(planned)
+          for (const [key, call] of rollCalls) {
+            const date = key.slice(-10)
+            const mark = call.marks.get(student.id)
+            if (mark !== undefined && body.starts_on <= date && date <= body.ends_on)
+              justifyFromPlanned(planned, mark)
+          }
+          const started = startConversation(
+            schoolId,
+            student,
+            'office',
+            `Absences de ${student.first_name}`,
+            null,
+          )
+          if (typeof started !== 'number')
+            postMessage(
+              schoolId,
+              started,
+              `Absence de ${student.first_name} prévue. Motif : ${body.reason}`,
+              planned.id,
+            )
+          return route.fulfill({
+            json: {
+              data: {
+                id: planned.id,
+                starts_on: planned.starts_on,
+                ends_on: planned.ends_on,
+                reason: planned.reason,
+                status: planned.status,
+                note: null,
+              },
+            },
+          })
+        }
+        if (request.method() === 'GET' && path === '/attendance/planned-absences') {
+          const schoolId = schoolHeader ?? ''
+          if (attendanceClassrooms(schoolId).length === 0) return route.fulfill(forbidden)
+          const pending = new URL(request.url()).searchParams.get('pending')
+          const onlyPending = pending === 'true' || pending === '1'
+          return route.fulfill({
+            json: {
+              data: plannedOf(schoolId)
+                .filter((planned) =>
+                  onlyPending ? planned.status === 'pending' : planned.ends_on >= TODAY,
+                )
+                .flatMap((planned) => {
+                  const row = plannedResource(schoolId, planned)
+                  return row === undefined ? [] : [row]
+                }),
+            },
+          })
+        }
+        if (
+          request.method() === 'POST' &&
+          /^\/attendance\/planned-absences\/[^/]+\/decision$/.test(path)
+        ) {
+          const schoolId = schoolHeader ?? ''
+          const planned = plannedOf(schoolId).find(
+            (candidate) => path === `/attendance/planned-absences/${candidate.id}/decision`,
+          )
+          const row = planned === undefined ? undefined : plannedResource(schoolId, planned)
+          if (planned === undefined || row === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (!row.can_decide) return route.fulfill(forbidden)
+          if (planned.status !== 'pending')
+            return route.fulfill({
+              status: 409,
+              json: {
+                message: 'Cette absence annoncée a déjà été traitée.',
+                code: 'already_decided',
+              },
+            })
+          const body = z.object({ decision: z.string() }).parse(request.postDataJSON())
+          planned.status = body.decision === 'accepted' ? 'accepted' : 'refused'
+          for (const call of rollCalls.values())
+            for (const mark of call.marks.values())
+              if (
+                mark.justification?.plannedId === planned.id &&
+                mark.justification.status === 'pending'
+              )
+                mark.justification.status = planned.status
+          return route.fulfill({ json: { data: plannedResource(schoolId, planned) } })
+        }
         if (request.method() === 'GET' && path === '/guardian/children') {
           const schoolId = schoolHeader ?? ''
           if (!isGuardianHere(schoolId)) return route.fulfill(forbidden)
@@ -4484,6 +5017,9 @@ export async function mockApi(
     schoolHeaders,
     expireSession: () => {
       current = null
+    },
+    switchSession: (account: Account) => {
+      current = account
     },
   }
 }

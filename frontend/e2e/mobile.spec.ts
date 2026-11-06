@@ -56,6 +56,48 @@ test.describe('parcours parent', () => {
     await expect(page.getByText('Justification envoyée, en attente')).toBeVisible()
   })
 
+  test('écrire à l’administration et lire la réponse de la titulaire', async ({ page }) => {
+    await page.goto('/les-lauriers/parent/messages')
+    await page.getByRole('button', { name: /Devoirs de la semaine/ }).click()
+    await expect(page.getByText('ce sont les exercices 3 et 4 page 27.')).toBeVisible()
+    await page.getByRole('button', { name: 'Retour aux conversations' }).click()
+
+    await page.getByRole('button', { name: 'Écrire à l’école' }).click()
+    await page.getByLabel('Enfant').selectOption({ label: 'KOUADIO Ange' })
+    await page.getByLabel('L’administration (direction, secrétariat)').check()
+    await page.getByLabel('Objet').fill('Certificat de scolarité')
+    await page
+      .getByLabel('Message', { exact: true })
+      .fill('Bonjour, il me faut un certificat pour Ange.')
+    await page.getByRole('button', { name: 'Envoyer', exact: true }).press('Enter')
+
+    await expect(page.getByText('Message envoyé').first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Certificat de scolarité' })).toBeVisible()
+    await expect(page.getByText('Bonjour, il me faut un certificat pour Ange.')).toBeVisible()
+  })
+
+  test('prévenir d’une absence à venir : l’école la voit et l’accepte', async ({ page }) => {
+    const mock = await mockApi(page, { session: ACCOUNTS.guardian })
+    await page.goto('/les-lauriers/parent/justifier')
+    await page.getByRole('link', { name: 'Absence à venir ? Prévenez l’école' }).click()
+    await page.getByLabel('Du').fill('2026-11-05')
+    await page.getByLabel('Au').fill('2026-11-06')
+    await page.getByLabel('Motif').fill('Mariage au village')
+    await page.getByRole('button', { name: 'Prévenir l’école' }).click()
+
+    await expect(page.getByText('L’école est prévenue').first()).toBeVisible()
+    await expect(page).toHaveURL(/onglet=absences/)
+    await expect(page.getByText('En attente de l’école')).toBeVisible()
+
+    mock.switchSession(ACCOUNTS.director)
+    await page.goto('/les-lauriers/presences')
+    await page.getByRole('tab', { name: 'Absents du jour' }).click()
+    const planned = page.getByRole('region', { name: 'Absences annoncées par les parents' })
+    await expect(planned.getByText('Mariage au village')).toBeVisible()
+    await planned.getByRole('button', { name: 'Accepter' }).click()
+    await expect(planned.getByText('Absence excusée')).toBeVisible()
+  })
+
   test('la fiche d’un enfant d’une autre famille est introuvable', async ({ page }) => {
     await page.goto('/les-lauriers/parent/enfants/0195f000-0000-7000-8000-100000000001')
     await expect(page.getByRole('heading', { name: 'Page introuvable', level: 1 })).toBeVisible()
@@ -113,6 +155,22 @@ test('enseignante : appréciation d’un élève depuis le téléphone', async (
   await expect(dialog.getByLabel('Observation de la direction')).toBeDisabled()
   await dialog.getByRole('button', { name: 'Enregistrer' }).click()
   await expect(page.getByText('Rédigée').first()).toBeVisible()
+})
+
+test('enseignante : réponse à un parent dans le fil de sa classe', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.teacher })
+  await page.goto('/les-lauriers/enseignant/messages')
+  await page.getByRole('button', { name: /Devoirs de la semaine/ }).click()
+  await page.getByLabel('Votre réponse').fill('N’oubliez pas la règle demain.')
+  await page
+    .locator('form')
+    .filter({ has: page.getByLabel('Votre réponse') })
+    .getByRole('button', { name: 'Envoyer' })
+    .press('Enter')
+  await expect(page.getByText('N’oubliez pas la règle demain.')).toBeVisible()
+  // Le fil de l'administration (Junior) n'est pas le sien
+  await page.getByRole('button', { name: 'Retour aux conversations' }).click()
+  await expect(page.getByRole('button', { name: /Retard du matin/ })).toHaveCount(0)
 })
 
 test('enseignante : appel hors connexion, envoyé au retour du réseau', async ({

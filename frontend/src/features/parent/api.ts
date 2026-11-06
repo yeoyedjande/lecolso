@@ -7,6 +7,7 @@ import type { components } from '@/lib/api/schema'
 export type ChildSummary = components['schemas']['ChildSummaryResource']
 export type Child = components['schemas']['ChildResource']
 export type ChildMark = components['schemas']['ChildMarkResource']
+export type ChildPlannedAbsence = components['schemas']['ChildPlannedAbsenceResource']
 
 function useParentKey() {
   const school = useCurrentSchool()
@@ -73,6 +74,40 @@ export function useJustifyAbsence() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: key })
+    },
+  })
+}
+
+/**
+ * Prévenir d'une absence à venir (du … au …, motif) : l'administration reçoit un message et décide ; l'appel de ces
+ * jours marque l'enfant absent avec cette justification.
+ */
+export function usePlanAbsence() {
+  const { key, school } = useParentKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      studentId: string
+      startsOn: string
+      endsOn: string
+      reason: string
+      message: string | null
+    }): Promise<ChildPlannedAbsence> => {
+      const { data, response } = await api.POST('/guardian/children/{student}/planned-absences', {
+        params: { path: { student: input.studentId } },
+        body: {
+          starts_on: input.startsOn,
+          ends_on: input.endsOn,
+          reason: input.reason,
+          message: input.message,
+        },
+      })
+      if (data === undefined) throw new Error(`Envoi impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: key })
+      await queryClient.invalidateQueries({ queryKey: ['school', school?.id ?? null, 'messaging'] })
     },
   })
 }

@@ -10,6 +10,8 @@ import { OutboxSync } from '@/features/sync/OutboxSync'
 
 import { ContextSwitcher } from './ContextSwitcher'
 import type { NavItem } from './nav'
+import { UnreadBadge } from '@/features/messaging/components/UnreadBadge'
+
 import { SpaceLink } from './SpaceLink'
 import { UserMenu } from './UserMenu'
 
@@ -78,6 +80,9 @@ export function MobileLayout({
                   activeClassName="!text-navy after:absolute after:top-0 after:h-1 after:w-10 after:rounded-b-full after:bg-orange"
                 >
                   <Icon aria-hidden className="size-6" />
+                  {tab.key === 'messages' && (
+                    <UnreadBadge className="absolute top-1.5 right-[calc(50%-1.75rem)]" />
+                  )}
                   <span className="max-w-full truncate">{t(`nav.${tab.key}`)}</span>
                 </SpaceLink>
               </li>

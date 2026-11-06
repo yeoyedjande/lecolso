@@ -59,6 +59,7 @@ import { Route as SchoolParentSplatRouteImport } from './routes/$school/parent/$
 import { Route as SchoolParentJustifierRouteImport } from './routes/$school/parent/justifier'
 import { Route as SchoolParentMessagesRouteImport } from './routes/$school/parent/messages'
 import { Route as SchoolParentPaiementsRouteImport } from './routes/$school/parent/paiements'
+import { Route as SchoolParentPrevenirRouteImport } from './routes/$school/parent/prevenir'
 import { Route as SchoolParentProfilRouteImport } from './routes/$school/parent/profil'
 import { Route as SchoolGestionElevesIndexRouteImport } from './routes/$school/_gestion/eleves/index'
 import { Route as SchoolGestionElevesStudentIdRouteImport } from './routes/$school/_gestion/eleves/$studentId'
@@ -326,6 +327,11 @@ const SchoolParentPaiementsRoute = SchoolParentPaiementsRouteImport.update({
   path: '/paiements',
   getParentRoute: () => SchoolParentRouteRoute,
 } as any)
+const SchoolParentPrevenirRoute = SchoolParentPrevenirRouteImport.update({
+  id: '/prevenir',
+  path: '/prevenir',
+  getParentRoute: () => SchoolParentRouteRoute,
+} as any)
 const SchoolParentProfilRoute = SchoolParentProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -423,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/$school/parent/justifier': typeof SchoolParentJustifierRoute
   '/$school/parent/messages': typeof SchoolParentMessagesRoute
   '/$school/parent/paiements': typeof SchoolParentPaiementsRoute
+  '/$school/parent/prevenir': typeof SchoolParentPrevenirRoute
   '/$school/parent/profil': typeof SchoolParentProfilRoute
   '/$school/enseignant/': typeof SchoolEnseignantIndexRoute
   '/$school/parent/': typeof SchoolParentIndexRoute
@@ -479,6 +486,7 @@ export interface FileRoutesByTo {
   '/$school/parent/justifier': typeof SchoolParentJustifierRoute
   '/$school/parent/messages': typeof SchoolParentMessagesRoute
   '/$school/parent/paiements': typeof SchoolParentPaiementsRoute
+  '/$school/parent/prevenir': typeof SchoolParentPrevenirRoute
   '/$school/parent/profil': typeof SchoolParentProfilRoute
   '/$school/enseignant': typeof SchoolEnseignantIndexRoute
   '/$school/parent': typeof SchoolParentIndexRoute
@@ -540,6 +548,7 @@ export interface FileRoutesById {
   '/$school/parent/justifier': typeof SchoolParentJustifierRoute
   '/$school/parent/messages': typeof SchoolParentMessagesRoute
   '/$school/parent/paiements': typeof SchoolParentPaiementsRoute
+  '/$school/parent/prevenir': typeof SchoolParentPrevenirRoute
   '/$school/parent/profil': typeof SchoolParentProfilRoute
   '/$school/enseignant/': typeof SchoolEnseignantIndexRoute
   '/$school/parent/': typeof SchoolParentIndexRoute
@@ -602,6 +611,7 @@ export interface FileRouteTypes {
     | '/$school/parent/justifier'
     | '/$school/parent/messages'
     | '/$school/parent/paiements'
+    | '/$school/parent/prevenir'
     | '/$school/parent/profil'
     | '/$school/enseignant/'
     | '/$school/parent/'
@@ -658,6 +668,7 @@ export interface FileRouteTypes {
     | '/$school/parent/justifier'
     | '/$school/parent/messages'
     | '/$school/parent/paiements'
+    | '/$school/parent/prevenir'
     | '/$school/parent/profil'
     | '/$school/enseignant'
     | '/$school/parent'
@@ -718,6 +729,7 @@ export interface FileRouteTypes {
     | '/$school/parent/justifier'
     | '/$school/parent/messages'
     | '/$school/parent/paiements'
+    | '/$school/parent/prevenir'
     | '/$school/parent/profil'
     | '/$school/enseignant/'
     | '/$school/parent/'
@@ -1098,6 +1110,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SchoolParentPaiementsRouteImport
       parentRoute: typeof SchoolParentRouteRoute
     }
+    '/$school/parent/prevenir': {
+      id: '/$school/parent/prevenir'
+      path: '/prevenir'
+      fullPath: '/$school/parent/prevenir'
+      preLoaderRoute: typeof SchoolParentPrevenirRouteImport
+      parentRoute: typeof SchoolParentRouteRoute
+    }
     '/$school/parent/profil': {
       id: '/$school/parent/profil'
       path: '/profil'
@@ -1266,6 +1285,7 @@ interface SchoolParentRouteRouteChildren {
   SchoolParentJustifierRoute: typeof SchoolParentJustifierRoute
   SchoolParentMessagesRoute: typeof SchoolParentMessagesRoute
   SchoolParentPaiementsRoute: typeof SchoolParentPaiementsRoute
+  SchoolParentPrevenirRoute: typeof SchoolParentPrevenirRoute
   SchoolParentProfilRoute: typeof SchoolParentProfilRoute
   SchoolParentIndexRoute: typeof SchoolParentIndexRoute
   SchoolParentEnfantsStudentIdRoute: typeof SchoolParentEnfantsStudentIdRoute
@@ -1277,6 +1297,7 @@ const SchoolParentRouteRouteChildren: SchoolParentRouteRouteChildren = {
   SchoolParentJustifierRoute: SchoolParentJustifierRoute,
   SchoolParentMessagesRoute: SchoolParentMessagesRoute,
   SchoolParentPaiementsRoute: SchoolParentPaiementsRoute,
+  SchoolParentPrevenirRoute: SchoolParentPrevenirRoute,
   SchoolParentProfilRoute: SchoolParentProfilRoute,
   SchoolParentIndexRoute: SchoolParentIndexRoute,
   SchoolParentEnfantsStudentIdRoute: SchoolParentEnfantsStudentIdRoute,

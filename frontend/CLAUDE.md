@@ -118,8 +118,16 @@ src/
   **Espace enseignant** (`features/teacher/api.ts` : `useTeacherClasses` — classes dont il est titulaire, d'après
   `attendance/classrooms` et `grading/classrooms`) : accueil (appel du jour par classe), appel (`RollCallPanel`),
   garderie (`DaycarePage`), notes et compétences mobiles (`TeacherGrades`), appréciations (`AppreciationDialog` du
-  back-office), élèves et fiche en lecture seule (`useStudentList`, `useStudentFile`). Seuls les messages restent en
-  démonstration (`features/teacher/demoApi.ts`, lot 9).
+  back-office), élèves et fiche en lecture seule (`useStudentList`, `useStudentFile`), messages aux parents de ses
+  élèves (tuteur choisi dans la fiche).
+  **Messagerie** (`features/messaging/api.ts` : `useConversations`, `useConversation` — `null` si introuvable —,
+  `useStartConversation`, `useReply`, `useMarkRead`, `useUnreadCount`, relus toutes les 60 s) : écran Messages du
+  back-office, de l'enseignant et du parent ; fil partagé `ConversationThread` (marqué lu à l'ouverture, lecture seule
+  si `can_write` est faux), liste mobile `MobileConversations`, pastille `UnreadBadge` sur le menu « Messages ».
+  **Absences annoncées** : le parent prévient d'une absence à venir (`/{slug}/parent/prevenir`, `usePlanAbsence`),
+  la fiche de l'enfant les liste (onglet Absences) ; l'appel affiche « Absence annoncée » (`planned` de la ligne) ;
+  la direction décide dans Présences › Absents du jour (`usePlannedAbsences`, `useDecidePlannedAbsence`).
+  Les annonces restent en démonstration jusqu'au lot 9b (`features/messaging/demoApi.ts`).
   **Notes et compétences** (`features/grades/api.ts` : `useGradingClassrooms`, `useGradeGrid`, `useCreateAssessment`,
   `useUpdateAssessment`, `useDeleteAssessment`, `useSaveGrades`, `useClassResults`, `useSkillGrid`, `useSaveSkills`,
   réglages `useGradingSettings`, `useSaveTerms`, `useSaveSubjects`, `useSaveSkillCatalog`) : écrans Notes
@@ -134,10 +142,8 @@ src/
   jour, reste à payer, absences à justifier), fiche (`ChildPage`, onglet ouvrable par `?onglet=notes|absences|bulletins|frais`) :
   notes au fil de l'eau (moyenne par matière seulement ; moyenne générale, rang et mention sur le bulletin validé),
   compétences, absences, bulletins validés (PDF signé), frais et reçus (`ParentReceipt` : `useReceipt` et
-  `receiptContent` de `features/billing/receipt.ts`). Paiement Mobile Money « bientôt disponible » jusqu'au lot 10 ;
-  seuls les messages restent en démonstration (`features/parent/demoApi.ts`, lot 9).
-  Les messages de l'espace enseignant et l'import Excel restent sur les élèves de démonstration (`useDemoStudents`,
-  `useDemoStudent`, `useImportStudents`).
+  `receiptContent` de `features/billing/receipt.ts`). Paiement Mobile Money « bientôt disponible » jusqu'au lot 10.
+  L'import Excel reste sur les élèves de démonstration (`useDemoStudents`, `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).
   **Identité de l'école** (`features/school` : `useSchoolProfile`, formulaire et logo dans Paramètres) ; logo dans
@@ -152,7 +158,7 @@ src/
   `assessment_mode = weighted_average`, compétences pour `competency`, appel pour `attendance_mode = roll_call`,
   garderie pour `check_in_out`, bulletin ou livret selon `report_document`.
 - Espaces parent et enseignant : rattachement par le téléphone du compte (`features/parent`, `features/teacher`) ; un parent
-  ne lit que ses enfants, un enseignant que ses classes (tests de cloisonnement dans `parent.test.ts`).
+  ne lit que ses enfants, un enseignant que ses classes (règle appliquée par l'API, parcours dans `e2e/mobile.spec.ts`).
 - Plateforme (`/plateforme`, super-admin, `features/platform`) et page publique (`/{slug}`, `features/public`) :
   vraie API (`/platform/schools`, `/public/schools/{slug}` : résolution publique par slug, sans `/me` ni affectation).
   Tarifs publics et pré-inscription restent en démonstration.
