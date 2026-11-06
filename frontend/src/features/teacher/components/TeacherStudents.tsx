@@ -6,6 +6,7 @@ import { ClassPicker } from '@/components/ClassPicker'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ListSkeleton } from '@/components/states/QueryState'
 import { Avatar } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useStudentList } from '@/features/students/api'
 import { formatPhone } from '@/lib/format'
@@ -86,6 +87,17 @@ export function TeacherStudents({ classroomId }: { classroomId: string | undefin
                 </li>
               ))}
             </ul>
+          )}
+          {students.hasNextPage && (
+            <Button
+              variant="outline"
+              size="lg"
+              className="justify-self-center"
+              disabled={students.isFetchingNextPage}
+              onClick={() => void students.fetchNextPage()}
+            >
+              {t('students.showMore')}
+            </Button>
           )}
         </>
       )}

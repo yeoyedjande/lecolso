@@ -70,9 +70,22 @@ function AssessmentEntry({ grid, assessmentId }: { grid: GradeGrid; assessmentId
           }
           const text = texts[row.student.id] ?? formatCell(cell)
           const parsed = parseCell(text, assessment.out_of)
+          // Le texte saisi n'est gardé que tant qu'il n'est pas enregistré : ensuite, la valeur du serveur (ou de la file
+          // hors connexion) s'affiche, y compris une correction faite ailleurs
+          const forget = () => {
+            setTexts((previous) =>
+              Object.fromEntries(Object.entries(previous).filter(([id]) => id !== row.student.id)),
+            )
+          }
           const commit = (next: { value: number | null; absent: boolean }) => {
-            if (!editable || (next.value === cell.value && next.absent === cell.absent)) return
-            save.mutate({ assessment, grades: [{ student_id: row.student.id, ...next }] })
+            if (!editable || (next.value === cell.value && next.absent === cell.absent)) {
+              forget()
+              return
+            }
+            save.mutate(
+              { assessment, grades: [{ student_id: row.student.id, ...next }] },
+              { onSettled: forget },
+            )
           }
           return (
             <li key={row.student.id}>
