@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { useReceipt } from '@/features/billing/api'
+import { ReceiptPdfButton } from '@/features/billing/components/ReceiptPdfButton'
 import { ReceiptToolbar } from '@/features/billing/components/ReceiptPage'
 import { ReceiptSheet } from '@/features/billing/components/ReceiptSheet'
 import { receiptContent } from '@/features/billing/receipt'
@@ -13,7 +14,11 @@ export function ParentReceipt({ paymentId }: { paymentId: string }) {
   const query = useReceipt(paymentId)
   return (
     <div className="grid gap-4">
-      <ReceiptToolbar backTo="/$school/parent/paiements" />
+      <ReceiptToolbar backTo="/$school/parent/paiements">
+        {query.data !== undefined && query.data !== null && (
+          <ReceiptPdfButton paymentId={paymentId} />
+        )}
+      </ReceiptToolbar>
       <QueryState query={query}>
         {(receipt) =>
           receipt === null ? (

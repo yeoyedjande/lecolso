@@ -18,6 +18,8 @@ use App\Domains\Billing\Actions\ProvisionFeeTypes;
 use App\Domains\Billing\Actions\RecordPayment;
 use App\Domains\Billing\Enums\LineKind;
 use App\Domains\Billing\Enums\PaymentMethod;
+use App\Domains\Billing\Events\PaymentCancelled;
+use App\Domains\Billing\Events\PaymentReceived;
 use App\Domains\Billing\Models\CashSession;
 use App\Domains\Billing\Models\FeeSchedule;
 use App\Domains\Billing\Models\FeeType;
@@ -46,6 +48,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -400,22 +403,9 @@ final class DemoSeeder extends Seeder
             }
         }
 
-        foreach ($invoices as $index => $invoice) {
-            $next = InvoiceBalance::of($invoice, $today)->next;
-            if ($index % 2 !== 0 || $next === null) {
-                continue;
-            }
-            $method = $methods[intdiv($index, 2) % count($methods)];
-            $amount = $index % 6 === 2 ? intdiv($next['amount'], 2) : $next['amount'];
-            $paidAt = Carbon::parse('2026-09-14 08:00:00')->addDays($index % 12)->addMinutes($index * 7);
-            if ($paidAt->greaterThanOrEqualTo($today) || $amount <= 0) {
-                continue;
-            }
-            $payment = $record->handle($cashier, $invoice, $amount, $method, $method->needsReference() ? sprintf('DEMO-%s-%04d', strtoupper(substr($method->value, 0, 3)), $index) : null, $paidAt);
-            if ($index === 4) {
-                app(CancelPayment::class)->handle($director, $payment, 'Saisie en double', $paidAt->copy()->addMinutes(3));
-            }
-        }
+        // Paiements de démo sans reçu PDF ni SMS au payeur (événements retenus) : le reçu PDF est rendu à sa
+        // première consultation (GET payments/{payment}/receipt-pdf)
+        Event::fakeFor(fn () => $this->recordDemoPayments($record, $cashier, $director, $invoices, $methods, $today), [PaymentReceived::class, PaymentCancelled::class]);
 
         foreach (CashSession::query()->where('business_date', '<', CashRegister::businessDate($today))->whereNull('closed_at')->get() as $session) {
             $expected = CashRegister::totals($session)['expected_cash'];
@@ -565,6 +555,30 @@ final class DemoSeeder extends Seeder
                 'role' => $role,
                 'cycle_id' => $cycleId,
             ])->save();
+        }
+    }
+
+    /**
+     * @param  array<int, Invoice>  $invoices
+     * @param  list<PaymentMethod>  $methods
+     */
+    private function recordDemoPayments(RecordPayment $record, User $cashier, User $director, array $invoices, array $methods, Carbon $today): void
+    {
+        foreach ($invoices as $index => $invoice) {
+            $next = InvoiceBalance::of($invoice, $today)->next;
+            if ($index % 2 !== 0 || $next === null) {
+                continue;
+            }
+            $method = $methods[intdiv($index, 2) % count($methods)];
+            $amount = $index % 6 === 2 ? intdiv($next['amount'], 2) : $next['amount'];
+            $paidAt = Carbon::parse('2026-09-14 08:00:00')->addDays($index % 12)->addMinutes($index * 7);
+            if ($paidAt->greaterThanOrEqualTo($today) || $amount <= 0) {
+                continue;
+            }
+            $payment = $record->handle($cashier, $invoice, $amount, $method, $method->needsReference() ? sprintf('DEMO-%s-%04d', strtoupper(substr($method->value, 0, 3)), $index) : null, $paidAt);
+            if ($index === 4) {
+                app(CancelPayment::class)->handle($director, $payment, 'Saisie en double', $paidAt->copy()->addMinutes(3));
+            }
         }
     }
 }

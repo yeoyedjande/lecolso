@@ -106,7 +106,9 @@ src/
   (`useStudentInvoices`, `useChangeInvoice` : service, ligne manuelle, remise) dans l'onglet « Frais » de la fiche,
   services optionnels choisis à l'inscription. **Encaissements** (`useRecordPayment` : facture de l'année de l'élève
   trouvé par `useStudentList`), **reçus** (`useReceipt`, `<ReceiptSheet>` ; annulation par la direction,
-  `useCancelPayment`), **caisse du jour** (`useCashDesk`, `useCloseCashSession`), situation, paiements, remboursement et
+  `useCancelPayment` ; **reçu PDF** : `<ReceiptPdfButton>`, `useReceiptPdf` relu toutes les 2 s pendant le rendu puis
+  toutes les 8 min pour garder l'URL signée valide, `useRetryReceiptPdf`, au guichet et dans l'espace parent),
+  **caisse du jour** (`useCashDesk`, `useCloseCashSession`), situation, paiements, remboursement et
   report d'un trop-perçu dans l'onglet « Frais » (`useChangeInvoice` : `refund`, `transfer`), politique de départ dans
   l'écran Frais (`useFinancialPolicy`), **impayés et relances SMS** (`useUnpaid`, `useRemind`), **tableau de bord**
   (`features/dashboard` : `useDashboard`, effectifs, finances et présences). **Présences** (`features/attendance/api.ts` :

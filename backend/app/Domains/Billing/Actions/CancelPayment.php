@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Billing\Actions;
 
+use App\Domains\Billing\Events\PaymentCancelled;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentCancellation;
@@ -25,7 +26,7 @@ final class CancelPayment
      */
     public function handle(User $author, Payment $payment, string $reason, Carbon $now): Payment
     {
-        return DB::transaction(static function () use ($author, $payment, $reason, $now): Payment {
+        $cancelled = DB::transaction(static function () use ($author, $payment, $reason, $now): Payment {
             Invoice::query()->whereKey($payment->invoice_id)->lockForUpdate()->firstOrFail();
             if (PaymentCancellation::query()->where('payment_id', $payment->id)->exists()) {
                 throw new BusinessConflict('already_cancelled', 'Ce paiement est déjà annulé.');
@@ -45,5 +46,9 @@ final class CancelPayment
 
             return $payment->load('cancellation');
         });
+        // Reçu « ANNULÉ » demandé une fois l'annulation validée (comme PaymentReceived dans RecordPayment)
+        PaymentCancelled::dispatch($cancelled->school_id, $cancelled->id);
+
+        return $cancelled;
     }
 }

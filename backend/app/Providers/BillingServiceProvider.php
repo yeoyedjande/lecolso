@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domains\Billing\Contracts\PaymentGateway;
+use App\Domains\Billing\Events\PaymentCancelled;
+use App\Domains\Billing\Events\PaymentReceived;
 use App\Domains\Billing\Gateways\FakePaymentGateway;
 use App\Domains\Billing\Gateways\UnconfiguredPaymentGateway;
 use App\Domains\Billing\Listeners\ApplyDeparture;
+use App\Domains\Billing\Listeners\PrepareReceipt;
 use App\Domains\Billing\Listeners\UpdateInvoicePayer;
 use App\Domains\Billing\Models\CashSession;
 use App\Domains\Billing\Models\FeeType;
@@ -27,7 +30,7 @@ use Illuminate\Support\ServiceProvider;
 
 /**
  * Facturation : paramètres de route (sous la RLS de l'école courante), Policy, réaction aux changements de payeur et
- * aux départs d'élèves.
+ * aux départs d'élèves, reçus PDF et SMS de confirmation après un encaissement.
  */
 final class BillingServiceProvider extends ServiceProvider
 {
@@ -58,5 +61,7 @@ final class BillingServiceProvider extends ServiceProvider
         Event::listen(StudentPayerChanged::class, UpdateInvoicePayer::class);
         Event::listen(StudentLeft::class, [ApplyDeparture::class, 'left']);
         Event::listen(StudentReturned::class, [ApplyDeparture::class, 'returned']);
+        Event::listen(PaymentReceived::class, [PrepareReceipt::class, 'received']);
+        Event::listen(PaymentCancelled::class, [PrepareReceipt::class, 'cancelled']);
     }
 }

@@ -9,6 +9,7 @@ use App\Domains\Billing\Actions\PresentInvoice;
 use App\Domains\Billing\Actions\RecordPayment;
 use App\Domains\Billing\Actions\RefundCredit;
 use App\Domains\Billing\Actions\ShowReceipt;
+use App\Domains\Billing\Actions\ShowReceiptPdf;
 use App\Domains\Billing\Actions\TransferCredit;
 use App\Domains\Billing\Http\Requests\CancelPaymentRequest;
 use App\Domains\Billing\Http\Requests\RecordPaymentRequest;
@@ -16,6 +17,7 @@ use App\Domains\Billing\Http\Requests\RefundRequest;
 use App\Domains\Billing\Http\Requests\ShowReceiptRequest;
 use App\Domains\Billing\Http\Requests\TransferCreditRequest;
 use App\Domains\Billing\Http\Resources\InvoiceResource;
+use App\Domains\Billing\Http\Resources\ReceiptPdfResource;
 use App\Domains\Billing\Http\Resources\ReceiptResource;
 use App\Domains\Identity\Models\User;
 use Illuminate\Auth\AuthenticationException;
@@ -55,6 +57,27 @@ final class PaymentController
     public function show(ShowReceiptRequest $request): ReceiptResource
     {
         return new ReceiptResource($this->receipt->handle($this->user($request), $request->payment()));
+    }
+
+    /**
+     * Reçu PDF d'un paiement.
+     *
+     * Qui voit la facture de l'élève. Version actuelle du reçu (marquée « ANNULÉ » après une annulation), rendue en
+     * arrière-plan : `pending` (relire dans quelques secondes), `ready` (URL signée de 10 minutes) ou `failed`.
+     */
+    public function pdf(ShowReceiptRequest $request, ShowReceiptPdf $pdf): ReceiptPdfResource
+    {
+        return new ReceiptPdfResource($pdf->handle($request->payment()));
+    }
+
+    /**
+     * Relancer le rendu du reçu PDF.
+     *
+     * Qui voit la facture de l'élève ; seul un rendu en échec est relancé.
+     */
+    public function retryPdf(ShowReceiptRequest $request, ShowReceiptPdf $pdf): ReceiptPdfResource
+    {
+        return new ReceiptPdfResource($pdf->handle($request->payment(), retry: true));
     }
 
     /**

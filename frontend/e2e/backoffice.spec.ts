@@ -49,6 +49,11 @@ test('encaissement au guichet : recherche, montant, confirmation, reçu, caisse,
   await page.getByRole('link', { name: 'Imprimer le reçu' }).click()
   await expect(page.getByText('vingt-cinq mille francs CFA', { exact: false })).toBeVisible()
   await expect(page.getByText('MP26110400123')).toBeVisible()
+  // Reçu PDF rendu par l'API : en préparation, puis lien signé
+  const pdf = page.getByRole('link', { name: 'Télécharger le reçu (PDF)' })
+  await expect(pdf).toBeVisible()
+  await expect(pdf).toHaveAttribute('href', /\/api\/v1\/files\/receipts\/.+\.pdf\?/)
+  await expect(pdf).toHaveAttribute('target', '_blank')
 
   // La direction annule le paiement : motif obligatoire, le reçu reste et porte la mention
   await page.getByRole('button', { name: 'Annuler ce paiement' }).click()
@@ -58,6 +63,7 @@ test('encaissement au guichet : recherche, montant, confirmation, reçu, caisse,
   await cancel.getByRole('button', { name: 'Annuler le paiement' }).click()
   await expect(page.getByText('Reçu annulé')).toBeVisible()
   await expect(page.getByText(/Saisie sur le mauvais élève/)).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Télécharger le reçu annulé (PDF)' })).toBeVisible()
 
   // Caisse du jour : ma caisse (encaissement et annulation), celle du comptable
   await page.getByRole('link', { name: 'Retour' }).click()

@@ -23,6 +23,7 @@ import { toast } from '@/lib/toast'
 
 import { useCancelPayment, useReceipt, type Receipt } from '../api'
 import { receiptContent } from '../receipt'
+import { ReceiptPdfButton } from './ReceiptPdfButton'
 import { ReceiptSheet } from './ReceiptSheet'
 
 export function ReceiptToolbar({
@@ -155,6 +156,7 @@ export function ReceiptPage({ paymentId }: { paymentId: string }) {
             <>
               <ReceiptToolbar backTo="/$school/caisse">
                 {receipt.can_cancel && <CancelPayment receipt={receipt} />}
+                <ReceiptPdfButton paymentId={receipt.payment.id} />
               </ReceiptToolbar>
               <ReceiptSheet receipt={receiptContent(receipt)} />
             </>

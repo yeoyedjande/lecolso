@@ -308,6 +308,8 @@ export async function mockApi(
     created_at: `2026-0${String(index + 7)}-01T08:00:00+00:00`,
   }))
   const origin = new URL(E2E_API_URL).origin
+  // Lectures du reçu PDF par version (paiement, annulé ou non)
+  const receiptPdfReads = new Map<string, number>()
   // Rôles personnalisés et ajustements des rôles système, par école (comme la table school_roles)
   const customRoles = new Map<string, MockRole[]>()
   const overrides = new Map<string, Map<string, string[]>>()
@@ -4134,6 +4136,25 @@ export async function mockApi(
             !canSee(schoolId, student, 'billing.view')
           )
             return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (sub === 'receipt-pdf') {
+            // Rendu en arrière-plan : « en préparation » à la première lecture de chaque version, puis prêt
+            const cancelled = payment.cancellation !== null
+            const version = `${payment.id}:${String(cancelled)}`
+            const reads = receiptPdfReads.get(version) ?? 0
+            receiptPdfReads.set(version, reads + 1)
+            const ready = reads > 0 || request.method() === 'POST'
+            return route.fulfill({
+              json: {
+                data: {
+                  status: ready ? 'ready' : 'pending',
+                  cancelled,
+                  url: ready
+                    ? `http://localhost:8000/api/v1/files/receipts/${cancelled ? 'b' : 'a'}${payment.id.slice(1)}.pdf?expires=1&signature=mock`
+                    : null,
+                },
+              },
+            })
+          }
           if (sub === 'cancel' && request.method() === 'POST') {
             const cycleId = levelOfStudent(schoolId, student)?.cycle.id ?? null
             if (!holds(schoolId, 'billing.cancel', cycleId)) return route.fulfill(forbidden)
