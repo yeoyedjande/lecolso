@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Billing\Actions;
 
+use App\Domains\Billing\Events\PaymentCancelled;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Models\PaymentCancellation;
@@ -42,6 +43,8 @@ final class CancelPayment
                 'cancelled_by' => $author->id,
                 'cancelled_by_name' => $author->name,
             ]);
+            // Reçu « ANNULÉ » demandé une fois l'annulation validée
+            DB::afterCommit(static fn () => PaymentCancelled::dispatch($payment->school_id, $payment->id));
 
             return $payment->load('cancellation');
         });

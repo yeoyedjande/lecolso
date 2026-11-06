@@ -16,6 +16,8 @@ use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\SchoolRole;
 use App\Domains\Identity\Models\User;
+use App\Domains\Messaging\Contracts\SmsSender;
+use App\Domains\Messaging\Sms\FakeSmsSender;
 use App\Domains\Students\Actions\EnrollStudent;
 use App\Domains\Students\Data\GuardianInput;
 use App\Domains\Students\Data\NewEnrollment;
@@ -306,4 +308,16 @@ function pay(School $school, string $invoiceId, int $amount, string $method = 'c
         ->assertCreated()->json('data.payment.id');
 
     return is_string($id) ? $id : throw new LogicException('Paiement non créé.');
+}
+
+/**
+ * SMS envoyés par le faux fournisseur (local et tests).
+ *
+ * @return list<array{to: string, message: string}>
+ */
+function sentSms(): array
+{
+    $sender = app()->get(SmsSender::class);
+
+    return $sender instanceof FakeSmsSender ? $sender->sent() : [];
 }

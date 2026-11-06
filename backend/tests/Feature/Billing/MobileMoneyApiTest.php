@@ -169,6 +169,13 @@ it('traite le webhook signé une seule fois et rejette les autres', function ():
     login($mother);
     spa('GET', "/api/v1/guardian/payment-intents/{$id}", [], $school)->assertOk()->assertJsonPath('data.status', 'succeeded');
     expect(remainingOf($school, $student))->toBe(175000);
+
+    // Paiement confirmé par le webhook (sans session) : reçu PDF rendu et un seul SMS de confirmation au payeur
+    $payment = inSchool($school, static fn (): Payment => Payment::query()->sole());
+    spa('GET', '/api/v1/payments/'.$payment->id.'/receipt-pdf', [], $school)->assertOk()->assertJsonPath('data.status', 'ready');
+    expect(sentSms())->toHaveCount(1)
+        ->and(sentSms()[0]['to'])->toBe('+2250701020304')
+        ->and(sentSms()[0]['message'])->toContain('paiement de 30'."\u{202F}".'000 FCFA reçu le 05/10/2026 (reçu '.$payment->receipt_number.')');
 });
 
 it('fait expirer une demande restée sans réponse et en permet une nouvelle', function (): void {

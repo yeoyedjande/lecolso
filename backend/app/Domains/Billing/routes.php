@@ -10,6 +10,7 @@ use App\Domains\Billing\Http\Controllers\DashboardController;
 use App\Domains\Billing\Http\Controllers\InvoiceController;
 use App\Domains\Billing\Http\Controllers\PaymentController;
 use App\Domains\Billing\Http\Controllers\PaymentWebhookController;
+use App\Domains\Billing\Http\Controllers\ReceiptFileController;
 use App\Domains\Billing\Http\Controllers\UnpaidController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,12 @@ Route::post('webhooks/payments/{provider}', PaymentWebhookController::class)
     ->where('provider', '[a-z0-9_-]{2,30}')
     ->middleware('throttle:120,1')
     ->name('webhooks.payments');
+
+// Reçu PDF : URL signée (relative, 10 minutes)
+Route::get('files/receipts/{file}', ReceiptFileController::class)
+    ->where('file', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.pdf')
+    ->middleware('signed:relative')
+    ->name('files.receipt');
 
 // Routes d'un établissement (en-tête X-School-Id)
 Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
@@ -38,6 +45,8 @@ Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::post('invoices/{invoice}/refunds', [PaymentController::class, 'refund'])->name('invoices.refunds.store');
     Route::post('invoices/{invoice}/credit-transfers', [PaymentController::class, 'transfer'])->name('invoices.credit-transfers.store');
     Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::get('payments/{payment}/receipt-pdf', [PaymentController::class, 'pdf'])->name('payments.receipt-pdf.show');
+    Route::post('payments/{payment}/receipt-pdf', [PaymentController::class, 'retryPdf'])->name('payments.receipt-pdf.retry');
     Route::post('payments/{payment}/cancel', [PaymentController::class, 'cancel'])->name('payments.cancel');
 
     Route::get('billing/cash-desk', [CashDeskController::class, 'show'])->name('billing.cash-desk.show');

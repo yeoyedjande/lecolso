@@ -177,6 +177,17 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   `SettleMobilePayment` → `RecordPayment::online()` : paiement sans caisse (`cash_session_id` nul), reçu `REC-…`,
   enregistré même si la facture a été réglée entre-temps (trop-perçu). Frais : `FinancialPolicy::mobileMoney()`
   (`schools.settings.billing_mobile_money`, `GET/PUT billing/policy`).
+- Reçus PDF et confirmation SMS (lot 10b) : `Events\PaymentReceived` (guichet et Mobile Money, après la transaction)
+  et `Events\PaymentCancelled` (`CancelPayment`, `afterCommit`) → `Listeners\PrepareReceipt` (synchrone, école
+  courante). `receipt_files` : une fiche par paiement et par version (`cancelled` : reçu « ANNULÉ »), état
+  pending/ready/failed ; `Support\ReceiptRendering::request` (créée et rendu mis en file une fois, échec relancé sur
+  demande) → `Jobs\RenderReceipt` (`TenantAware`, `Support\ReceiptDocument` : montant en lettres par `intl`, logo en
+  data URI) → gabarit `resources/views/receipts/receipt` → `PdfRenderer` → fichier privé `receipts/{uuid}.pdf`
+  (`Support\ReceiptPdf`, route signée `files.receipt`, 10 minutes). `GET payments/{payment}/receipt-pdf` (mêmes droits
+  que le reçu ; crée la fiche d'un paiement antérieur) et `POST` (relance d'un rendu en échec).
+  `payment_notifications` (une par paiement et par canal) → `Jobs\SendPaymentConfirmationSms` : SMS au tuteur payeur
+  de la facture (école, montant, date, numéro de reçu ; **aucune donnée sur l'enfant**, texte ni stocké ni
+  journalisé) ; `skipped` sans numéro, `failed` avec motif (fournisseur non configuré, refus), sans nouvel essai.
 - Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` (modifier, encaisser, relancer),
   `billing.discount`, `billing.cancel`, `billing.refund` sur le cycle de la classe (`InvoicePolicy`, `BillingScope`) ;
   caisse : la sienne, toutes avec `billing.manage` sur toute l'école. Payeur suivi par l'événement

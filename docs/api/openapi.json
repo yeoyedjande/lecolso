@@ -4254,6 +4254,112 @@
                 }
             }
         },
+        "/payments/{payment}/receipt-pdf": {
+            "get": {
+                "operationId": "payments.receipt-pdf.show",
+                "description": "Qui voit la facture de l'\u00e9l\u00e8ve. Version actuelle du re\u00e7u (marqu\u00e9e \u00ab ANNUL\u00c9 \u00bb apr\u00e8s une annulation), rendue en\narri\u00e8re-plan : `pending` (relire dans quelques secondes), `ready` (URL sign\u00e9e de 10 minutes) ou `failed`.",
+                "summary": "Re\u00e7u PDF d'un paiement",
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "payment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The payment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ReceiptPdfResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReceiptPdfResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "payments.receipt-pdf.retry",
+                "description": "Qui voit la facture de l'\u00e9l\u00e8ve ; seul un rendu en \u00e9chec est relanc\u00e9.",
+                "summary": "Relancer le rendu du re\u00e7u PDF",
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "payment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The payment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ReceiptPdfResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReceiptPdfResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/payments/{payment}/cancel": {
             "post": {
                 "operationId": "payments.cancel",
@@ -4556,6 +4662,70 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/files/receipts/{file}": {
+            "get": {
+                "operationId": "files.receipt",
+                "description": "URL sign\u00e9e renvoy\u00e9e par l'API (`GET payments/{payment}/receipt-pdf`) \u00e0 qui voit la facture, valable 10 minutes ;\nsans signature valide : 403. Jamais mise en cache partag\u00e9 ni transmise dans l'en-t\u00eate Referer.",
+                "summary": "Lire un re\u00e7u PDF",
+                "tags": [
+                    "ReceiptFile"
+                ],
+                "parameters": [
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "private, max-age=600"
+                                }
+                            },
+                            "X-Content-Type-Options": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "nosniff"
+                                }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "inline; filename=\"recu.pdf\""
+                                }
+                            },
+                            "Referrer-Policy": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "no-referrer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
                     }
                 }
             }
@@ -11767,6 +11937,34 @@
                     "audience"
                 ],
                 "title": "PublishAnnouncementRequest"
+            },
+            "ReceiptPdfResource": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "ready",
+                            "failed"
+                        ]
+                    },
+                    "cancelled": {
+                        "type": "boolean"
+                    },
+                    "url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "status",
+                    "cancelled",
+                    "url"
+                ],
+                "title": "ReceiptPdfResource"
             },
             "ReceiptResource": {
                 "type": "object",

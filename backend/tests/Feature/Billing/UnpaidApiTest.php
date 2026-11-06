@@ -7,21 +7,8 @@ use App\Domains\Billing\Models\PaymentReminder;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\User;
 use App\Domains\Messaging\Contracts\SmsSender;
-use App\Domains\Messaging\Sms\FakeSmsSender;
 use App\Domains\Messaging\Sms\UnconfiguredSmsSender;
 use Illuminate\Support\Carbon;
-
-/**
- * SMS envoyés par le faux fournisseur (local et tests).
- *
- * @return list<array{to: string, message: string}>
- */
-function sentSms(): array
-{
-    $sender = app()->get(SmsSender::class);
-
-    return $sender instanceof FakeSmsSender ? $sender->sent() : [];
-}
 
 beforeEach(function (): void {
     // Échéances 14/09 (85 000), 05/01 (60 000), 05/04 (60 000) : 145 000 échus au 20/01
@@ -83,13 +70,15 @@ it('relance le payeur par SMS au plus une fois tous les 7 jours', function (): v
     [$school, $invoice] = billedSchool();
     actingAsRole(Role::Accountant, $school);
     pay($school, $invoice->id, 100000);
+    // Le premier SMS est la confirmation du paiement
+    expect(sentSms())->toHaveCount(1);
 
     spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$invoice->id]], $school)->assertOk()
         ->assertJsonPath('data.queued', 1)
         ->assertJsonPath('data.recent', 0);
-    expect(sentSms())->toHaveCount(1)
-        ->and(sentSms()[0]['to'])->toBe('+2250701020304')
-        ->and(sentSms()[0]['message'])->toBe($school->name.' : bonjour, la scolarité d’Awa présente un retard de 45 000 FCFA. Merci de régulariser auprès de l’école.');
+    expect(sentSms())->toHaveCount(2)
+        ->and(sentSms()[1]['to'])->toBe('+2250701020304')
+        ->and(sentSms()[1]['message'])->toBe($school->name.' : bonjour, la scolarité d’Awa présente un retard de 45 000 FCFA. Merci de régulariser auprès de l’école.');
     $reminder = inSchool($school, static fn (): PaymentReminder => PaymentReminder::query()->sole());
     expect($reminder->status)->toBe(ReminderStatus::Sent)
         ->and($reminder->overdue_amount)->toBe(45000)
@@ -100,11 +89,11 @@ it('relance le payeur par SMS au plus une fois tous les 7 jours', function (): v
     spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$invoice->id]], $school)->assertOk()
         ->assertJsonPath('data.queued', 0)
         ->assertJsonPath('data.recent', 1);
-    expect(sentSms())->toHaveCount(1);
+    expect(sentSms())->toHaveCount(2);
 
     Carbon::setTestNow('2027-01-28 10:00:00');
     spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$invoice->id]], $school)->assertOk()->assertJsonPath('data.queued', 1);
-    expect(sentSms())->toHaveCount(2);
+    expect(sentSms())->toHaveCount(3);
 });
 
 it('envoie un seul SMS à un parent pour ses enfants en retard', function (): void {
@@ -120,6 +109,8 @@ it('envoie un seul SMS à un parent pour ses enfants en retard', function (): vo
 });
 
 it('écarte une facture à jour et note un échec quand aucun fournisseur SMS n’est configuré', function (): void {
+    // Fournisseur choisi avant tout envoi (le paiement envoie déjà une confirmation)
+    app()->instance(SmsSender::class, new UnconfiguredSmsSender);
     [$school, $invoice] = billedSchool();
     actingAsRole(Role::Accountant, $school);
     pay($school, $invoice->id, 145000);
@@ -128,7 +119,6 @@ it('écarte une facture à jour et note un échec quand aucun fournisseur SMS n�
         ->assertJsonPath('data.not_overdue', 1);
 
     [$other, $late] = billedSchool();
-    app()->instance(SmsSender::class, new UnconfiguredSmsSender);
     actingAsRole(Role::Accountant, $other);
     spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$late->id]], $other)->assertOk()->assertJsonPath('data.queued', 1);
     $reminder = inSchool($other, static fn (): PaymentReminder => PaymentReminder::query()->sole());

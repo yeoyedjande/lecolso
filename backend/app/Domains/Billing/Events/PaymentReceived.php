@@ -6,7 +6,7 @@ namespace App\Domains\Billing\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 
-/** Un paiement a été encaissé (identifiants seulement ; reçu par SMS au lot des relances). */
+/** Un paiement a été encaissé (identifiants seulement), après la validation de la transaction : reçu PDF et SMS au payeur. */
 final readonly class PaymentReceived
 {
     use Dispatchable;
