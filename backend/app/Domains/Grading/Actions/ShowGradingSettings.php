@@ -13,6 +13,7 @@ use App\Domains\Grading\Models\Assessment;
 use App\Domains\Grading\Models\SkillEvaluation;
 use App\Domains\Grading\Support\GradingAccess;
 use App\Domains\Grading\Support\GradingCatalog;
+use App\Domains\Grading\Support\MentionPolicy;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AssessmentMode;
 
@@ -63,6 +64,7 @@ final readonly class ShowGradingSettings
             $skills,
             $used,
             $year->status === AcademicYearStatus::Open && $this->access->canConfigure($user, $cycle->id),
+            MentionPolicy::thresholds($cycle),
         );
     }
 }

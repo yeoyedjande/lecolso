@@ -18,7 +18,8 @@ use Illuminate\Database\Eloquent\Collection;
  * - saisir (évaluations, notes, compétences) : le titulaire (grades.manage) ou le personnel du cycle avec
  *   grades.manage (direction) ;
  * - voir : le titulaire, ou le personnel avec grades.view sur le cycle ;
- * - régler périodes, matières, coefficients et référentiel : school.settings.manage sur le cycle.
+ * - régler périodes, matières, coefficients et référentiel : school.settings.manage sur le cycle ;
+ * - valider ou déverrouiller les bulletins, observation et mention : personnel avec grades.validate sur le cycle.
  */
 final readonly class GradingAccess
 {
@@ -45,6 +46,11 @@ final readonly class GradingAccess
     public function canView(User $user, Classroom $classroom): bool
     {
         return $this->staff->allows($user, 'grades.view', $classroom->level->cycle_id) || $this->isHomeroom($user, $classroom);
+    }
+
+    public function canValidate(User $user, Classroom $classroom): bool
+    {
+        return $this->staff->allows($user, 'grades.validate', $classroom->level->cycle_id);
     }
 
     public function canConfigure(User $user, string $cycleId): bool

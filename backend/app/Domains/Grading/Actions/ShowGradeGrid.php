@@ -14,6 +14,7 @@ use App\Domains\Grading\Support\ClassroomGrading;
 use App\Domains\Grading\Support\GradingAccess;
 use App\Domains\Grading\Support\GradingCatalog;
 use App\Domains\Grading\Support\GradingRoster;
+use App\Domains\Grading\Support\TermLock;
 use App\Domains\Grading\Support\WeightedAverageStrategy;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AssessmentMode;
@@ -76,6 +77,8 @@ final readonly class ShowGradeGrid
             $rows[] = ['student' => $student, 'grades' => $row, 'average' => $averages?->for($student->id)?->average];
         }
 
+        $closed = TermLock::isClosed($classroom->id, $term->id);
+
         return new GradeGridView(
             $classroom,
             $terms,
@@ -84,7 +87,8 @@ final readonly class ShowGradeGrid
             $subject,
             $assessments,
             $rows,
-            $classroom->academicYear->status === AcademicYearStatus::Open && $this->access->canManage($user, $classroom),
+            ! $closed && $classroom->academicYear->status === AcademicYearStatus::Open && $this->access->canManage($user, $classroom),
+            $closed,
         );
     }
 }

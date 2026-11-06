@@ -12,6 +12,7 @@ use App\Domains\Grading\Support\GradingAccess;
 use App\Domains\Grading\Support\GradingCatalog;
 use App\Domains\Grading\Support\GradingLock;
 use App\Domains\Grading\Support\GradingRoster;
+use App\Domains\Grading\Support\TermLock;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AssessmentMode;
 use App\Support\Http\BusinessConflict;
@@ -37,7 +38,7 @@ final readonly class SaveSkillEvaluations
      * @param  list<array{student_id: string, skill_id: string, level: SkillLevel|null}>  $evaluations
      *
      * @throws AuthorizationException
-     * @throws BusinessConflict wrong_mode, year_closed
+     * @throws BusinessConflict wrong_mode, year_closed, term_closed
      * @throws ValidationException term_id, evaluations
      */
     public function handle(User $user, Classroom $classroom, string $termId, array $evaluations, ?Carbon $recordedAt = null): void
@@ -52,6 +53,7 @@ final readonly class SaveSkillEvaluations
         ClassroomGrading::assertOpen($classroom);
         $term = $this->grading->terms($classroom)->firstWhere('id', $termId)
             ?? throw ValidationException::withMessages(['term_id' => 'Période inconnue pour cette classe.']);
+        TermLock::assertOpen($classroom->id, $term->id);
         $skills = $this->catalog->skills($classroom->academicYear, $classroom->level->cycle)->modelKeys();
         $roster = GradingRoster::of($classroom, $term)->modelKeys();
         foreach ($evaluations as $index => $evaluation) {

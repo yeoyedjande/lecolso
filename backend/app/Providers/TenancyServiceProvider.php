@@ -31,10 +31,14 @@ final class TenancyServiceProvider extends ServiceProvider
 
         // Workers Horizon (processus longs, connexion réutilisée) : aucun contexte ne passe d'un job à l'autre,
         // qu'il réussisse, échoue ou lève une exception. Avant le job aussi : rien n'hérite du job précédent.
+        // File `sync` (tests, local) : le job s'exécute dans la requête ; SetTenantContext::run() pose son école puis
+        // rétablit celle de la requête, qui ne doit pas être effacée pour la suite de la requête.
         Event::listen(
             [JobProcessing::class, JobProcessed::class, JobFailed::class, JobExceptionOccurred::class],
-            function (): void {
-                $this->app->make(TenantContext::class)->clear();
+            function (JobProcessing|JobProcessed|JobFailed|JobExceptionOccurred $event): void {
+                if ($event->connectionName !== 'sync') {
+                    $this->app->make(TenantContext::class)->clear();
+                }
             },
         );
     }

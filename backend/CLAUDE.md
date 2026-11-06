@@ -60,7 +60,7 @@ dans le `routes.php` de son domaine, sans préfixe (`Route::get('health', …)` 
    `set_config('app.school_id', …)` et `set_config('app.user_id', …)` (paramètres liés), lus par les politiques RLS.
    `TenantContext::run($school, fn)` exécute un bloc dans une école puis rétablit le contexte précédent.
 3. Remise à zéro : dans un `finally` et dans `terminate()` du middleware, et avant/après **chaque** job (écouteurs de file dans
-   `TenancyServiceProvider`). Si la connexion est en erreur, elle est fermée : une session neuve n'a aucun contexte.
+   `TenancyServiceProvider`, sauf file `sync` où le job tourne dans la requête et `SetTenantContext` rétablit son contexte). Si la connexion est en erreur, elle est fermée : une session neuve n'a aucun contexte.
 4. Le trait `BelongsToSchool` ajoute le scope global (aucune ligne sans école courante), remplit `school_id` à la création
    (exception `MissingTenantContext` sans contexte ou pour une autre école) et interdit de changer `school_id`.
 5. RLS en base, en mode fermé, bloque tout ce qui aurait échappé au scope (`App\Support\Database\Rls`).

@@ -30,5 +30,6 @@ final readonly class GradeGridView
         public Collection $assessments,
         public array $rows,
         public bool $canManage,
+        public bool $closed = false,
     ) {}
 }
