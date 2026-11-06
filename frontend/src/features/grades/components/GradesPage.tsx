@@ -338,7 +338,9 @@ export function GradesPage() {
                 classrooms={classrooms}
                 value={classroom.id}
                 onChange={(id) => {
+                  // Période et matière propres à la classe (autre cycle, autre niveau) : celles du jour par défaut
                   setClassroomId(id)
+                  setTermId(null)
                   setSubjectId(null)
                 }}
               />

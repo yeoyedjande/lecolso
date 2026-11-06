@@ -43,13 +43,26 @@ export function GradeGridEditor({
   const table = useRef<HTMLTableElement>(null)
   const editable = grid.can_manage
   const scale = grid.grade_scale
-  const [texts, setTexts] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      grid.rows.flatMap((row) =>
-        row.grades.map((cell) => [`${row.student.id}|${cell.assessment_id}`, formatCell(cell)]),
-      ),
+  // Valeurs du serveur (grille reçue) et textes saisis. Quand la grille est relue (envoi hors connexion, autre poste),
+  // une cellule que l'utilisateur n'a pas modifiée prend la nouvelle valeur ; une saisie en cours est gardée.
+  const server = Object.fromEntries(
+    grid.rows.flatMap((row) =>
+      row.grades.map((cell) => [`${row.student.id}|${cell.assessment_id}`, formatCell(cell)]),
     ),
   )
+  const [texts, setTexts] = useState<Record<string, string>>(server)
+  const [synced, setSynced] = useState<Record<string, string>>(server)
+  if (Object.entries(server).some(([key, value]) => synced[key] !== value)) {
+    setTexts((previous) =>
+      Object.fromEntries(
+        Object.entries(server).map(([key, value]) => [
+          key,
+          previous[key] === undefined || previous[key] === synced[key] ? value : previous[key],
+        ]),
+      ),
+    )
+    setSynced(server)
+  }
 
   const focusCell = (row: number, col: number) => {
     const input = table.current?.querySelector<HTMLInputElement>(
