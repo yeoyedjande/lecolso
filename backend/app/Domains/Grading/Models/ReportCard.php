@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string $student_id
  * @property ReportCardStatus $status
  * @property string|null $path
+ * @property array<string, mixed>|null $data données figées à la validation (gabarit, résultats, appréciations)
  * @property Carbon|null $rendered_at
  * @property-read TermClosure $closure
  * @property-read Student $student
@@ -32,7 +33,7 @@ final class ReportCard extends Model
     use HasUuids;
 
     /** @var list<string> */
-    protected $fillable = ['term_closure_id', 'student_id', 'status', 'path', 'rendered_at'];
+    protected $fillable = ['term_closure_id', 'student_id', 'status', 'path', 'data', 'rendered_at'];
 
     /**
      * @return BelongsTo<TermClosure, $this>
@@ -55,6 +56,6 @@ final class ReportCard extends Model
      */
     protected function casts(): array
     {
-        return ['status' => ReportCardStatus::class, 'rendered_at' => 'datetime'];
+        return ['status' => ReportCardStatus::class, 'data' => 'array', 'rendered_at' => 'datetime'];
     }
 }

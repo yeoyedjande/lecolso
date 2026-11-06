@@ -17,10 +17,12 @@ use App\Domains\Grading\Support\GradingLock;
 use App\Domains\Grading\Support\GradingResults;
 use App\Domains\Grading\Support\GradingRoster;
 use App\Domains\Grading\Support\MentionPolicy;
+use App\Domains\Grading\Support\ReportCardBuilder;
 use App\Domains\Grading\Support\TermLock;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\ReportDocument;
 use App\Support\Http\BusinessConflict;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +40,8 @@ final readonly class CloseTerm
         private GradingCatalog $catalog,
         private ClassroomGrading $grading,
         private GradingResults $results,
+        private ReportCardBuilder $builder,
+        private TenantContext $context,
     ) {}
 
     /**
@@ -59,7 +63,8 @@ final readonly class CloseTerm
         $term = $this->grading->terms($classroom)->firstWhere('id', $termId)
             ?? throw ValidationException::withMessages(['term_id' => 'Période inconnue pour cette classe.']);
 
-        $closure = DB::transaction(function () use ($user, $classroom, $term, $now): TermClosure {
+        $school = $this->context->school() ?? throw new AuthorizationException;
+        $closure = DB::transaction(function () use ($user, $school, $classroom, $term, $now): TermClosure {
             GradingLock::acquire('closure', $classroom->id, $term->id);
             if (TermLock::isClosed($classroom->id, $term->id)) {
                 throw new BusinessConflict('already_closed', 'Les bulletins de cette période sont déjà validés.');
@@ -87,7 +92,11 @@ final readonly class CloseTerm
                     $appreciation->updated_by = $appreciation->exists ? $appreciation->updated_by : $user->id;
                     $appreciation->save();
                 }
-                ReportCard::query()->create(['term_closure_id' => $closure->id, 'student_id' => $student->id, 'status' => ReportCardStatus::Pending]);
+            }
+            // Bulletins figés avec ce qui vient d'être validé (mentions comprises) : le rendu PDF, même relancé, ne
+            // recalcule rien
+            foreach ($this->builder->build($school, $closure) as $studentId => $data) {
+                ReportCard::query()->create(['term_closure_id' => $closure->id, 'student_id' => $studentId, 'status' => ReportCardStatus::Pending, 'data' => $data]);
             }
 
             return $closure;

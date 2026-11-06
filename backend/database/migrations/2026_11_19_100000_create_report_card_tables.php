@@ -102,6 +102,7 @@ return new class extends Migration
             $table->uuid('student_id');
             $table->string('status', 10); // pending, ready, failed
             $table->string('path', 120)->nullable();
+            $table->jsonb('data')->nullable(); // données du bulletin figées à la validation (le PDF est rendu depuis elles)
             $table->timestampTz('rendered_at')->nullable();
             $table->timestamps();
 

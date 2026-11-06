@@ -3,14 +3,21 @@
 declare(strict_types=1);
 
 use App\Domains\Academic\Models\Classroom;
+use App\Domains\Grading\Jobs\RenderReportCards;
 use App\Domains\Grading\Models\ReportCard;
+use App\Domains\Grading\Support\ReportCardBuilder;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\User;
 use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Models\School;
 use App\Support\Pdf\FakePdfRenderer;
 use App\Support\Pdf\PdfRenderer;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Contracts\Filesystem\Factory as Filesystems;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -225,4 +232,49 @@ it('isole les bulletins entre établissements', function (): void {
     actingAsRole(Role::Director, $school, cycleOf($school, 'kindergarten'));
     spa('GET', $uri.'/report-cards', [], $school)->assertNotFound();
     spa('POST', $uri.'/report-cards/close', ['term_id' => $termId], $school)->assertNotFound();
+});
+
+it('rend les PDF depuis les bulletins figés et refuse de changer coefficients ou dates d’une période validée', function (): void {
+    [$school, $classroom, , , , $termId] = bulletinSchool();
+    $primary = cycleOf($school, 'primary');
+    $level = levelOf($school, 'CE1');
+    $year = currentYearOf($school);
+    actingAsRole(Role::Director, $school, $primary);
+    // Rendu différé : la validation ne fait que mettre en file
+    Queue::fake();
+    spa('POST', '/api/v1/classrooms/'.$classroom->id.'/report-cards/close', ['term_id' => $termId], $school)->assertOk()
+        ->assertJsonPath('data.rows.0.report_card.status', 'pending');
+
+    $settings = spa('GET', '/api/v1/grading/settings?cycle_id='.$primary->id, [], $school)->assertOk();
+    spa('PUT', '/api/v1/grading/levels/'.$level->id.'/subjects', ['academic_year_id' => $year->id, 'subjects' => [
+        ['id' => text($settings, 'data.levels.2.subjects.0.id'), 'name' => 'Français', 'coefficient' => 5],
+    ]], $school)->assertConflict()->assertJsonPath('code', 'term_closed');
+    spa('PUT', '/api/v1/grading/cycles/'.$primary->id.'/terms', ['academic_year_id' => $year->id, 'terms' => [
+        ['label' => '1er trimestre', 'starts_on' => '2026-09-14', 'ends_on' => '2026-12-18'],
+        ['label' => '2e trimestre', 'starts_on' => '2027-01-05', 'ends_on' => '2027-03-31'],
+        ['label' => '3e trimestre', 'starts_on' => '2027-04-01', 'ends_on' => '2027-07-02'],
+    ]], $school)->assertConflict()->assertJsonPath('code', 'term_closed');
+
+    // Le rendu lit la copie figée : même un changement fait autrement ne s'y retrouve pas
+    $card = inSchool($school, static fn (): ReportCard => ReportCard::query()->orderBy('created_at')->firstOrFail());
+    expect($card->data)->toHaveKey('average')->and($card->data['template'] ?? null)->toBe('report_card');
+    inSchool($school, static function () use ($school): void {
+        (new RenderReportCards($school->id, ReportCard::query()->firstOrFail()->term_closure_id))->handle(
+            app(ReportCardBuilder::class), app(PdfRenderer::class), app(ViewFactory::class), app(Filesystems::class), app(TenantContext::class),
+        );
+    });
+    expect(pdfRenderer()->rendered)->toHaveCount(2)
+        ->and(pdfRenderer()->rendered[0])->toContain('Mention : Félicitations');
+});
+
+it('note en échec un bulletin dont le fichier n’a pas pu être écrit', function (): void {
+    [$school, $classroom, , , , $termId] = bulletinSchool();
+    $disk = Mockery::mock(Filesystem::class);
+    $disk->shouldReceive('put')->andReturn(false);
+    Storage::set(config()->string('filesystems.default'), $disk);
+    actingAsRole(Role::Director, $school);
+
+    spa('POST', '/api/v1/classrooms/'.$classroom->id.'/report-cards/close', ['term_id' => $termId], $school)->assertOk()
+        ->assertJsonPath('data.failed_count', 2)
+        ->assertJsonPath('data.ready_count', 0);
 });

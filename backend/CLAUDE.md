@@ -209,11 +209,13 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   `subject_appreciations`, `mention_thresholds` (par cycle, sinon `config/grading.php` ramené sur l'échelle :
   `Support\MentionPolicy`), `term_closures` (validation d'une classe pour une période ; une seule ouverte, déverrouillage
   motivé gardé), `report_cards` (PDF par élève et par validation). `Support\TermLock` : période validée → 409
-  `term_closed` sur évaluations, notes, compétences et appréciations (en ligne et `/sync`). `CloseTerm` fige les mentions
-  proposées et met en file `Jobs\RenderReportCards` (`TenantAware`) : `Support\ReportCardBuilder` (données figées,
-  absences lues dans Attendance, logo en data URI) → gabarit Blade `resources/views/report-cards/{report_card,skills_booklet}`
+  `term_closed` sur évaluations, notes, compétences et appréciations (en ligne et `/sync`), et sur les coefficients et
+  dates d'une période validée ; `TermLock::guard()` dans chaque transaction d'écriture prend le même verrou que la
+  validation (pas de saisie qui passe après). `CloseTerm` fige les mentions proposées et enregistre sur chaque bulletin
+  la copie de ses données (`report_cards.data`, `Support\ReportCardBuilder` : absences lues dans Attendance), puis met
+  en file `Jobs\RenderReportCards` (`TenantAware`) qui rend depuis cette copie (logo ajouté en data URI) → gabarit Blade `resources/views/report-cards/{report_card,skills_booklet}`
   (d'après `report_document`) → `Support\Pdf\PdfRenderer` → fichier privé `report-cards/{uuid}.pdf`
-  (`Support\ReportCardFile`, route signée `files.report-card`, 10 minutes). Échec : `failed`, relance par
+  (`Support\ReportCardFile`, route signée `files.report-card`, 10 minutes). Échec (rendu ou écriture) : `failed`, relance par
   `POST classrooms/{classroom}/report-cards/retry`. Droits : appréciations du titulaire (`grades.manage`), observation,
   mention, validation et déverrouillage (`grades.validate`, personnel du cycle).
 - PDF : interface `App\Support\Pdf\PdfRenderer` ; `GotenbergPdfRenderer` (`services.gotenberg.url`, toujours en

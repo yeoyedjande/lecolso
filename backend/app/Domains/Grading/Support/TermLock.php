@@ -27,6 +27,19 @@ final class TermLock
         return self::closure($classroomId, $termId) !== null;
     }
 
+    /**
+     * À appeler dans la transaction d'écriture, avant toute écriture : prend le verrou de la classe et de la période
+     * (le même que CloseTerm et ReopenTerm), puis vérifie qu'elle n'est pas validée. Une saisie et une validation
+     * simultanées passent donc l'une après l'autre : aucune note ne change après la validation.
+     *
+     * @throws BusinessConflict term_closed
+     */
+    public static function guard(string $classroomId, string $termId): void
+    {
+        GradingLock::acquire('closure', $classroomId, $termId);
+        self::assertOpen($classroomId, $termId);
+    }
+
     /** @throws BusinessConflict term_closed */
     public static function assertOpen(string $classroomId, string $termId): void
     {

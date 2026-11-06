@@ -54,7 +54,8 @@ final readonly class SaveGrades
             }
         }
 
-        DB::transaction(function () use ($user, $assessment, $grades, $recordedAt): void {
+        DB::transaction(function () use ($user, $classroom, $assessment, $grades, $recordedAt): void {
+            TermLock::guard($classroom->id, $assessment->term_id);
             GradingLock::acquire('grades', $assessment->id);
             $existing = Grade::query()->where('assessment_id', $assessment->id)->get()->keyBy('student_id');
             foreach ($grades as $data) {

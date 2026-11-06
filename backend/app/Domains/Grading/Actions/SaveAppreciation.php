@@ -64,7 +64,8 @@ final readonly class SaveAppreciation
             }
         }
 
-        return DB::transaction(function () use ($user, $term, $studentId, $input): Appreciation {
+        return DB::transaction(function () use ($user, $classroom, $term, $studentId, $input): Appreciation {
+            TermLock::guard($classroom->id, $term->id);
             GradingLock::acquire('appreciation', $term->id, $studentId);
             $appreciation = Appreciation::query()->where('term_id', $term->id)->where('student_id', $studentId)->first()
                 ?? new Appreciation(['term_id' => $term->id, 'student_id' => $studentId]);

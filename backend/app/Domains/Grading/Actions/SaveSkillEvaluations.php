@@ -66,6 +66,7 @@ final readonly class SaveSkillEvaluations
         }
 
         DB::transaction(function () use ($user, $classroom, $term, $evaluations, $recordedAt): void {
+            TermLock::guard($classroom->id, $term->id);
             GradingLock::acquire('skills', $term->id, $classroom->id);
             $existing = SkillEvaluation::query()
                 ->where('term_id', $term->id)

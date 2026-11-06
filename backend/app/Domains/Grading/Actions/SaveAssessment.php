@@ -15,6 +15,7 @@ use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AssessmentMode;
 use App\Support\Http\BusinessConflict;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -75,15 +76,23 @@ final readonly class SaveAssessment
         }
 
         $assessment ??= new Assessment(['id' => $id, 'classroom_id' => $classroom->id, 'created_by' => $user->id]);
-        $assessment->fill([
-            'subject_id' => $data['subject_id'],
-            'term_id' => $data['term_id'],
-            'title' => $data['title'],
-            'date' => $data['date'],
-            'out_of' => $data['out_of'],
-        ])->save();
+        $previousTerm = $assessment->exists ? $assessment->term_id : null;
 
-        return $assessment;
+        return DB::transaction(static function () use ($classroom, $assessment, $data, $previousTerm): Assessment {
+            TermLock::guard($classroom->id, $data['term_id']);
+            if ($previousTerm !== null && $previousTerm !== $data['term_id']) {
+                TermLock::guard($classroom->id, $previousTerm);
+            }
+            $assessment->fill([
+                'subject_id' => $data['subject_id'],
+                'term_id' => $data['term_id'],
+                'title' => $data['title'],
+                'date' => $data['date'],
+                'out_of' => $data['out_of'],
+            ])->save();
+
+            return $assessment;
+        });
     }
 
     /**
@@ -99,6 +108,9 @@ final readonly class SaveAssessment
         ClassroomGrading::assertOpen($classroom);
         TermLock::assertOpen($classroom->id, $assessment->term_id);
         // Les notes partent avec l'évaluation (clé étrangère en cascade)
-        $assessment->delete();
+        DB::transaction(static function () use ($classroom, $assessment): void {
+            TermLock::guard($classroom->id, $assessment->term_id);
+            $assessment->delete();
+        });
     }
 }

@@ -23,7 +23,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Données des bulletins d'une classe pour une période validée, pour le gabarit du document du cycle (`report_document` :
- * bulletin de notes ou livret de compétences). Tout est figé à la validation : résultats, mentions, appréciations.
+ * bulletin de notes ou livret de compétences). Appelé par CloseTerm dans la transaction de la validation : le résultat
+ * est enregistré sur chaque bulletin (`report_cards.data`) et le PDF est rendu depuis cette copie, jamais recalculé.
+ * Le logo n'y est pas copié : il est ajouté au rendu (`withLogo`).
  */
 final readonly class ReportCardBuilder
 {
@@ -34,7 +36,7 @@ final readonly class ReportCardBuilder
     ) {}
 
     /**
-     * @return array{template: string, students: array<string, array<string, mixed>>}
+     * @return array<string, array<string, mixed>> élève → données du document (dont `template`)
      */
     public function build(School $school, TermClosure $closure): array
     {
@@ -48,13 +50,13 @@ final readonly class ReportCardBuilder
         $template = $settings->reportDocument === ReportDocument::SkillsBooklet ? 'skills_booklet' : 'report_card';
 
         $common = [
+            'template' => $template,
             'school' => [
                 'name' => $school->name,
                 'address' => $school->address,
                 'city' => $school->city,
                 'phone' => $school->phone,
                 'motto' => $school->motto,
-                'logo' => $this->logo($school),
             ],
             'year' => $classroom->academicYear->label,
             'term' => $term->label,
@@ -107,7 +109,7 @@ final readonly class ReportCardBuilder
             ];
         }
 
-        return ['template' => $template, 'students' => $documents];
+        return $documents;
     }
 
     /** « 1er », « 2e ex æquo » ; sans moyenne : null. */
@@ -178,7 +180,21 @@ final readonly class ReportCardBuilder
         return $counts;
     }
 
-    /** Logo de l'école en ligne (data URI) : Gotenberg ne charge aucune ressource externe. */
+    /**
+     * Données prêtes pour le gabarit : logo actuel de l'école en ligne (data URI, Gotenberg ne charge aucune ressource
+     * externe).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function withLogo(School $school, array $data): array
+    {
+        $schoolData = is_array($data['school'] ?? null) ? $data['school'] : [];
+        $schoolData['logo'] = $this->logo($school);
+
+        return [...$data, 'school' => $schoolData];
+    }
+
     private function logo(School $school): ?string
     {
         if ($school->logo_path === null) {

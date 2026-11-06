@@ -24,8 +24,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * Rendu des bulletins PDF d'une classe validée, dans l'école de la validation : gabarit Blade du document du cycle,
- * PdfRenderer (Gotenberg), fichier privé à nom aléatoire. Un bulletin en échec est noté (`failed`) : la direction relance
+ * Rendu des bulletins PDF d'une classe validée, dans l'école de la validation, depuis la copie figée à la validation
+ * (`report_cards.data`) : gabarit Blade du document du cycle, PdfRenderer (Gotenberg), fichier privé à nom aléatoire
+ * (écriture vérifiée). Un bulletin en échec est noté (`failed`) : la direction relance
  * le rendu. Une validation rouverte entre-temps n'est pas rendue. Aucune donnée d'élève n'est journalisée.
  */
 final class RenderReportCards implements ShouldQueue, TenantAware
@@ -49,20 +50,24 @@ final class RenderReportCards implements ShouldQueue, TenantAware
             return;
         }
 
-        $documents = $builder->build($school, $closure);
         $disk = $filesystems->disk();
-        $template = $documents['template'] === 'skills_booklet' ? 'report-cards.skills_booklet' : 'report-cards.report_card';
         foreach (ReportCard::query()->where('term_closure_id', $closure->id)->where('status', '!=', ReportCardStatus::Ready)->get() as $card) {
-            $data = $documents['students'][$card->student_id] ?? null;
+            $data = $card->data;
             if ($data === null) {
                 $card->fill(['status' => ReportCardStatus::Failed])->save();
 
                 continue;
             }
+            $template = ($data['template'] ?? null) === 'skills_booklet' ? 'report-cards.skills_booklet' : 'report-cards.report_card';
             try {
-                $pdf = $renderer->render($views->make($template, $data)->render());
+                $pdf = $renderer->render($views->make($template, $builder->withLogo($school, $data))->render());
                 $path = ReportCardFile::path(Str::uuid()->toString().'.pdf');
-                $disk->put($path, $pdf);
+                // Disques configurés sans exception (throw: false) : une écriture refusée renvoie false
+                if (! $disk->put($path, $pdf)) {
+                    $card->fill(['status' => ReportCardStatus::Failed])->save();
+
+                    continue;
+                }
                 $card->fill(['status' => ReportCardStatus::Ready, 'path' => $path, 'rendered_at' => Carbon::now()])->save();
             } catch (PdfRenderingFailed) {
                 $card->fill(['status' => ReportCardStatus::Failed])->save();
