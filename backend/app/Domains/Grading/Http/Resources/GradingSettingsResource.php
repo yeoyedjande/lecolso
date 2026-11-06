@@ -21,7 +21,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class GradingSettingsResource extends JsonResource
 {
     /**
-     * @return array{cycle: array{id: string, name: string, mode: string, term_type: string, grade_scale: int}, academic_year: array{id: string, label: string, closed: bool}, terms: AnonymousResourceCollection, levels: AnonymousResourceCollection, skills: AnonymousResourceCollection, can_manage: bool}
+     * @return array{cycle: array{id: string, name: string, mode: string, term_type: string, grade_scale: int}, academic_year: array{id: string, label: string, closed: bool}, terms: AnonymousResourceCollection, levels: AnonymousResourceCollection, skills: AnonymousResourceCollection, mentions: MentionThresholdsResource, can_manage: bool}
      */
     public function toArray(Request $request): array
     {
@@ -44,6 +44,7 @@ final class GradingSettingsResource extends JsonResource
                 'subjects' => array_values($row['subjects']->map(static fn (Subject $subject): array => ['subject' => $subject, 'used' => isset($used[$subject->id])])->all()),
             ], $view->levels)),
             'skills' => SettingsSkillResource::collection($view->skills->map(static fn (Skill $skill): array => ['skill' => $skill, 'used' => isset($used[$skill->id])])),
+            'mentions' => new MentionThresholdsResource($view->mentions),
             'can_manage' => $view->canManage,
         ];
     }

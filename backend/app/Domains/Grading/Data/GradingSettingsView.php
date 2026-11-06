@@ -20,6 +20,7 @@ final readonly class GradingSettingsView
      * @param  list<array{level: Level, subjects: Collection<int, Subject>}>  $levels
      * @param  Collection<int, Skill>  $skills
      * @param  array<string, true>  $used  identifiants de périodes, matières et compétences déjà utilisées
+     * @param  array{congratulations: float, honor_roll: float, encouragement: float, warning_below: float}  $mentions
      */
     public function __construct(
         public Cycle $cycle,
@@ -29,5 +30,6 @@ final readonly class GradingSettingsView
         public Collection $skills,
         public array $used,
         public bool $canManage,
+        public array $mentions,
     ) {}
 }

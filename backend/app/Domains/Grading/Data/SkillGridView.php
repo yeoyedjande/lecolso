@@ -26,5 +26,6 @@ final readonly class SkillGridView
         public Collection $skills,
         public array $rows,
         public bool $canManage,
+        public bool $closed = false,
     ) {}
 }

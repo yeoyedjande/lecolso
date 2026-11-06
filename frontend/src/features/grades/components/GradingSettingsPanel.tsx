@@ -13,6 +13,7 @@ import { toast } from '@/lib/toast'
 
 import {
   useGradingSettings,
+  useSaveMentionThresholds,
   useSaveSkillCatalog,
   useSaveSubjects,
   useSaveTerms,
@@ -385,6 +386,77 @@ function SkillsCard({ settings }: { settings: GradingSettings }) {
   )
 }
 
+const THRESHOLDS = ['congratulations', 'honor_roll', 'encouragement', 'warning_below'] as const
+
+function MentionsCard({ settings }: { settings: GradingSettings }) {
+  const { t } = useTranslation()
+  const save = useSaveMentionThresholds()
+  const [values, setValues] = useState<Record<(typeof THRESHOLDS)[number], string>>(() => ({
+    congratulations: String(settings.mentions.congratulations),
+    honor_roll: String(settings.mentions.honor_roll),
+    encouragement: String(settings.mentions.encouragement),
+    warning_below: String(settings.mentions.warning_below),
+  }))
+  const editable = settings.can_manage
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('gradingSettings.mentions')}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            save
+              .mutateAsync({
+                cycleId: settings.cycle.id,
+                congratulations: Number(values.congratulations.replace(',', '.')),
+                honor_roll: Number(values.honor_roll.replace(',', '.')),
+                encouragement: Number(values.encouragement.replace(',', '.')),
+                warning_below: Number(values.warning_below.replace(',', '.')),
+              })
+              .then(() => {
+                toast(t('gradingSettings.saved'), { tone: 'success' })
+              })
+              .catch((error: unknown) => {
+                toast(failure(error, t('gradingSettings.failed')), { tone: 'error' })
+              })
+          }}
+        >
+          <p className="text-sm text-muted-foreground">
+            {t('gradingSettings.mentionsHint', { scale: settings.cycle.grade_scale })}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-4">
+            {THRESHOLDS.map((key) => (
+              <label key={key} className="grid gap-1 text-sm font-medium">
+                {t(`gradingSettings.thresholds.${key}`)}
+                <Input
+                  inputMode="decimal"
+                  disabled={!editable}
+                  required
+                  value={values[key]}
+                  onChange={(event) => {
+                    setValues((previous) => ({ ...previous, [key]: event.target.value }))
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          {editable && (
+            <div className="flex justify-end">
+              <Button type="submit" disabled={save.isPending}>
+                <Save aria-hidden />
+                {t('gradingSettings.saveMentions')}
+              </Button>
+            </div>
+          )}
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
 /**
  * Réglages des notes (onglet des Paramètres) : périodes du cycle, matières et coefficients par niveau (moyenne
  * pondérée) ou référentiel de compétences, pour l'année en cours.
@@ -431,6 +503,12 @@ export function GradingSettingsPanel({ cycles }: { cycles: readonly Cycle[] }) {
               {!data.can_manage && ` · ${t('gradingSettings.readOnly')}`}
             </p>
             <TermsCard key={data.terms.map((term) => term.id).join()} settings={data} />
+            {data.cycle.mode === 'weighted_average' && (
+              <MentionsCard
+                key={`${data.cycle.id}-${String(data.mentions.congratulations)}-${String(data.mentions.warning_below)}`}
+                settings={data}
+              />
+            )}
             {data.cycle.mode === 'weighted_average' ? (
               <SubjectsCard
                 key={data.levels.map((level) => level.subjects.map((s) => s.id).join()).join('|')}

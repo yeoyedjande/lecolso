@@ -12,6 +12,7 @@ use App\Domains\Grading\Support\ClassroomGrading;
 use App\Domains\Grading\Support\GradingAccess;
 use App\Domains\Grading\Support\GradingCatalog;
 use App\Domains\Grading\Support\GradingRoster;
+use App\Domains\Grading\Support\TermLock;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AssessmentMode;
 use App\Support\Http\BusinessConflict;
@@ -52,13 +53,16 @@ final readonly class ShowSkillGrid
             $rows[] = ['student' => $student, 'levels' => $levels];
         }
 
+        $closed = TermLock::isClosed($classroom->id, $term->id);
+
         return new SkillGridView(
             $classroom,
             $terms,
             $term,
             $skills,
             $rows,
-            $classroom->academicYear->status === AcademicYearStatus::Open && $this->access->canManage($user, $classroom),
+            ! $closed && $classroom->academicYear->status === AcademicYearStatus::Open && $this->access->canManage($user, $classroom),
+            $closed,
         );
     }
 }

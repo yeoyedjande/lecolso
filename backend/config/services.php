@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 return [
 
+    // Rendu PDF (bulletins, reçus) : conteneur Gotenberg sur le réseau privé ; vide hors Docker = rendu factice hors production
+    'gotenberg' => [
+        'url' => env('GOTENBERG_URL', ''),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

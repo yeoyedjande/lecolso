@@ -3660,6 +3660,452 @@
                 }
             }
         },
+        "/grading/cycles/{cycle}/mentions": {
+            "put": {
+                "operationId": "grading.mentions",
+                "description": "Sur l'\u00e9chelle du cycle ; school.settings.manage sur le cycle. Les bulletins d\u00e9j\u00e0 valid\u00e9s ne changent pas.",
+                "summary": "Enregistrer les seuils des mentions d'un cycle",
+                "tags": [
+                    "ReportCard"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cycle ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveMentionThresholdsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`GradingSettingsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/GradingSettingsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/report-cards": {
+            "get": {
+                "operationId": "report-cards.index",
+                "description": "R\u00e9sultats, appr\u00e9ciations, mentions, validation et PDF pour une p\u00e9riode (`term_id`, celle du jour par d\u00e9faut).\n409 `no_report` si le cycle n'a ni bulletin ni livret.",
+                "summary": "Bulletins d'une classe",
+                "tags": [
+                    "ReportCard"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "term_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ReportCardsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReportCardsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/appreciations": {
+            "put": {
+                "operationId": "report-cards.appreciation",
+                "description": "Titulaire ou direction : appr\u00e9ciation g\u00e9n\u00e9rale et par mati\u00e8re ; direction : observation et mention.\n409 `term_closed`, `year_closed`.",
+                "summary": "Enregistrer les appr\u00e9ciations d'un \u00e9l\u00e8ve",
+                "tags": [
+                    "ReportCard"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveAppreciationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ReportCardsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReportCardsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/report-cards/close": {
+            "post": {
+                "operationId": "report-cards.close",
+                "description": "Direction (grades.validate) : notes, comp\u00e9tences et appr\u00e9ciations fig\u00e9es, bulletins PDF rendus en file d'attente.\n409 `already_closed`, `year_closed`, `no_report`.",
+                "summary": "Valider les bulletins",
+                "tags": [
+                    "ReportCard"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CloseTermRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ReportCardsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReportCardsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/report-cards/reopen": {
+            "post": {
+                "operationId": "report-cards.reopen",
+                "description": "Direction (grades.validate), motif obligatoire gard\u00e9 dans l'historique. 409 `not_closed`, `year_closed`.",
+                "summary": "D\u00e9verrouiller les bulletins",
+                "tags": [
+                    "ReportCard"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReopenTermRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ReportCardsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReportCardsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/report-cards/retry": {
+            "post": {
+                "operationId": "report-cards.retry",
+                "description": "Direction (grades.validate). 409 `not_closed`.",
+                "summary": "Relancer le rendu des bulletins en \u00e9chec",
+                "tags": [
+                    "ReportCard"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CloseTermRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ReportCardsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReportCardsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/files/report-cards/{file}": {
+            "get": {
+                "operationId": "files.report-card",
+                "description": "URL sign\u00e9e renvoy\u00e9e par l'API (`pdf_url`) \u00e0 qui voit la classe, valable 10 minutes ; sans signature valide : 403.\nJamais mise en cache partag\u00e9 ni transmise dans l'en-t\u00eate Referer.",
+                "summary": "Lire un bulletin PDF",
+                "tags": [
+                    "ReportCardFile"
+                ],
+                "parameters": [
+                    {
+                        "name": "file",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "private, max-age=600"
+                                }
+                            },
+                            "X-Content-Type-Options": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "nosniff"
+                                }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "inline; filename=\"bulletin.pdf\""
+                                }
+                            },
+                            "Referrer-Policy": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "no-referrer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    }
+                }
+            }
+        },
         "/users/{user}/password-reset": {
             "post": {
                 "operationId": "users.password-reset",
@@ -6780,6 +7226,20 @@
                 ],
                 "title": "CloseCashSessionRequest"
             },
+            "CloseTermRequest": {
+                "type": "object",
+                "description": "Valider les bulletins d'une classe (`term_id`), ou relancer leur rendu. Droit contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "term_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "term_id"
+                ],
+                "title": "CloseTermRequest"
+            },
             "CreateSchoolRequest": {
                 "type": "object",
                 "properties": {
@@ -7872,6 +8332,9 @@
                     },
                     "can_manage": {
                         "type": "boolean"
+                    },
+                    "closed": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
@@ -7883,7 +8346,8 @@
                     "subject",
                     "assessments",
                     "rows",
-                    "can_manage"
+                    "can_manage",
+                    "closed"
                 ],
                 "title": "GradeGridResource"
             },
@@ -8046,6 +8510,9 @@
                             "$ref": "#/components/schemas/SettingsSkillResource"
                         }
                     },
+                    "mentions": {
+                        "$ref": "#/components/schemas/MentionThresholdsResource"
+                    },
                     "can_manage": {
                         "type": "boolean"
                     }
@@ -8056,6 +8523,7 @@
                     "terms",
                     "levels",
                     "skills",
+                    "mentions",
                     "can_manage"
                 ],
                 "title": "GradingSettingsResource"
@@ -8615,6 +9083,41 @@
                 ],
                 "title": "LoginRequest"
             },
+            "Mention": {
+                "type": "string",
+                "description": "Mention d'un bulletin : f\u00e9licitations, tableau d'honneur, encouragements, avertissement.\n",
+                "enum": [
+                    "congratulations",
+                    "honor_roll",
+                    "encouragement",
+                    "warning"
+                ],
+                "title": "Mention"
+            },
+            "MentionThresholdsResource": {
+                "type": "object",
+                "properties": {
+                    "congratulations": {
+                        "type": "number"
+                    },
+                    "honor_roll": {
+                        "type": "number"
+                    },
+                    "encouragement": {
+                        "type": "number"
+                    },
+                    "warning_below": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "congratulations",
+                    "honor_roll",
+                    "encouragement",
+                    "warning_below"
+                ],
+                "title": "MentionThresholdsResource"
+            },
             "PaymentMethod": {
                 "type": "string",
                 "description": "Moyen de paiement au guichet. Seules les esp\u00e8ces se comptent dans la caisse ; les autres exigent une r\u00e9f\u00e9rence.\n",
@@ -9110,6 +9613,260 @@
                 ],
                 "title": "ReminderOutcomeResource"
             },
+            "ReopenTermRequest": {
+                "type": "object",
+                "description": "D\u00e9verrouiller les bulletins d'une classe : `term_id`, `reason` (motif obligatoire). Droit contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "term_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "term_id",
+                    "reason"
+                ],
+                "title": "ReopenTermRequest"
+            },
+            "ReportCardRowResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/GradingStudentResource"
+                    },
+                    "average": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "rank": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "skills": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "A": {
+                                "type": "integer"
+                            },
+                            "EA": {
+                                "type": "integer"
+                            },
+                            "NA": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "A",
+                            "EA",
+                            "NA"
+                        ]
+                    },
+                    "mention": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mention_proposed": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mention_chosen": {
+                        "type": "boolean"
+                    },
+                    "teacher_comment": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "director_comment": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubjectCommentResource"
+                        }
+                    },
+                    "report_card": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string"
+                            },
+                            "pdf_url": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "status",
+                            "pdf_url"
+                        ]
+                    }
+                },
+                "required": [
+                    "student",
+                    "average",
+                    "rank",
+                    "skills",
+                    "mention",
+                    "mention_proposed",
+                    "mention_chosen",
+                    "teacher_comment",
+                    "director_comment",
+                    "subjects",
+                    "report_card"
+                ],
+                "title": "ReportCardRowResource"
+            },
+            "ReportCardsResource": {
+                "type": "object",
+                "properties": {
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "document": {
+                        "type": "string",
+                        "enum": [
+                            "none",
+                            "skills_booklet",
+                            "report_card"
+                        ]
+                    },
+                    "grade_scale": {
+                        "type": "integer"
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TermResource"
+                        }
+                    },
+                    "term": {
+                        "$ref": "#/components/schemas/TermResource"
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubjectResource"
+                        }
+                    },
+                    "thresholds": {
+                        "type": "object",
+                        "properties": {
+                            "congratulations": {
+                                "type": "number"
+                            },
+                            "honor_roll": {
+                                "type": "number"
+                            },
+                            "encouragement": {
+                                "type": "number"
+                            },
+                            "warning_below": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "congratulations",
+                            "honor_roll",
+                            "encouragement",
+                            "warning_below"
+                        ]
+                    },
+                    "closure": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/TermClosureResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "history": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TermClosureResource"
+                        }
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReportCardRowResource"
+                        }
+                    },
+                    "ready_count": {
+                        "type": "integer"
+                    },
+                    "failed_count": {
+                        "type": "integer"
+                    },
+                    "can_comment": {
+                        "type": "boolean"
+                    },
+                    "can_validate": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "classroom",
+                    "document",
+                    "grade_scale",
+                    "terms",
+                    "term",
+                    "subjects",
+                    "thresholds",
+                    "closure",
+                    "history",
+                    "rows",
+                    "ready_count",
+                    "failed_count",
+                    "can_comment",
+                    "can_validate"
+                ],
+                "title": "ReportCardsResource"
+            },
             "RoleAssignmentResource": {
                 "type": "object",
                 "properties": {
@@ -9320,6 +10077,74 @@
                 ],
                 "title": "SaveAcademicYearRequest"
             },
+            "SaveAppreciationRequest": {
+                "type": "object",
+                "description": "Appr\u00e9ciations d'un \u00e9l\u00e8ve pour une p\u00e9riode : `term_id`, `student_id` ; titulaire ou direction : `teacher_comment`,\n`subjects` (mati\u00e8re, appr\u00e9ciation ; vide : effac\u00e9e) ; direction : `director_comment`, `mention` (null : propos\u00e9e\nd'apr\u00e8s la moyenne). Un champ absent ne change pas. Droits contr\u00f4l\u00e9s par l'Action.",
+                "properties": {
+                    "term_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "student_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "teacher_comment": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    },
+                    "director_comment": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    },
+                    "mention": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Mention"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "subject_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "comment": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 200
+                                }
+                            },
+                            "required": [
+                                "subject_id",
+                                "comment"
+                            ]
+                        },
+                        "maxItems": 30,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "term_id",
+                    "student_id"
+                ],
+                "title": "SaveAppreciationRequest"
+            },
             "SaveCalendarRequest": {
                 "type": "object",
                 "description": "Dates des \u00e9ch\u00e9ances d'un cycle pour une ann\u00e9e : autant de dates que la p\u00e9riodicit\u00e9 du cycle en pr\u00e9voit (1, 3 ou 10),\ncroissantes, dans l'ann\u00e9e scolaire. billing.manage sur le cycle.",
@@ -9509,6 +10334,39 @@
                     "grades"
                 ],
                 "title": "SaveGradesRequest"
+            },
+            "SaveMentionThresholdsRequest": {
+                "type": "object",
+                "description": "Seuils des mentions d'un cycle, sur son \u00e9chelle (2 d\u00e9cimales) : `congratulations`, `honor_roll`, `encouragement`\n(au moins) et `warning_below` (en dessous). school.settings.manage sur le cycle, contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "congratulations": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 20
+                    },
+                    "honor_roll": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 20
+                    },
+                    "encouragement": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 20
+                    },
+                    "warning_below": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 20
+                    }
+                },
+                "required": [
+                    "congratulations",
+                    "honor_roll",
+                    "encouragement",
+                    "warning_below"
+                ],
+                "title": "SaveMentionThresholdsRequest"
             },
             "SaveRollCallRequest": {
                 "type": "object",
@@ -10274,6 +11132,9 @@
                     },
                     "can_manage": {
                         "type": "boolean"
+                    },
+                    "closed": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
@@ -10282,7 +11143,8 @@
                     "term",
                     "skills",
                     "rows",
-                    "can_manage"
+                    "can_manage",
+                    "closed"
                 ],
                 "title": "SkillGridResource"
             },
@@ -10761,6 +11623,32 @@
                 ],
                 "title": "SubjectAverageResource"
             },
+            "SubjectCommentResource": {
+                "type": "object",
+                "properties": {
+                    "subject_id": {
+                        "type": "string"
+                    },
+                    "average": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "comment": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "subject_id",
+                    "average",
+                    "comment"
+                ],
+                "title": "SubjectCommentResource"
+            },
             "SubjectResource": {
                 "type": "object",
                 "properties": {
@@ -10866,6 +11754,47 @@
                     "replayed"
                 ],
                 "title": "SyncResultResource"
+            },
+            "TermClosureResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "closed_at": {
+                        "type": "string"
+                    },
+                    "closed_by": {
+                        "type": "string"
+                    },
+                    "reopened_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reopened_by": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "reopen_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "closed_at",
+                    "closed_by",
+                    "reopened_at",
+                    "reopened_by",
+                    "reopen_reason"
+                ],
+                "title": "TermClosureResource"
             },
             "TermResource": {
                 "type": "object",

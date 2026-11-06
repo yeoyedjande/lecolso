@@ -1148,6 +1148,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/grading/cycles/{cycle}/mentions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Enregistrer les seuils des mentions d'un cycle
+         * @description Sur l'échelle du cycle ; school.settings.manage sur le cycle. Les bulletins déjà validés ne changent pas.
+         */
+        put: operations["grading.mentions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/report-cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bulletins d'une classe
+         * @description Résultats, appréciations, mentions, validation et PDF pour une période (`term_id`, celle du jour par défaut).
+         *     409 `no_report` si le cycle n'a ni bulletin ni livret.
+         */
+        get: operations["report-cards.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/appreciations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Enregistrer les appréciations d'un élève
+         * @description Titulaire ou direction : appréciation générale et par matière ; direction : observation et mention.
+         *     409 `term_closed`, `year_closed`.
+         */
+        put: operations["report-cards.appreciation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/report-cards/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Valider les bulletins
+         * @description Direction (grades.validate) : notes, compétences et appréciations figées, bulletins PDF rendus en file d'attente.
+         *     409 `already_closed`, `year_closed`, `no_report`.
+         */
+        post: operations["report-cards.close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/report-cards/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déverrouiller les bulletins
+         * @description Direction (grades.validate), motif obligatoire gardé dans l'historique. 409 `not_closed`, `year_closed`.
+         */
+        post: operations["report-cards.reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/report-cards/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Relancer le rendu des bulletins en échec
+         * @description Direction (grades.validate). 409 `not_closed`.
+         */
+        post: operations["report-cards.retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/report-cards/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire un bulletin PDF
+         * @description URL signée renvoyée par l'API (`pdf_url`) à qui voit la classe, valable 10 minutes ; sans signature valide : 403.
+         *     Jamais mise en cache partagé ni transmise dans l'en-tête Referer.
+         */
+        get: operations["files.report-card"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{user}/password-reset": {
         parameters: {
             query?: never;
@@ -1920,6 +2064,14 @@ export interface components {
             counted_cash: number;
             note?: string | null;
         };
+        /**
+         * CloseTermRequest
+         * @description Valider les bulletins d'une classe (`term_id`), ou relancer leur rendu. Droit contrôlé par l'Action.
+         */
+        CloseTermRequest: {
+            /** Format: uuid */
+            term_id: string;
+        };
         /** CreateSchoolRequest */
         CreateSchoolRequest: {
             name: string;
@@ -2217,6 +2369,7 @@ export interface components {
             assessments: components["schemas"]["AssessmentResource"][];
             rows: components["schemas"]["GradeGridRowResource"][];
             can_manage: boolean;
+            closed: boolean;
         };
         /** GradeGridRowResource */
         GradeGridRowResource: {
@@ -2258,6 +2411,7 @@ export interface components {
             terms: components["schemas"]["SettingsTermResource"][];
             levels: components["schemas"]["SettingsLevelResource"][];
             skills: components["schemas"]["SettingsSkillResource"][];
+            mentions: components["schemas"]["MentionThresholdsResource"];
             can_manage: boolean;
         };
         /** GradingStudentResource */
@@ -2405,6 +2559,19 @@ export interface components {
             remember?: boolean;
         };
         /**
+         * Mention
+         * @description Mention d'un bulletin : félicitations, tableau d'honneur, encouragements, avertissement.
+         * @enum {string}
+         */
+        Mention: "congratulations" | "honor_roll" | "encouragement" | "warning";
+        /** MentionThresholdsResource */
+        MentionThresholdsResource: {
+            congratulations: number;
+            honor_roll: number;
+            encouragement: number;
+            warning_below: number;
+        };
+        /**
          * PaymentMethod
          * @description Moyen de paiement au guichet. Seules les espèces se comptent dans la caisse ; les autres exigent une référence.
          * @enum {string}
@@ -2531,6 +2698,63 @@ export interface components {
             no_phone: number;
             not_overdue: number;
         };
+        /**
+         * ReopenTermRequest
+         * @description Déverrouiller les bulletins d'une classe : `term_id`, `reason` (motif obligatoire). Droit contrôlé par l'Action.
+         */
+        ReopenTermRequest: {
+            /** Format: uuid */
+            term_id: string;
+            reason: string;
+        };
+        /** ReportCardRowResource */
+        ReportCardRowResource: {
+            student: components["schemas"]["GradingStudentResource"];
+            average: number | null;
+            rank: number | null;
+            skills: {
+                A: number;
+                EA: number;
+                NA: number;
+            } | null;
+            mention: string | null;
+            mention_proposed: string | null;
+            mention_chosen: boolean;
+            teacher_comment: string | null;
+            director_comment: string | null;
+            subjects: components["schemas"]["SubjectCommentResource"][];
+            report_card: {
+                id: string;
+                status: string;
+                pdf_url: string | null;
+            } | null;
+        };
+        /** ReportCardsResource */
+        ReportCardsResource: {
+            classroom: {
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            document: "none" | "skills_booklet" | "report_card";
+            grade_scale: number;
+            terms: components["schemas"]["TermResource"][];
+            term: components["schemas"]["TermResource"];
+            subjects: components["schemas"]["SubjectResource"][];
+            thresholds: {
+                congratulations: number;
+                honor_roll: number;
+                encouragement: number;
+                warning_below: number;
+            };
+            closure: components["schemas"]["TermClosureResource"] | null;
+            history: components["schemas"]["TermClosureResource"][];
+            rows: components["schemas"]["ReportCardRowResource"][];
+            ready_count: number;
+            failed_count: number;
+            can_comment: boolean;
+            can_validate: boolean;
+        };
         /** RoleAssignmentResource */
         RoleAssignmentResource: {
             role: string;
@@ -2582,6 +2806,26 @@ export interface components {
             ends_on: string;
             status?: components["schemas"]["AcademicYearStatus"];
             is_current?: boolean;
+        };
+        /**
+         * SaveAppreciationRequest
+         * @description Appréciations d'un élève pour une période : `term_id`, `student_id` ; titulaire ou direction : `teacher_comment`,
+         *     `subjects` (matière, appréciation ; vide : effacée) ; direction : `director_comment`, `mention` (null : proposée
+         *     d'après la moyenne). Un champ absent ne change pas. Droits contrôlés par l'Action.
+         */
+        SaveAppreciationRequest: {
+            /** Format: uuid */
+            term_id: string;
+            /** Format: uuid */
+            student_id: string;
+            teacher_comment?: string | null;
+            director_comment?: string | null;
+            mention?: components["schemas"]["Mention"] | null;
+            subjects?: {
+                /** Format: uuid */
+                subject_id: string;
+                comment: string | null;
+            }[];
         };
         /**
          * SaveCalendarRequest
@@ -2651,6 +2895,17 @@ export interface components {
             }[];
             /** Format: date-time */
             recorded_at?: string | null;
+        };
+        /**
+         * SaveMentionThresholdsRequest
+         * @description Seuils des mentions d'un cycle, sur son échelle (2 décimales) : `congratulations`, `honor_roll`, `encouragement`
+         *     (au moins) et `warning_below` (en dessous). school.settings.manage sur le cycle, contrôlé par l'Action.
+         */
+        SaveMentionThresholdsRequest: {
+            congratulations: number;
+            honor_roll: number;
+            encouragement: number;
+            warning_below: number;
         };
         /**
          * SaveRollCallRequest
@@ -2864,6 +3119,7 @@ export interface components {
             skills: components["schemas"]["SkillResource"][];
             rows: components["schemas"]["SkillGridRowResource"][];
             can_manage: boolean;
+            closed: boolean;
         };
         /** SkillGridRowResource */
         SkillGridRowResource: {
@@ -2985,6 +3241,12 @@ export interface components {
             subject_id: string;
             average: number | null;
         };
+        /** SubjectCommentResource */
+        SubjectCommentResource: {
+            subject_id: string;
+            average: number | null;
+            comment: string | null;
+        };
         /** SubjectResource */
         SubjectResource: {
             id: string;
@@ -3013,6 +3275,15 @@ export interface components {
             code: string | null;
             message: string | null;
             replayed: boolean;
+        };
+        /** TermClosureResource */
+        TermClosureResource: {
+            id: string;
+            closed_at: string;
+            closed_by: string;
+            reopened_at: string | null;
+            reopened_by: string | null;
+            reopen_reason: string | null;
         };
         /** TermResource */
         TermResource: {
@@ -5204,6 +5475,227 @@ export interface operations {
                 };
                 content: {
                     "image/webp": string | null;
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
+        };
+    };
+    "grading.mentions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The cycle ID */
+                cycle: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveMentionThresholdsRequest"];
+            };
+        };
+        responses: {
+            /** @description `GradingSettingsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradingSettingsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "report-cards.index": {
+        parameters: {
+            query?: {
+                term_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ReportCardsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReportCardsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "report-cards.appreciation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAppreciationRequest"];
+            };
+        };
+        responses: {
+            /** @description `ReportCardsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReportCardsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "report-cards.close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseTermRequest"];
+            };
+        };
+        responses: {
+            /** @description `ReportCardsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReportCardsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "report-cards.reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenTermRequest"];
+            };
+        };
+        responses: {
+            /** @description `ReportCardsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReportCardsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "report-cards.retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseTermRequest"];
+            };
+        };
+        responses: {
+            /** @description `ReportCardsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReportCardsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "files.report-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, max-age=600";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Disposition"?: "inline; filename=\"bulletin.pdf\"";
+                    "Referrer-Policy"?: "no-referrer";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string | null;
                 };
             };
             404: components["responses"]["NotFoundHttpException"];

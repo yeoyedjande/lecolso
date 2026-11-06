@@ -19,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class GradeGridResource extends JsonResource
 {
     /**
-     * @return array{classroom: array{id: string, name: string}, grade_scale: int, terms: AnonymousResourceCollection, term: TermResource, subjects: AnonymousResourceCollection, subject: SubjectResource|null, assessments: AnonymousResourceCollection, rows: AnonymousResourceCollection, can_manage: bool}
+     * @return array{classroom: array{id: string, name: string}, grade_scale: int, terms: AnonymousResourceCollection, term: TermResource, subjects: AnonymousResourceCollection, subject: SubjectResource|null, assessments: AnonymousResourceCollection, rows: AnonymousResourceCollection, can_manage: bool, closed: bool}
      */
     public function toArray(Request $request): array
     {
@@ -42,6 +42,7 @@ final class GradeGridResource extends JsonResource
                 'average' => $row['average'],
             ], $view->rows)),
             'can_manage' => $view->canManage,
+            'closed' => $view->closed,
         ];
     }
 }

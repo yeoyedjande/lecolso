@@ -429,3 +429,122 @@ export function useSaveSkillCatalog() {
     },
   )
 }
+
+export type ReportCards = components['schemas']['ReportCardsResource']
+export type ReportCardRow = components['schemas']['ReportCardRowResource']
+export type Mention = 'congratulations' | 'honor_roll' | 'encouragement' | 'warning'
+export type MentionThresholds = GradingSettings['mentions']
+
+/** Bulletins d'une classe pour une période (celle du jour si `null`) : résultats, appréciations, validation, PDF. */
+export function useReportCards(classroomId: string, termId: string | null) {
+  const { school, key } = useGradingKey()
+  return useQuery<ReportCards>({
+    queryKey: [...key, 'report-cards', classroomId, termId],
+    enabled: school !== null && classroomId !== '',
+    // Rendu PDF en file d'attente : relu toutes les 5 secondes tant qu'un bulletin est en attente
+    refetchInterval: (query) =>
+      query.state.data?.rows.some((row) => row.report_card?.status === 'pending') === true
+        ? 5000
+        : false,
+    queryFn: async ({ signal }): Promise<ReportCards> => {
+      const { data, error } = await api.GET('/classrooms/{classroom}/report-cards', {
+        params: { path: { classroom: classroomId }, query: { term_id: termId } },
+        signal,
+      })
+      if (data === undefined) throw new Error('Bulletins indisponibles', { cause: error })
+      return data.data
+    },
+  })
+}
+
+function useReportCardsMutation<Input extends { classroomId: string }>(
+  send: (input: Input) => Promise<ReportCards | undefined>,
+) {
+  const { key } = useGradingKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: Input): Promise<ReportCards> => {
+      const data = await send(input)
+      if (data === undefined) throw new Error('Enregistrement impossible')
+      return data
+    },
+    onSuccess: async (data, input) => {
+      queryClient.setQueriesData<ReportCards>(
+        { queryKey: [...key, 'report-cards', input.classroomId] },
+        (current) => (current?.term.id === data.term.id ? data : current),
+      )
+      // Grilles de notes et de compétences : verrouillées ou déverrouillées
+      await queryClient.invalidateQueries({ queryKey: [...key, 'grid', input.classroomId] })
+      await queryClient.invalidateQueries({ queryKey: [...key, 'skills', input.classroomId] })
+    },
+  })
+}
+
+/** Appréciations d'un élève : champs du titulaire et/ou de la direction (un champ absent ne change pas). */
+export function useSaveAppreciation() {
+  return useReportCardsMutation(
+    async (input: {
+      classroomId: string
+      termId: string
+      studentId: string
+      teacher_comment?: string | null
+      subjects?: { subject_id: string; comment: string | null }[]
+      director_comment?: string | null
+      mention?: Mention | null
+    }) => {
+      const { classroomId, termId, studentId, ...fields } = input
+      const { data } = await api.PUT('/classrooms/{classroom}/appreciations', {
+        params: { path: { classroom: classroomId } },
+        body: { term_id: termId, student_id: studentId, ...fields },
+      })
+      return data?.data
+    },
+  )
+}
+
+/** Valider les bulletins d'une classe pour une période (direction) : notes figées, PDF rendus en file. */
+export function useCloseTerm() {
+  return useReportCardsMutation(async (input: { classroomId: string; termId: string }) => {
+    const { data } = await api.POST('/classrooms/{classroom}/report-cards/close', {
+      params: { path: { classroom: input.classroomId } },
+      body: { term_id: input.termId },
+    })
+    return data?.data
+  })
+}
+
+/** Déverrouiller une période validée (direction), motif obligatoire. */
+export function useReopenTerm() {
+  return useReportCardsMutation(
+    async (input: { classroomId: string; termId: string; reason: string }) => {
+      const { data } = await api.POST('/classrooms/{classroom}/report-cards/reopen', {
+        params: { path: { classroom: input.classroomId } },
+        body: { term_id: input.termId, reason: input.reason },
+      })
+      return data?.data
+    },
+  )
+}
+
+/** Relancer le rendu des bulletins PDF en échec (direction). */
+export function useRetryReportCards() {
+  return useReportCardsMutation(async (input: { classroomId: string; termId: string }) => {
+    const { data } = await api.POST('/classrooms/{classroom}/report-cards/retry', {
+      params: { path: { classroom: input.classroomId } },
+      body: { term_id: input.termId },
+    })
+    return data?.data
+  })
+}
+
+/** Seuils des mentions d'un cycle, sur son échelle. */
+export function useSaveMentionThresholds() {
+  return useSettingsMutation(async (input: { cycleId: string } & MentionThresholds) => {
+    const { cycleId, ...body } = input
+    const { data } = await api.PUT('/grading/cycles/{cycle}/mentions', {
+      params: { path: { cycle: cycleId } },
+      body,
+    })
+    return data?.data
+  })
+}

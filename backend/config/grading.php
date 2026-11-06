@@ -5,7 +5,8 @@ declare(strict_types=1);
 /*
 | Notes et compétences : listes proposées à la création d'une année (modifiables par la direction).
 | - subjects : matières et coefficients d'un niveau des cycles en moyenne pondérée ;
-| - skills : référentiel des cycles en compétences (domaine, compétence).
+| - skills : référentiel des cycles en compétences (domaine, compétence) ;
+| - mentions : seuils proposés des mentions du bulletin, sur 10 (ramenés sur l'échelle du cycle), modifiables par cycle.
 */
 
 return [
@@ -28,5 +29,11 @@ return [
         ['domain' => 'Vivre ensemble', 'label' => 'Respecte les règles de la classe'],
         ['domain' => 'Vivre ensemble', 'label' => 'Partage avec ses camarades'],
         ['domain' => 'Arts', 'label' => 'Chante en groupe'],
+    ],
+    'mentions' => [
+        'congratulations' => 8,
+        'honor_roll' => 7,
+        'encouragement' => 6,
+        'warning_below' => 4,
     ],
 ];

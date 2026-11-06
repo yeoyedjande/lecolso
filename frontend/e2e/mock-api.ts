@@ -1865,7 +1865,8 @@ export async function mockApi(
                 100,
         }
       }),
-      can_manage: classroom.can_manage,
+      can_manage: classroom.can_manage && !isClosed(classroomId, term?.id ?? ''),
+      closed: isClosed(classroomId, term?.id ?? ''),
     }
   }
   const classResultsResource = (schoolId: string, classroomId: string, termId: string | null) => {
@@ -1951,7 +1952,8 @@ export async function mockApi(
           level: skillLevels.get(`${term?.id ?? ''}:${student.id}:${skill.id}`) ?? null,
         })),
       })),
-      can_manage: classroom.can_manage,
+      can_manage: classroom.can_manage && !isClosed(classroomId, term?.id ?? ''),
+      closed: isClosed(classroomId, term?.id ?? ''),
     }
   }
   const saveGrades = (assessmentId: string, rows: unknown) => {
@@ -1980,6 +1982,93 @@ export async function mockApi(
       const key = `${termId}:${parsed.student_id}:${parsed.skill_id}`
       if (parsed.level === null) skillLevels.delete(key)
       else skillLevels.set(key, parsed.level)
+    }
+  }
+  // Bulletins (lot 7b) : appréciations, mentions, validation par la direction, PDF
+  interface MockClosure {
+    id: string
+    closed_at: string
+    closed_by: string
+    reopened_at: string | null
+    reopened_by: string | null
+    reopen_reason: string | null
+  }
+  const closures = new Map<string, MockClosure[]>()
+  const appreciations = new Map<
+    string,
+    { teacher_comment: string | null; director_comment: string | null; mention: string | null }
+  >()
+  const subjectComments = new Map<string, string>()
+  const mentionThresholds = new Map<string, Record<string, number>>()
+  const openClosure = (classroomId: string, termId: string) =>
+    closures.get(`${classroomId}:${termId}`)?.find((closure) => closure.reopened_at === null)
+  const isClosed = (classroomId: string, termId: string) =>
+    openClosure(classroomId, termId) !== undefined
+  const thresholdsOf = (cycleId: string) =>
+    mentionThresholds.get(cycleId) ?? {
+      congratulations: 8,
+      honor_roll: 7,
+      encouragement: 6,
+      warning_below: 4,
+    }
+  const proposeMention = (average: number | null, thresholds: Record<string, number>) => {
+    if (average === null) return null
+    if (average >= (thresholds.congratulations ?? 8)) return 'congratulations'
+    if (average >= (thresholds.honor_roll ?? 7)) return 'honor_roll'
+    if (average >= (thresholds.encouragement ?? 6)) return 'encouragement'
+    if (average < (thresholds.warning_below ?? 4)) return 'warning'
+    return null
+  }
+  const reportCardsResource = (schoolId: string, classroomId: string, termId: string | null) => {
+    const results = classResultsResource(schoolId, classroomId, termId)
+    const classroom = gradingClassrooms(schoolId).find((candidate) => candidate.id === classroomId)
+    if (results === undefined || classroom === undefined || results.term === undefined)
+      return undefined
+    const term = results.term
+    const closure = openClosure(classroomId, term.id) ?? null
+    const thresholds = thresholdsOf(classroom.cycle.id)
+    const canValidate = staffHolds(schoolId, 'grades.validate', classroom.cycle.id)
+    return {
+      classroom: results.classroom,
+      document: classroom.cycleSettings.report_document,
+      grade_scale: results.grade_scale,
+      terms: results.terms,
+      term,
+      subjects: results.subjects,
+      thresholds,
+      closure,
+      history: [...(closures.get(`${classroomId}:${term.id}`) ?? [])].reverse(),
+      rows: results.rows.map((row) => {
+        const saved = appreciations.get(`${term.id}:${row.student.id}`)
+        const proposed = proposeMention(row.average, thresholds)
+        return {
+          student: row.student,
+          average: row.average,
+          rank: row.rank,
+          skills: row.skills,
+          mention: saved?.mention ?? proposed,
+          mention_proposed: proposed,
+          mention_chosen: saved?.mention != null,
+          teacher_comment: saved?.teacher_comment ?? null,
+          director_comment: saved?.director_comment ?? null,
+          subjects: row.subjects.map((cell) => ({
+            ...cell,
+            comment: subjectComments.get(`${term.id}:${row.student.id}:${cell.subject_id}`) ?? null,
+          })),
+          report_card:
+            closure === null
+              ? null
+              : {
+                  id: `${closure.id}-${row.student.id}`,
+                  status: 'ready',
+                  pdf_url: `/fichiers/${row.student.id}.pdf`,
+                },
+        }
+      }),
+      ready_count: closure === null ? 0 : results.rows.length,
+      failed_count: 0,
+      can_comment: closure === null && classroom.can_manage,
+      can_validate: canValidate,
     }
   }
   const gradingSettingsResource = (schoolId: string, cycleId: string) => {
@@ -2025,6 +2114,7 @@ export async function mockApi(
         cycle.settings.assessment_mode === 'competency'
           ? skillsOf(cycle.id).map((skill) => ({ ...skill, used: used.has(skill.id) }))
           : [],
+      mentions: thresholdsOf(cycle.id),
       can_manage: holds(schoolId, 'school.settings.manage', cycle.id),
     }
   }
@@ -3411,6 +3501,117 @@ export async function mockApi(
           }
         }
         {
+          const match =
+            /^\/classrooms\/([^/]+)\/(report-cards|appreciations|report-cards\/close|report-cards\/reopen|report-cards\/retry)$/.exec(
+              path,
+            )
+          if (match !== null) {
+            const schoolId = schoolHeader ?? ''
+            const [, classroomId = '', action = ''] = match
+            const classroom = gradingClassrooms(schoolId).find(
+              (candidate) => candidate.id === classroomId,
+            )
+            if (classroom === undefined)
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (request.method() === 'GET')
+              return route.fulfill({
+                json: {
+                  data: reportCardsResource(
+                    schoolId,
+                    classroomId,
+                    new URL(request.url()).searchParams.get('term_id'),
+                  ),
+                },
+              })
+            const body = z.record(z.string(), z.unknown()).parse(request.postDataJSON())
+            const termId = typeof body.term_id === 'string' ? body.term_id : ''
+            const canValidate = staffHolds(schoolId, 'grades.validate', classroom.cycle.id)
+            const key = `${classroomId}:${termId}`
+            if (action === 'appreciations') {
+              if (isClosed(classroomId, termId))
+                return route.fulfill({
+                  status: 409,
+                  json: { message: 'Période validée.', code: 'term_closed' },
+                })
+              const studentId = typeof body.student_id === 'string' ? body.student_id : ''
+              const saved = appreciations.get(`${termId}:${studentId}`) ?? {
+                teacher_comment: null,
+                director_comment: null,
+                mention: null,
+              }
+              if ('teacher_comment' in body)
+                saved.teacher_comment =
+                  typeof body.teacher_comment === 'string' && body.teacher_comment !== ''
+                    ? body.teacher_comment
+                    : null
+              if ('director_comment' in body) {
+                if (!canValidate) return route.fulfill(forbidden)
+                saved.director_comment =
+                  typeof body.director_comment === 'string' && body.director_comment !== ''
+                    ? body.director_comment
+                    : null
+              }
+              if ('mention' in body)
+                saved.mention = typeof body.mention === 'string' ? body.mention : null
+              appreciations.set(`${termId}:${studentId}`, saved)
+              for (const row of Array.isArray(body.subjects) ? body.subjects : []) {
+                const parsed = z
+                  .object({ subject_id: z.string(), comment: z.nullable(z.string()) })
+                  .parse(row)
+                const commentKey = `${termId}:${studentId}:${parsed.subject_id}`
+                if (parsed.comment === null || parsed.comment === '')
+                  subjectComments.delete(commentKey)
+                else subjectComments.set(commentKey, parsed.comment)
+              }
+            } else {
+              if (!canValidate) return route.fulfill(forbidden)
+              const history = closures.get(key) ?? []
+              if (action === 'report-cards/close') {
+                if (isClosed(classroomId, termId))
+                  return route.fulfill({
+                    status: 409,
+                    json: { message: 'Déjà validés.', code: 'already_closed' },
+                  })
+                history.push({
+                  id: `closure-${String(history.length + 1)}`,
+                  closed_at: `${TODAY}T10:00:00+00:00`,
+                  closed_by: current?.name ?? '',
+                  reopened_at: null,
+                  reopened_by: null,
+                  reopen_reason: null,
+                })
+              } else if (action === 'report-cards/reopen') {
+                const open = openClosure(classroomId, termId)
+                if (open === undefined)
+                  return route.fulfill({
+                    status: 409,
+                    json: { message: 'Non validés.', code: 'not_closed' },
+                  })
+                open.reopened_at = `${TODAY}T11:00:00+00:00`
+                open.reopened_by = current?.name ?? ''
+                open.reopen_reason = typeof body.reason === 'string' ? body.reason : ''
+              }
+              closures.set(key, history)
+            }
+            return route.fulfill({
+              json: { data: reportCardsResource(schoolId, classroomId, termId) },
+            })
+          }
+        }
+        {
+          const match = /^\/grading\/cycles\/([^/]+)\/mentions$/.exec(path)
+          if (request.method() === 'PUT' && match !== null) {
+            const schoolId = schoolHeader ?? ''
+            const cycleId = match[1] ?? ''
+            if (!holds(schoolId, 'school.settings.manage', cycleId)) return route.fulfill(forbidden)
+            mentionThresholds.set(
+              cycleId,
+              z.record(z.string(), z.number()).parse(request.postDataJSON()),
+            )
+            return route.fulfill({ json: { data: gradingSettingsResource(schoolId, cycleId) } })
+          }
+        }
+        {
           const match = /^\/classrooms\/([^/]+)\/(grade-grid|results|skills|assessments)$/.exec(
             path,
           )
@@ -3486,6 +3687,11 @@ export async function mockApi(
             if (assessment === undefined || classroom === undefined)
               return route.fulfill({ status: 404, json: { message: 'Not Found' } })
             if (!classroom.can_manage) return route.fulfill(forbidden)
+            if (request.method() !== 'GET' && isClosed(classroom.id, assessment.term_id))
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Période validée.', code: 'term_closed' },
+              })
             if (request.method() === 'PUT' && match[2] === '/grades') {
               const body = z.object({ grades: z.array(z.unknown()) }).parse(request.postDataJSON())
               saveGrades(assessment.id, body.grades)

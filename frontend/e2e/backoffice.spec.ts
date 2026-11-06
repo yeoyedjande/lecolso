@@ -260,3 +260,44 @@ test('paramètres des notes : coefficients du primaire et compétences de la mat
   await page.getByRole('combobox', { name: 'Cycle' }).selectOption({ label: 'Maternelle' })
   await expect(page.getByText('Référentiel de compétences')).toBeVisible()
 })
+
+test('bulletins : appréciation, mention, validation puis déverrouillage motivé', async ({
+  page,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/bulletins')
+  await expect(page.getByText('Bulletins non validés').first()).toBeVisible()
+  await page.getByRole('combobox', { name: 'Classe' }).selectOption({ label: 'CE1 A' })
+  await expect(page.getByText('Bulletin de notes')).toBeVisible()
+
+  await page
+    .getByRole('button', { name: /^Appréciations de / })
+    .first()
+    .click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Appréciation générale de l’enseignant(e)').fill('Très bon trimestre.')
+  await dialog.getByLabel('Observation de la direction').fill('Continuez ainsi.')
+  await dialog.getByLabel('Mention').selectOption({ label: 'Encouragements' })
+  await dialog.getByRole('button', { name: 'Enregistrer' }).click()
+  await expect(page.getByText('Appréciations enregistrées').first()).toBeVisible()
+  await expect(page.getByText('Rédigée').first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Valider les bulletins' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Valider les bulletins' }).click()
+  await expect(page.getByText(/^Validés le /)).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Bulletin PDF de / }).first()).toBeVisible()
+
+  // Grille de notes figée
+  await page.goto('/les-lauriers/notes')
+  await page.getByRole('combobox', { name: 'Classe' }).selectOption({ label: 'CE1 A' })
+  await expect(page.getByText(/Bulletins validés pour cette période/)).toBeVisible()
+
+  await page.goto('/les-lauriers/bulletins')
+  await page.getByRole('combobox', { name: 'Classe' }).selectOption({ label: 'CE1 A' })
+  await page.getByRole('button', { name: 'Déverrouiller' }).click()
+  const reopen = page.getByRole('dialog')
+  await expect(reopen.getByRole('button', { name: 'Déverrouiller' })).toBeDisabled()
+  await reopen.getByLabel('Motif du déverrouillage').fill('Note mal reportée')
+  await reopen.getByRole('button', { name: 'Déverrouiller' }).click()
+  await expect(page.getByText(/Déverrouillés le .* : Note mal reportée/)).toBeVisible()
+})

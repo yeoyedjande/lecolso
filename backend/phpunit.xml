@@ -35,6 +35,7 @@
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="SANCTUM_STATEFUL_DOMAINS" value="localhost:5173" force="true"/>
         <env name="FRONTEND_URL" value="http://localhost:5173" force="true"/>
+        <env name="GOTENBERG_URL" value="" force="true"/>
         <!-- Laravel lit $_SERVER avant $_ENV : les valeurs forcées sont aussi posées dans $_SERVER -->
         <server name="APP_ENV" value="testing" force="true"/>
         <server name="CACHE_STORE" value="array" force="true"/>

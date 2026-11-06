@@ -18,7 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class SkillGridResource extends JsonResource
 {
     /**
-     * @return array{classroom: array{id: string, name: string}, terms: AnonymousResourceCollection, term: TermResource, skills: AnonymousResourceCollection, rows: AnonymousResourceCollection, can_manage: bool}
+     * @return array{classroom: array{id: string, name: string}, terms: AnonymousResourceCollection, term: TermResource, skills: AnonymousResourceCollection, rows: AnonymousResourceCollection, can_manage: bool, closed: bool}
      */
     public function toArray(Request $request): array
     {
@@ -37,6 +37,7 @@ final class SkillGridResource extends JsonResource
                 ])->all()),
             ], $view->rows)),
             'can_manage' => $view->canManage,
+            'closed' => $view->closed,
         ];
     }
 }

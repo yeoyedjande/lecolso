@@ -60,7 +60,7 @@ export const SCREENS: Screen[] = [
       ['gestion-frais', '/les-lauriers/frais', 'Calendrier des échéances'],
       ['gestion-notes', '/les-lauriers/notes', 'Évaluation 1'],
       ['gestion-competences', '/les-lauriers/competences', 'Langage oral'],
-      ['gestion-bulletins', '/les-lauriers/bulletins', /Complet|Notes manquantes/],
+      ['gestion-bulletins', '/les-lauriers/bulletins', 'Bulletins non validés'],
       ['gestion-presences', '/les-lauriers/presences', /présent\(s\)/],
       ['gestion-garderie', '/les-lauriers/garderie', /enfant\(s\) présent\(s\)/],
       ['gestion-messages', '/les-lauriers/messages', 'Retard du matin'],

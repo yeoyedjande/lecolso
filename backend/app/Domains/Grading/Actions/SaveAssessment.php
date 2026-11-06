@@ -10,10 +10,12 @@ use App\Domains\Grading\Models\Grade;
 use App\Domains\Grading\Support\ClassroomGrading;
 use App\Domains\Grading\Support\GradingAccess;
 use App\Domains\Grading\Support\GradingCatalog;
+use App\Domains\Grading\Support\TermLock;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AssessmentMode;
 use App\Support\Http\BusinessConflict;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -33,7 +35,7 @@ final readonly class SaveAssessment
      * @param  array{subject_id: string, term_id: string, title: string, date: string, out_of: int}  $data
      *
      * @throws AuthorizationException
-     * @throws BusinessConflict wrong_mode, year_closed
+     * @throws BusinessConflict wrong_mode, year_closed, term_closed
      * @throws ValidationException subject_id, term_id, date, out_of
      */
     public function handle(User $user, Classroom $classroom, array $data, ?Assessment $assessment = null, ?string $id = null): Assessment
@@ -59,6 +61,10 @@ final readonly class SaveAssessment
         }
         $term = $this->grading->terms($classroom)->firstWhere('id', $data['term_id'])
             ?? throw ValidationException::withMessages(['term_id' => 'Période inconnue pour cette classe.']);
+        TermLock::assertOpen($classroom->id, $term->id);
+        if ($assessment !== null && $assessment->exists && $assessment->term_id !== $term->id) {
+            TermLock::assertOpen($classroom->id, $assessment->term_id);
+        }
         if ($data['date'] < $term->starts_on->toDateString() || $data['date'] > $term->ends_on->toDateString()) {
             throw ValidationException::withMessages(['date' => 'La date doit être dans la période choisie.']);
         }
@@ -70,15 +76,23 @@ final readonly class SaveAssessment
         }
 
         $assessment ??= new Assessment(['id' => $id, 'classroom_id' => $classroom->id, 'created_by' => $user->id]);
-        $assessment->fill([
-            'subject_id' => $data['subject_id'],
-            'term_id' => $data['term_id'],
-            'title' => $data['title'],
-            'date' => $data['date'],
-            'out_of' => $data['out_of'],
-        ])->save();
+        $previousTerm = $assessment->exists ? $assessment->term_id : null;
 
-        return $assessment;
+        return DB::transaction(static function () use ($classroom, $assessment, $data, $previousTerm): Assessment {
+            TermLock::guard($classroom->id, $data['term_id']);
+            if ($previousTerm !== null && $previousTerm !== $data['term_id']) {
+                TermLock::guard($classroom->id, $previousTerm);
+            }
+            $assessment->fill([
+                'subject_id' => $data['subject_id'],
+                'term_id' => $data['term_id'],
+                'title' => $data['title'],
+                'date' => $data['date'],
+                'out_of' => $data['out_of'],
+            ])->save();
+
+            return $assessment;
+        });
     }
 
     /**
@@ -92,7 +106,11 @@ final readonly class SaveAssessment
             throw new AuthorizationException;
         }
         ClassroomGrading::assertOpen($classroom);
+        TermLock::assertOpen($classroom->id, $assessment->term_id);
         // Les notes partent avec l'évaluation (clé étrangère en cascade)
-        $assessment->delete();
+        DB::transaction(static function () use ($classroom, $assessment): void {
+            TermLock::guard($classroom->id, $assessment->term_id);
+            $assessment->delete();
+        });
     }
 }

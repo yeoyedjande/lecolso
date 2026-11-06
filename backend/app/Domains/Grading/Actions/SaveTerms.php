@@ -8,6 +8,7 @@ use App\Domains\Academic\Enums\AcademicYearStatus;
 use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Grading\Models\Term;
+use App\Domains\Grading\Models\TermClosure;
 use App\Domains\Grading\Support\DefaultTerms;
 use App\Domains\Grading\Support\GradingAccess;
 use App\Domains\Grading\Support\GradingCatalog;
@@ -33,7 +34,7 @@ final readonly class SaveTerms
      * @param  list<array{label: string, starts_on: string, ends_on: string}>  $terms
      *
      * @throws AuthorizationException
-     * @throws BusinessConflict year_closed
+     * @throws BusinessConflict year_closed, term_closed
      * @throws ValidationException terms
      */
     public function handle(User $user, Cycle $cycle, AcademicYear $year, array $terms): void
@@ -67,6 +68,14 @@ final readonly class SaveTerms
         DB::transaction(function () use ($year, $cycle, $terms): void {
             GradingLock::acquire('terms', $year->id, $cycle->id);
             $existing = Term::query()->where('academic_year_id', $year->id)->where('cycle_id', $cycle->id)->get()->keyBy('position');
+            // Dates d'une période validée figées (élèves de la période, absences du bulletin)
+            foreach ($terms as $index => $data) {
+                $term = $existing->get($index + 1);
+                if ($term instanceof Term && ($term->starts_on->toDateString() !== $data['starts_on'] || $term->ends_on->toDateString() !== $data['ends_on'])
+                    && TermClosure::query()->where('term_id', $term->id)->whereNull('reopened_at')->exists()) {
+                    throw new BusinessConflict('term_closed', 'Des bulletins de « '.$term->label.' » sont validés : la direction doit d’abord les déverrouiller.');
+                }
+            }
             foreach ($terms as $index => $data) {
                 $term = $existing->get($index + 1) ?? new Term(['academic_year_id' => $year->id, 'cycle_id' => $cycle->id, 'position' => $index + 1]);
                 $term->fill(['label' => $data['label'], 'starts_on' => $data['starts_on'], 'ends_on' => $data['ends_on']])->save();

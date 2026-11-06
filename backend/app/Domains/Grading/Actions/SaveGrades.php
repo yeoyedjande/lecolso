@@ -10,6 +10,7 @@ use App\Domains\Grading\Support\ClassroomGrading;
 use App\Domains\Grading\Support\GradingAccess;
 use App\Domains\Grading\Support\GradingLock;
 use App\Domains\Grading\Support\GradingRoster;
+use App\Domains\Grading\Support\TermLock;
 use App\Domains\Identity\Models\User;
 use App\Support\Http\BusinessConflict;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -30,7 +31,7 @@ final readonly class SaveGrades
      * @param  list<array{student_id: string, value: float|null, absent: bool}>  $grades
      *
      * @throws AuthorizationException
-     * @throws BusinessConflict year_closed
+     * @throws BusinessConflict year_closed, term_closed
      * @throws ValidationException grades
      */
     public function handle(User $user, Assessment $assessment, array $grades, ?Carbon $recordedAt = null): void
@@ -41,6 +42,7 @@ final readonly class SaveGrades
             throw new AuthorizationException;
         }
         ClassroomGrading::assertOpen($classroom);
+        TermLock::assertOpen($classroom->id, $assessment->term_id);
 
         $roster = GradingRoster::of($classroom, $assessment->term)->modelKeys();
         foreach ($grades as $index => $grade) {
@@ -52,7 +54,8 @@ final readonly class SaveGrades
             }
         }
 
-        DB::transaction(function () use ($user, $assessment, $grades, $recordedAt): void {
+        DB::transaction(function () use ($user, $classroom, $assessment, $grades, $recordedAt): void {
+            TermLock::guard($classroom->id, $assessment->term_id);
             GradingLock::acquire('grades', $assessment->id);
             $existing = Grade::query()->where('assessment_id', $assessment->id)->get()->keyBy('student_id');
             foreach ($grades as $data) {
