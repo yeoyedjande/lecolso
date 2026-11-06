@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Lock, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -375,13 +375,24 @@ export function GradesPage() {
                 ) : loaded.rows.length === 0 ? (
                   <EmptyState title={t('grades.noStudent')} />
                 ) : (
-                  <GradeGridEditor
-                    key={`${loaded.term.id}-${loaded.subject.id}-${loaded.assessments.map((a) => `${a.id}:${String(a.out_of)}`).join(',')}`}
-                    grid={loaded}
-                    onEdit={(assessment) => {
-                      setDialog({ assessment })
-                    }}
-                  />
+                  <div className="grid gap-3">
+                    {loaded.closed && (
+                      <p
+                        className="flex items-center gap-2 rounded-xl bg-muted p-3 text-sm"
+                        role="status"
+                      >
+                        <Lock className="size-4 shrink-0" aria-hidden />
+                        {t('grades.closedBanner')}
+                      </p>
+                    )}
+                    <GradeGridEditor
+                      key={`${loaded.term.id}-${loaded.subject.id}-${loaded.assessments.map((a) => `${a.id}:${String(a.out_of)}`).join(',')}`}
+                      grid={loaded}
+                      onEdit={(assessment) => {
+                        setDialog({ assessment })
+                      }}
+                    />
+                  </div>
                 )
               }
             </QueryState>

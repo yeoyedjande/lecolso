@@ -58,6 +58,7 @@ function grid(awa: number | null, yao: number | null): GradeGrid {
       },
     ],
     can_manage: true,
+    closed: false,
   }
 }
 

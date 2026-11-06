@@ -121,8 +121,11 @@ src/
   réglages `useGradingSettings`, `useSaveTerms`, `useSaveSubjects`, `useSaveSkillCatalog`) : écrans Notes
   (`GradeGridEditor` : « abs » pour une absence, moyenne ramenée sur l'échelle du cycle), Compétences et onglet « Notes »
   des Paramètres (`GradingSettingsPanel`). Évaluations, notes et compétences se saisissent hors connexion (file locale,
-  grille mise à jour aussitôt). Les bulletins (lot 7b), l'espace enseignant et l'espace parent gardent les hooks de
-  démonstration de `features/grades/demoApi.ts`.
+  grille mise à jour aussitôt). **Bulletins** (`useReportCards` — relu toutes les 5 s tant qu'un PDF est en cours —,
+  `useSaveAppreciation`, `useCloseTerm`, `useReopenTerm`, `useRetryReportCards`, seuils `useSaveMentionThresholds`) :
+  écran Bulletins (appréciations, mention, validation et déverrouillage motivé, PDF par `pdf_url` signée) ; une période
+  validée met les grilles Notes et Compétences en lecture seule (`closed`). L'espace enseignant et l'espace parent
+  gardent les hooks de démonstration de `features/grades/demoApi.ts` (bulletin `ReportDocument`) jusqu'au lot 8.
   Les paiements et reçus de l'espace parent restent en démonstration (`useDemoReceipt`).
   Espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).

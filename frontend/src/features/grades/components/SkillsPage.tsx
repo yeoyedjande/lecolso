@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -116,6 +117,15 @@ export function SkillsPage() {
                 <EmptyState title={t('grades.noStudent')} />
               ) : (
                 <div className="grid gap-2">
+                  {data.closed && (
+                    <p
+                      className="flex items-center gap-2 rounded-xl bg-muted p-3 text-sm"
+                      role="status"
+                    >
+                      <Lock className="size-4 shrink-0" aria-hidden />
+                      {t('grades.closedBanner')}
+                    </p>
+                  )}
                   <p className="text-sm text-muted-foreground" aria-live="polite">
                     {t('skills.progress', { done, total })}
                     {save.data?.queued === true && ` · ${t('grades.queued')}`}

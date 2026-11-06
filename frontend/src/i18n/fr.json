@@ -1006,7 +1006,8 @@
     "classAverageLabel": "Moyenne de la classe",
     "highest": "Plus forte",
     "lowest": "Plus faible",
-    "scale": "Échelle"
+    "scale": "Échelle",
+    "closedBanner": "Bulletins validés pour cette période : la grille est en lecture seule. La direction peut déverrouiller dans « Bulletins »."
   },
   "skills": {
     "title": "Compétences",
@@ -1018,7 +1019,7 @@
   },
   "reportCards": {
     "title": "Bulletins et livrets",
-    "description": "Aperçu avant impression ou envoi aux familles. Le PDF définitif sera produit par le serveur.",
+    "description": "Appréciations, mentions et validation par la direction. Les bulletins PDF sont produits à la validation.",
     "preview": "Aperçu",
     "previewOf": "Aperçu du document de {{name}}",
     "print": "Imprimer",
@@ -1027,15 +1028,51 @@
     "incomplete": "Notes manquantes",
     "reportCard": "Bulletin de notes",
     "skillsBooklet": "Livret de compétences",
-    "observation": "Pas de document pour ce cycle",
+    "observation": "Aucune classe n’a de bulletin ni de livret.",
     "term": "{{type}} {{number}}",
-    "appreciation": "Appréciation",
+    "appreciation": "Appréciations",
     "teacher": "L’enseignant(e)",
     "director": "La direction",
     "parents": "Les parents",
     "born": "Né(e) le {{date}}",
     "absences": "Absences : {{count}}",
-    "classSize": "Effectif : {{count}}"
+    "classSize": "Effectif : {{count}}",
+    "appreciationsOf": "Appréciations de {{name}}",
+    "subjectComment": "{{subject}} (moyenne {{average}})",
+    "teacherComment": "Appréciation générale de l’enseignant(e)",
+    "directorComment": "Observation de la direction",
+    "mention": "Mention",
+    "mentionHint": "Proposée d’après la moyenne : {{proposed}}.",
+    "mentionAuto": "Automatique ({{proposed}})",
+    "noMention": "aucune",
+    "mentions": {
+      "congratulations": "Félicitations",
+      "honor_roll": "Tableau d’honneur",
+      "encouragement": "Encouragements",
+      "warning": "Avertissement"
+    },
+    "toWrite": "À rédiger",
+    "written": "Rédigée",
+    "skillsSummary": "Compétences",
+    "skillsCounts": "{{a}} A · {{ea}} EA · {{na}} NA",
+    "pdf": "PDF",
+    "pdfOf": "Bulletin PDF de {{name}}",
+    "notClosed": "Bulletins non validés : notes, compétences et appréciations restent modifiables.",
+    "closedBy": "Validés le {{date}} par {{name}}",
+    "pdfStatus": "{{ready}} PDF prêt(s), {{pending}} en cours, {{failed}} en échec",
+    "reopenedBy": "Déverrouillés le {{date}} par {{name}} : {{reason}}",
+    "close": "Valider les bulletins",
+    "reopen": "Déverrouiller",
+    "retry": "Relancer les PDF en échec",
+    "closeTitle": "Valider les bulletins",
+    "closeHelp": "{{classroom}}, {{term}} : les notes, compétences et appréciations des {{count}} élèves seront figées et les bulletins PDF produits. Vous pourrez déverrouiller en indiquant un motif.",
+    "reopenTitle": "Déverrouiller les bulletins",
+    "reopenHelp": "Les notes redeviennent modifiables. Le motif est gardé dans l’historique ; les bulletins seront produits à nouveau à la prochaine validation.",
+    "reopenReason": "Motif du déverrouillage",
+    "closed": "Bulletins validés : PDF en cours de production",
+    "reopened": "Bulletins déverrouillés",
+    "saved": "Appréciations enregistrées",
+    "failed": "Enregistrement impossible"
   },
   "attendance": {
     "title": "Présences",
@@ -1828,6 +1865,15 @@
     "remove": "Retirer {{name}}",
     "used": "Déjà évaluée : ne peut plus être retirée",
     "saved": "Réglages enregistrés",
-    "failed": "Enregistrement impossible"
+    "failed": "Enregistrement impossible",
+    "mentions": "Mentions proposées sur les bulletins",
+    "mentionsHint": "Moyennes sur {{scale}} : la mention est proposée d’après ces seuils, la direction peut la changer avant de valider. Les bulletins déjà validés ne changent pas.",
+    "thresholds": {
+      "congratulations": "Félicitations dès",
+      "honor_roll": "Tableau d’honneur dès",
+      "encouragement": "Encouragements dès",
+      "warning_below": "Avertissement sous"
+    },
+    "saveMentions": "Enregistrer les seuils"
   }
 }

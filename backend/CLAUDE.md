@@ -205,7 +205,19 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Élèves d'une période : `Support\GradingRoster` (inscrits avant la fin, pas partis avant le début).
 - Hors connexion (`POST /sync`) : `grades.assessment` (UUID de l'appareil), `grades.save`, `skills.save` ; une saisie est
   datée de son heure sur l'appareil (`updated_at`) et une saisie plus récente n'est jamais écrasée.
-- Validation par la direction, appréciations et bulletins PDF : lot 7b.
+- Bulletins (lot 7b) : `appreciations` (générale du titulaire, observation et mention de la direction, `mention_chosen`),
+  `subject_appreciations`, `mention_thresholds` (par cycle, sinon `config/grading.php` ramené sur l'échelle :
+  `Support\MentionPolicy`), `term_closures` (validation d'une classe pour une période ; une seule ouverte, déverrouillage
+  motivé gardé), `report_cards` (PDF par élève et par validation). `Support\TermLock` : période validée → 409
+  `term_closed` sur évaluations, notes, compétences et appréciations (en ligne et `/sync`). `CloseTerm` fige les mentions
+  proposées et met en file `Jobs\RenderReportCards` (`TenantAware`) : `Support\ReportCardBuilder` (données figées,
+  absences lues dans Attendance, logo en data URI) → gabarit Blade `resources/views/report-cards/{report_card,skills_booklet}`
+  (d'après `report_document`) → `Support\Pdf\PdfRenderer` → fichier privé `report-cards/{uuid}.pdf`
+  (`Support\ReportCardFile`, route signée `files.report-card`, 10 minutes). Échec : `failed`, relance par
+  `POST classrooms/{classroom}/report-cards/retry`. Droits : appréciations du titulaire (`grades.manage`), observation,
+  mention, validation et déverrouillage (`grades.validate`, personnel du cycle).
+- PDF : interface `App\Support\Pdf\PdfRenderer` ; `GotenbergPdfRenderer` (`services.gotenberg.url`, toujours en
+  production, refus explicite sans URL) ; `FakePdfRenderer` en test (`GOTENBERG_URL` vide) et sans Docker.
 
 ## Fichiers
 
