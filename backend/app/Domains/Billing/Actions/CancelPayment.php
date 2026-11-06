@@ -26,7 +26,7 @@ final class CancelPayment
      */
     public function handle(User $author, Payment $payment, string $reason, Carbon $now): Payment
     {
-        return DB::transaction(static function () use ($author, $payment, $reason, $now): Payment {
+        $cancelled = DB::transaction(static function () use ($author, $payment, $reason, $now): Payment {
             Invoice::query()->whereKey($payment->invoice_id)->lockForUpdate()->firstOrFail();
             if (PaymentCancellation::query()->where('payment_id', $payment->id)->exists()) {
                 throw new BusinessConflict('already_cancelled', 'Ce paiement est déjà annulé.');
@@ -43,10 +43,12 @@ final class CancelPayment
                 'cancelled_by' => $author->id,
                 'cancelled_by_name' => $author->name,
             ]);
-            // Reçu « ANNULÉ » demandé une fois l'annulation validée
-            DB::afterCommit(static fn () => PaymentCancelled::dispatch($payment->school_id, $payment->id));
 
             return $payment->load('cancellation');
         });
+        // Reçu « ANNULÉ » demandé une fois l'annulation validée (comme PaymentReceived dans RecordPayment)
+        PaymentCancelled::dispatch($cancelled->school_id, $cancelled->id);
+
+        return $cancelled;
     }
 }

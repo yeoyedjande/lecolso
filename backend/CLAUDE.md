@@ -178,7 +178,7 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   enregistré même si la facture a été réglée entre-temps (trop-perçu). Frais : `FinancialPolicy::mobileMoney()`
   (`schools.settings.billing_mobile_money`, `GET/PUT billing/policy`).
 - Reçus PDF et confirmation SMS (lot 10b) : `Events\PaymentReceived` (guichet et Mobile Money, après la transaction)
-  et `Events\PaymentCancelled` (`CancelPayment`, `afterCommit`) → `Listeners\PrepareReceipt` (synchrone, école
+  et `Events\PaymentCancelled` (`CancelPayment`, après la transaction) → `Listeners\PrepareReceipt` (synchrone, école
   courante). `receipt_files` : une fiche par paiement et par version (`cancelled` : reçu « ANNULÉ »), état
   pending/ready/failed ; `Support\ReceiptRendering::request` (créée et rendu mis en file une fois, échec relancé sur
   demande, rendu resté en attente plus de 5 minutes remis en file) → `Jobs\RenderReceipt` (`TenantAware`, `failed()` note l'échec, `Support\ReceiptDocument` : montant en lettres par `intl`, logo en
