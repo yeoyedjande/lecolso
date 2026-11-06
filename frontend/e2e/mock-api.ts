@@ -1813,6 +1813,27 @@ export async function mockApi(
     terms.find((term) => term.id === termId) ??
     [...terms].reverse().find((term) => term.starts_on <= TODAY) ??
     terms[0]
+  /** Première évaluation de démonstration : « Évaluation 1 » en français au 1er trimestre. */
+  const seedGrid = (schoolId: string, classroomId: string, levelId: string, terms: MockTerm[]) => {
+    const subject = subjectsOf(levelId)[0]
+    if (seededGrids.has(classroomId) || subject === undefined || terms[0] === undefined) return
+    seededGrids.add(classroomId)
+    const id = `${classroomId}-a1`
+    assessments.set(id, {
+      id,
+      classroom_id: classroomId,
+      subject_id: subject.id,
+      term_id: terms[0].id,
+      title: 'Évaluation 1',
+      date: '2026-10-02',
+      out_of: 20,
+    })
+    rosterOf(schoolId, classroomId)
+      .slice(0, 3)
+      .forEach((student, index) => {
+        grades.set(`${id}:${student.id}`, { value: [14, 9.5, 17][index] ?? 12, absent: false })
+      })
+  }
   const gradeGridResource = (
     schoolId: string,
     classroomId: string,
@@ -1826,23 +1847,7 @@ export async function mockApi(
     const subjects = subjectsOf(classroom.level_id)
     const subject = subjects.find((candidate) => candidate.id === subjectId) ?? subjects[0]
     const roster = rosterOf(schoolId, classroomId)
-    // Première évaluation de démonstration : « Évaluation 1 » en français au 1er trimestre
-    if (!seededGrids.has(classroomId) && subjects[0] !== undefined && terms[0] !== undefined) {
-      seededGrids.add(classroomId)
-      const id = `${classroomId}-a1`
-      assessments.set(id, {
-        id,
-        classroom_id: classroomId,
-        subject_id: subjects[0].id,
-        term_id: terms[0].id,
-        title: 'Évaluation 1',
-        date: '2026-10-02',
-        out_of: 20,
-      })
-      roster.slice(0, 3).forEach((student, index) => {
-        grades.set(`${id}:${student.id}`, { value: [14, 9.5, 17][index] ?? 12, absent: false })
-      })
-    }
+    seedGrid(schoolId, classroomId, classroom.level_id, terms)
     const columns = [...assessments.values()]
       .filter(
         (assessment) =>
@@ -2178,6 +2183,203 @@ export async function mockApi(
       for (const [studentId, mark] of call.marks)
         if (mark.id === markId || mark.justification?.id === markId) return { studentId, mark }
     return undefined
+  }
+  // Espace parent (lot 8b) : comme le domaine Family (GuardianChildren, ListGuardianChildren, ShowGuardianChild)
+  const isGuardianHere = (schoolId: string) =>
+    current?.roles.some(
+      (assignment) => assignment.school === schoolKeyOf(schoolId) && assignment.role === 'guardian',
+    ) ?? false
+  const guardianChildren = (schoolId: string) =>
+    isGuardianHere(schoolId)
+      ? studentsOf(schoolId).filter((student) =>
+          student.links.some(
+            (link) =>
+              guardiansOf(schoolId).find((guardian) => guardian.id === link.guardian_id)?.phone ===
+              current?.phone,
+          ),
+        )
+      : []
+  const seededAbsences = new Set<string>()
+  /** Une absence non justifiée la veille pour chaque enfant (démo : il y a toujours quelque chose à justifier). */
+  const seedAbsence = (student: MockStudent) => {
+    const classroomId = latestEnrollment(student)?.classroom_id
+    if (classroomId === undefined || seededAbsences.has(student.id)) return
+    seededAbsences.add(student.id)
+    const key = `${classroomId}:2026-11-03`
+    const call = rollCalls.get(key) ?? {
+      by: 'Aya Enseignante',
+      at: '2026-11-03T08:05:00+00:00',
+      marks: new Map<string, MockMark>(),
+    }
+    if (!call.marks.has(student.id))
+      call.marks.set(student.id, { id: nextBillingId(), status: 'absent', justification: null })
+    rollCalls.set(key, call)
+  }
+  const childMarks = (student: MockStudent) => {
+    const classroomId = latestEnrollment(student)?.classroom_id ?? ''
+    return [...rollCalls.entries()]
+      .filter(([key]) => key.startsWith(`${classroomId}:`))
+      .flatMap(([key, call]) => {
+        const mark = call.marks.get(student.id)
+        if (mark === undefined) return []
+        return [
+          {
+            id: mark.id,
+            date: key.slice(classroomId.length + 1),
+            status: mark.status,
+            late_minutes: null,
+            justification:
+              mark.justification === null
+                ? null
+                : {
+                    status: mark.justification.status,
+                    reason: mark.justification.reason,
+                    note: null,
+                  },
+            can_justify:
+              mark.status === 'absent' &&
+              (mark.justification === null || mark.justification.status === 'refused'),
+          },
+        ]
+      })
+      .sort((a, b) => b.date.localeCompare(a.date))
+  }
+  const childStudent = (schoolId: string, student: MockStudent) => {
+    const found = levelOfStudent(schoolId, student)
+    const row = studentRow(schoolId, student)
+    return {
+      id: student.id,
+      full_name: row.full_name,
+      first_name: student.first_name,
+      matricule: student.matricule,
+      photo_url: null,
+      classroom:
+        row.enrollment === null
+          ? null
+          : { id: row.enrollment.classroom_id, name: row.enrollment.classroom_name },
+      cycle: found === undefined ? null : { code: found.cycle.code, name: found.cycle.name },
+    }
+  }
+  const childInvoice = (schoolId: string, student: MockStudent) => {
+    const invoice = invoicesOf(schoolId).find((candidate) => candidate.student_id === student.id)
+    return invoice === undefined ? undefined : invoiceResource(schoolId, invoice)
+  }
+  const childSummary = (schoolId: string, student: MockStudent) => {
+    seedAbsence(student)
+    const classroomId = latestEnrollment(student)?.classroom_id ?? ''
+    const call = rollCalls.get(`${classroomId}:${TODAY}`)
+    const invoice = childInvoice(schoolId, student)
+    return {
+      student: childStudent(schoolId, student),
+      presence: call === undefined ? null : (call.marks.get(student.id)?.status ?? 'present'),
+      remaining: invoice?.balance.remaining ?? null,
+      overdue: invoice?.balance.overdue ?? null,
+      next_due_on: invoice?.balance.next?.due_on ?? null,
+      absences_to_justify: childMarks(student).filter((mark) => mark.can_justify).length,
+    }
+  }
+  const childResource = (schoolId: string, student: MockStudent, termId: string | null) => {
+    seedAbsence(student)
+    const found = levelOfStudent(schoolId, student)
+    const classroomId = latestEnrollment(student)?.classroom_id ?? ''
+    const mode = found?.cycle.settings.assessment_mode ?? 'weighted_average'
+    const scale = Number(found?.cycle.settings.grade_scale ?? '10')
+    const terms = found === undefined ? [] : termsOf(found.cycle.id, found.cycle.settings.term_type)
+    const term = pickTerm(terms, termId) ?? null
+    if (found !== undefined) seedGrid(schoolId, classroomId, found.level.id, terms)
+    const subjects =
+      mode === 'weighted_average' && found !== undefined
+        ? subjectsOf(found.level.id).map((subject) => {
+            const list = [...assessments.values()]
+              .filter(
+                (assessment) =>
+                  assessment.classroom_id === classroomId &&
+                  assessment.subject_id === subject.id &&
+                  assessment.term_id === term?.id,
+              )
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map((assessment) => ({
+                id: assessment.id,
+                title: assessment.title,
+                date: assessment.date,
+                out_of: assessment.out_of,
+                ...(grades.get(`${assessment.id}:${student.id}`) ?? { value: null, absent: false }),
+              }))
+            const scores = list.flatMap((item) =>
+              item.value === null || item.absent ? [] : [(item.value / item.out_of) * scale],
+            )
+            return {
+              id: subject.id,
+              name: subject.name,
+              coefficient: subject.coefficient,
+              average:
+                scores.length === 0
+                  ? null
+                  : Math.round(
+                      (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100,
+                    ) / 100,
+              assessments: list,
+            }
+          })
+        : []
+    const skills =
+      mode === 'competency' && found !== undefined
+        ? skillsOf(found.cycle.id).map((skill) => ({
+            id: skill.id,
+            domain: skill.domain,
+            label: skill.label,
+            level: skillLevels.get(`${term?.id ?? ''}:${student.id}:${skill.id}`) ?? null,
+          }))
+        : []
+    const invoice = childInvoice(schoolId, student)
+    return {
+      student: childStudent(schoolId, student),
+      assessment_mode: mode,
+      grade_scale: scale,
+      terms,
+      term,
+      subjects,
+      skills,
+      report_cards: terms.flatMap((candidate) => {
+        const closure = openClosure(classroomId, candidate.id)
+        return closure === undefined
+          ? []
+          : [
+              {
+                id: `${closure.id}-${student.id}`,
+                term: candidate.label,
+                validated_at: closure.closed_at,
+                pdf_url: `/fichiers/${student.id}.pdf`,
+              },
+            ]
+      }),
+      absences: childMarks(student),
+      balance:
+        invoice === undefined
+          ? null
+          : {
+              total: invoice.total,
+              settled: invoice.balance.settled,
+              remaining: invoice.balance.remaining,
+              overdue: invoice.balance.overdue,
+              next: invoice.balance.next,
+              schedule: invoice.schedule.map(({ due_on, label, amount, settled }) => ({
+                due_on,
+                label,
+                amount,
+                settled,
+              })),
+            },
+      payments:
+        invoice?.payments.map((payment) => ({
+          id: payment.id,
+          receipt_number: payment.receipt_number,
+          amount: payment.amount,
+          method: payment.method,
+          paid_at: payment.paid_at,
+          cancelled: payment.cancellation !== null,
+        })) ?? [],
+    }
   }
   const daycareBoard = (schoolId: string) => ({
     date: TODAY,
@@ -3825,10 +4027,11 @@ export async function mockApi(
             } else {
               const reason =
                 /name="reason"\r\n\r\n([^\r]*)/.exec(request.postData() ?? '')?.[1] ?? ''
+              const byGuardian = isGuardianHere(schoolId)
               found.mark.justification = {
                 id: nextBillingId(),
-                status: 'accepted',
-                source: 'school',
+                status: byGuardian ? 'pending' : 'accepted',
+                source: byGuardian ? 'guardian' : 'school',
                 reason,
                 by: current?.name ?? '',
                 at: `${TODAY}T09:00:00+00:00`,
@@ -3839,6 +4042,25 @@ export async function mockApi(
             )
             return route.fulfill({ json: { data: row } })
           }
+        }
+        if (request.method() === 'GET' && path === '/guardian/children') {
+          const schoolId = schoolHeader ?? ''
+          if (!isGuardianHere(schoolId)) return route.fulfill(forbidden)
+          return route.fulfill({
+            json: {
+              data: guardianChildren(schoolId).map((student) => childSummary(schoolId, student)),
+            },
+          })
+        }
+        if (request.method() === 'GET' && path.startsWith('/guardian/children/')) {
+          const schoolId = schoolHeader ?? ''
+          const student = guardianChildren(schoolId).find(
+            (candidate) => path === `/guardian/children/${candidate.id}`,
+          )
+          if (student === undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          const termId = new URL(request.url()).searchParams.get('term_id')
+          return route.fulfill({ json: { data: childResource(schoolId, student, termId) } })
         }
         if (request.method() === 'GET' && path === '/daycare/board') {
           return route.fulfill({ json: { data: daycareBoard(schoolHeader ?? '') } })

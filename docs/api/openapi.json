@@ -2881,6 +2881,104 @@
                 }
             }
         },
+        "/guardian/children": {
+            "get": {
+                "operationId": "guardian.children",
+                "description": "Enfants dont un tuteur a le t\u00e9l\u00e9phone du compte (r\u00f4le Parent dans l'\u00e9cole) : classe, pr\u00e9sence du jour, reste \u00e0\npayer et retard, absences \u00e0 justifier. Sans r\u00f4le Parent : liste vide.",
+                "summary": "Mes enfants",
+                "tags": [
+                    "Guardian"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ChildSummaryResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ChildSummaryResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/guardian/children/{student}": {
+            "get": {
+                "operationId": "guardian.child",
+                "description": "Notes de la p\u00e9riode au fil de l'eau (\u00e9valuations, moyenne de chaque mati\u00e8re), comp\u00e9tences, bulletins valid\u00e9s\n(PDF), absences et retards de l'ann\u00e9e, facture et paiements. Enfant d'un autre parent ou d'une autre \u00e9cole : 404.",
+                "summary": "Fiche d'un enfant",
+                "tags": [
+                    "Guardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "term_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ChildResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ChildResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "operationId": "health",
@@ -6959,6 +7057,515 @@
                     "password_confirmation"
                 ],
                 "title": "ChangePasswordRequest"
+            },
+            "ChildAssessmentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "out_of": {
+                        "type": "integer"
+                    },
+                    "value": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "absent": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "date",
+                    "out_of",
+                    "value",
+                    "absent"
+                ],
+                "title": "ChildAssessmentResource"
+            },
+            "ChildBalanceResource": {
+                "type": "object",
+                "properties": {
+                    "total": {
+                        "type": "integer"
+                    },
+                    "settled": {
+                        "type": "integer"
+                    },
+                    "remaining": {
+                        "type": "integer"
+                    },
+                    "overdue": {
+                        "type": "integer"
+                    },
+                    "next": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "due_on": {
+                                "type": "string"
+                            },
+                            "label": {
+                                "type": "string"
+                            },
+                            "amount": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "due_on",
+                            "label",
+                            "amount"
+                        ]
+                    },
+                    "schedule": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildInstallmentResource"
+                        }
+                    }
+                },
+                "required": [
+                    "total",
+                    "settled",
+                    "remaining",
+                    "overdue",
+                    "next",
+                    "schedule"
+                ],
+                "title": "ChildBalanceResource"
+            },
+            "ChildInstallmentResource": {
+                "type": "object",
+                "properties": {
+                    "due_on": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "settled": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "due_on",
+                    "label",
+                    "amount",
+                    "settled"
+                ],
+                "title": "ChildInstallmentResource"
+            },
+            "ChildMarkResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "present",
+                            "absent",
+                            "late"
+                        ]
+                    },
+                    "late_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "justification": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "pending",
+                                    "accepted",
+                                    "refused"
+                                ]
+                            },
+                            "reason": {
+                                "type": "string"
+                            },
+                            "note": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "status",
+                            "reason",
+                            "note"
+                        ]
+                    },
+                    "can_justify": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "date",
+                    "status",
+                    "late_minutes",
+                    "justification",
+                    "can_justify"
+                ],
+                "title": "ChildMarkResource"
+            },
+            "ChildPaymentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "receipt_number": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "cash",
+                            "orange_money",
+                            "mtn_momo",
+                            "moov_money",
+                            "wave",
+                            "cheque",
+                            "transfer"
+                        ]
+                    },
+                    "paid_at": {
+                        "type": "string"
+                    },
+                    "cancelled": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "receipt_number",
+                    "amount",
+                    "method",
+                    "paid_at",
+                    "cancelled"
+                ],
+                "title": "ChildPaymentResource"
+            },
+            "ChildReportCardResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "term": {
+                        "type": "string"
+                    },
+                    "validated_at": {
+                        "type": "string"
+                    },
+                    "pdf_url": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "term",
+                    "validated_at",
+                    "pdf_url"
+                ],
+                "title": "ChildReportCardResource"
+            },
+            "ChildResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/ChildStudentResource"
+                    },
+                    "assessment_mode": {
+                        "type": "string"
+                    },
+                    "grade_scale": {
+                        "type": "integer"
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TermResource"
+                        }
+                    },
+                    "term": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/TermResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildSubjectResource"
+                        }
+                    },
+                    "skills": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildSkillResource"
+                        }
+                    },
+                    "report_cards": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildReportCardResource"
+                        }
+                    },
+                    "absences": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildMarkResource"
+                        }
+                    },
+                    "balance": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ChildBalanceResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "payments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildPaymentResource"
+                        }
+                    }
+                },
+                "required": [
+                    "student",
+                    "assessment_mode",
+                    "grade_scale",
+                    "terms",
+                    "term",
+                    "subjects",
+                    "skills",
+                    "report_cards",
+                    "absences",
+                    "balance",
+                    "payments"
+                ],
+                "title": "ChildResource"
+            },
+            "ChildSkillResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "domain": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "domain",
+                    "label",
+                    "level"
+                ],
+                "title": "ChildSkillResource"
+            },
+            "ChildStudentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "matricule": {
+                        "type": "string"
+                    },
+                    "photo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "classroom": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "cycle": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "code": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "code",
+                            "name"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "full_name",
+                    "first_name",
+                    "matricule",
+                    "photo_url",
+                    "classroom",
+                    "cycle"
+                ],
+                "title": "ChildStudentResource"
+            },
+            "ChildSubjectResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "coefficient": {
+                        "type": "integer"
+                    },
+                    "average": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "assessments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildAssessmentResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "coefficient",
+                    "average",
+                    "assessments"
+                ],
+                "title": "ChildSubjectResource"
+            },
+            "ChildSummaryResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/ChildStudentResource"
+                    },
+                    "presence": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "remaining": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "overdue": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "next_due_on": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "absences_to_justify": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "student",
+                    "presence",
+                    "remaining",
+                    "overdue",
+                    "next_due_on",
+                    "absences_to_justify"
+                ],
+                "title": "ChildSummaryResource"
             },
             "ClassResultRowResource": {
                 "type": "object",

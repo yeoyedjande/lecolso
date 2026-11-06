@@ -3,8 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
-import { useDemoQuery } from '@/lib/demo/hooks'
-import { fullName } from '@/lib/demo/lookup'
 
 export type BillingGrid = components['schemas']['BillingGridResource']
 export type FeeType = components['schemas']['FeeTypeResource']
@@ -416,37 +414,5 @@ export function useRemind() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [...key, 'unpaid'] })
     },
-  })
-}
-
-// --- Démonstration : reçus de l'espace parent ---
-
-/** Reçu de démonstration (espace parent, encore sur les paiements de démonstration). */
-export function useDemoReceipt(paymentId: string) {
-  return useDemoQuery(['billing', 'receipt', paymentId], (school) => {
-    const payment = school.payments.find((p) => p.id === paymentId)
-    if (payment === undefined) return null
-    const student = school.students.find((s) => s.id === payment.studentId)
-    const classroom = school.classrooms.find((c) => c.id === student?.classroomId)
-    const paid = school.payments
-      .filter((p) => p.studentId === payment.studentId && p.paidAt <= payment.paidAt)
-      .reduce((sum, p) => sum + p.amount, 0)
-    const expected = school.installments
-      .filter((i) => i.studentId === payment.studentId)
-      .reduce((sum, i) => sum + i.amount, 0)
-    return {
-      payment,
-      studentName: student === undefined ? '' : fullName(student),
-      matricule: student?.matricule ?? '',
-      classroom: classroom?.name ?? '',
-      payer: (student?.guardians.find((g) => g.isPayer) ?? student?.guardians[0])?.name ?? '',
-      remaining: Math.max(0, expected - paid),
-      school: {
-        name: school.name,
-        address: school.address,
-        phone: school.phone,
-        year: school.year,
-      },
-    }
   })
 }

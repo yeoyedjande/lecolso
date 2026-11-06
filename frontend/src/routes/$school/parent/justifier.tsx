@@ -6,12 +6,12 @@ import { JustifyPage } from '@/features/parent/components/JustifyPage'
 export const Route = createFileRoute('/$school/parent/justifier')({
   validateSearch: z.object({
     eleve: z.catch(z.optional(z.string()), undefined),
-    date: z.catch(z.optional(z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}$/))), undefined),
+    absence: z.catch(z.optional(z.string()), undefined),
   }),
   component: JustifyRoute,
 })
 
 function JustifyRoute() {
-  const { eleve, date } = Route.useSearch()
-  return <JustifyPage studentId={eleve} date={date} />
+  const { eleve, absence } = Route.useSearch()
+  return <JustifyPage studentId={eleve} markId={absence} />
 }
