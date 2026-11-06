@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Domains\Billing\Enums\NotificationStatus;
 use App\Domains\Billing\Enums\ReceiptFileStatus;
+use App\Domains\Billing\Jobs\RenderReceipt;
+use App\Domains\Billing\Jobs\SendPaymentConfirmationSms;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\PaymentNotification;
 use App\Domains\Billing\Models\ReceiptFile;
@@ -161,6 +163,14 @@ it('envoie au payeur un SMS de confirmation sans donnée sur l’enfant, une seu
     actingAsRole(Role::Director, $school);
     spa('POST', '/api/v1/payments/'.$payment.'/cancel', ['reason' => 'Erreur'], $school)->assertOk();
     expect(sentSms())->toHaveCount(1);
+
+    // Tâche interrompue (délai dépassé) : la confirmation restée en file est notée en échec
+    inSchool($school, static fn (): int => PaymentNotification::query()->where('payment_id', $payment)->update(['status' => 'queued']));
+    $notification = notificationOf($school, $payment) ?? throw new LogicException('Confirmation attendue.');
+    (new SendPaymentConfirmationSms($school->id, $notification->id))->failed(null);
+    inSchool($school, static fn (): PaymentNotification => $notification->refresh());
+    expect($notification->status)->toBe(NotificationStatus::Failed)
+        ->and($notification->failure)->toBe('Envoi interrompu.');
 });
 
 it('note un SMS sans numéro de payeur ou sans fournisseur configuré', function (): void {
@@ -179,4 +189,22 @@ it('note un SMS sans numéro de payeur ou sans fournisseur configuré', function
         ->and($notification?->failure)->toBe('Aucun fournisseur SMS n’est configuré.');
     // Le reçu PDF ne dépend pas du SMS
     expect(inSchool($school, static fn (): ?ReceiptFileStatus => ReceiptFile::query()->where('payment_id', $failed)->first()?->status))->toBe(ReceiptFileStatus::Ready);
+});
+
+it('note en échec un reçu dont la tâche échoue et remet en file un rendu perdu', function (): void {
+    [$school, $invoice] = billedSchool();
+    actingAsRole(Role::Accountant, $school);
+    $payment = pay($school, $invoice->id, 30000);
+    $file = inSchool($school, static fn (): ReceiptFile => ReceiptFile::query()->where('payment_id', $payment)->sole());
+
+    // Tâche en échec (délai dépassé, stockage indisponible) : plus de rendu bloqué « en attente »
+    inSchool($school, static fn (): int => ReceiptFile::query()->whereKey($file->id)->update(['status' => 'pending', 'path' => null]));
+    (new RenderReceipt($school->id, $file->id))->failed(new RuntimeException('Délai dépassé'));
+    receiptPdf($school, $payment)->assertOk()->assertJsonPath('data.status', 'failed');
+
+    // Rendu resté en attente (tâche perdue avec son worker) : remis en file après 5 minutes
+    inSchool($school, static fn (): int => ReceiptFile::query()->whereKey($file->id)->update(['status' => 'pending', 'updated_at' => Carbon::now()->subMinutes(4)]));
+    receiptPdf($school, $payment)->assertOk()->assertJsonPath('data.status', 'pending');
+    inSchool($school, static fn (): int => ReceiptFile::query()->whereKey($file->id)->update(['updated_at' => Carbon::now()->subMinutes(6)]));
+    receiptPdf($school, $payment)->assertOk()->assertJsonPath('data.status', 'ready');
 });

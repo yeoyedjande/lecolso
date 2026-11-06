@@ -181,7 +181,7 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   et `Events\PaymentCancelled` (`CancelPayment`, `afterCommit`) → `Listeners\PrepareReceipt` (synchrone, école
   courante). `receipt_files` : une fiche par paiement et par version (`cancelled` : reçu « ANNULÉ »), état
   pending/ready/failed ; `Support\ReceiptRendering::request` (créée et rendu mis en file une fois, échec relancé sur
-  demande) → `Jobs\RenderReceipt` (`TenantAware`, `Support\ReceiptDocument` : montant en lettres par `intl`, logo en
+  demande, rendu resté en attente plus de 5 minutes remis en file) → `Jobs\RenderReceipt` (`TenantAware`, `failed()` note l'échec, `Support\ReceiptDocument` : montant en lettres par `intl`, logo en
   data URI) → gabarit `resources/views/receipts/receipt` → `PdfRenderer` → fichier privé `receipts/{uuid}.pdf`
   (`Support\ReceiptPdf`, route signée `files.receipt`, 10 minutes). `GET payments/{payment}/receipt-pdf` (mêmes droits
   que le reçu ; crée la fiche d'un paiement antérieur) et `POST` (relance d'un rendu en échec).

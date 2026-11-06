@@ -22,11 +22,13 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Rendu du reçu PDF d'un paiement, dans l'école du paiement : gabarit Blade `receipts.receipt` (mention « ANNULÉ »
  * pour la version annulée), PdfRenderer (Gotenberg), fichier privé à nom aléatoire (écriture vérifiée). Un échec est
- * noté (`failed`) : on relance depuis le reçu. Aucune donnée du reçu n'est journalisée.
+ * noté (`failed`), y compris quand la tâche elle-même échoue (délai dépassé, stockage indisponible : `failed()`) ;
+ * on relance depuis le reçu. Aucune donnée du reçu n'est journalisée.
  */
 final class RenderReceipt implements ShouldQueue, TenantAware
 {
@@ -67,5 +69,19 @@ final class RenderReceipt implements ShouldQueue, TenantAware
         } catch (PdfRenderingFailed) {
             $file->fill(['status' => ReceiptFileStatus::Failed])->save();
         }
+    }
+
+    /**
+     * Tâche en échec (exception inattendue, délai dépassé) : le reçu encore en attente est noté en échec pour pouvoir
+     * être relancé. Appelé hors du middleware de la tâche : l'école est rétablie ici.
+     */
+    public function failed(?Throwable $exception): void
+    {
+        app(TenantContext::class)->run($this->schoolId, function (): void {
+            ReceiptFile::query()
+                ->whereKey($this->receiptFileId)
+                ->where('status', ReceiptFileStatus::Pending)
+                ->update(['status' => ReceiptFileStatus::Failed, 'updated_at' => Carbon::now()]);
+        });
     }
 }

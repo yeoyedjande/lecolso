@@ -72,4 +72,15 @@ final class SendPaymentConfirmationSms implements ShouldQueue, TenantAware
             $payment->receipt_number,
         );
     }
+
+    /** Tâche en échec (délai dépassé) : la confirmation encore en file est notée en échec. École rétablie ici. */
+    public function failed(?Throwable $exception): void
+    {
+        app(TenantContext::class)->run($this->schoolId, function (): void {
+            PaymentNotification::query()
+                ->whereKey($this->notificationId)
+                ->where('status', NotificationStatus::Queued)
+                ->update(['status' => NotificationStatus::Failed, 'failure' => 'Envoi interrompu.', 'updated_at' => Carbon::now()]);
+        });
+    }
 }
