@@ -888,6 +888,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/guardian/children": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mes enfants
+         * @description Enfants dont un tuteur a le téléphone du compte (rôle Parent dans l'école) : classe, présence du jour, reste à
+         *     payer et retard, absences à justifier. Sans rôle Parent : liste vide.
+         */
+        get: operations["guardian.children"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/guardian/children/{student}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fiche d'un enfant
+         * @description Notes de la période au fil de l'eau (évaluations, moyenne de chaque matière), compétences, bulletins validés
+         *     (PDF), absences et retards de l'année, facture et paiements. Enfant d'un autre parent ou d'une autre école : 404.
+         */
+        get: operations["guardian.child"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -2002,6 +2044,121 @@ export interface components {
             current_password: string;
             password: string;
             password_confirmation: string;
+        };
+        /** ChildAssessmentResource */
+        ChildAssessmentResource: {
+            id: string;
+            title: string;
+            date: string;
+            out_of: number;
+            value: number | null;
+            absent: boolean;
+        };
+        /** ChildBalanceResource */
+        ChildBalanceResource: {
+            total: number;
+            settled: number;
+            remaining: number;
+            overdue: number;
+            next: {
+                due_on: string;
+                label: string;
+                amount: number;
+            } | null;
+            schedule: components["schemas"]["ChildInstallmentResource"][];
+        };
+        /** ChildInstallmentResource */
+        ChildInstallmentResource: {
+            due_on: string;
+            label: string;
+            amount: number;
+            settled: number;
+        };
+        /** ChildMarkResource */
+        ChildMarkResource: {
+            id: string;
+            date: string;
+            /** @enum {string} */
+            status: "present" | "absent" | "late";
+            late_minutes: number | null;
+            justification: {
+                /** @enum {string} */
+                status: "pending" | "accepted" | "refused";
+                reason: string;
+                note: string | null;
+            } | null;
+            can_justify: boolean;
+        };
+        /** ChildPaymentResource */
+        ChildPaymentResource: {
+            id: string;
+            receipt_number: string;
+            amount: number;
+            /** @enum {string} */
+            method: "cash" | "orange_money" | "mtn_momo" | "moov_money" | "wave" | "cheque" | "transfer";
+            paid_at: string;
+            cancelled: boolean;
+        };
+        /** ChildReportCardResource */
+        ChildReportCardResource: {
+            id: string;
+            term: string;
+            validated_at: string;
+            pdf_url: string;
+        };
+        /** ChildResource */
+        ChildResource: {
+            student: components["schemas"]["ChildStudentResource"];
+            assessment_mode: string;
+            grade_scale: number;
+            terms: components["schemas"]["TermResource"][];
+            term: components["schemas"]["TermResource"] | null;
+            subjects: components["schemas"]["ChildSubjectResource"][];
+            skills: components["schemas"]["ChildSkillResource"][];
+            report_cards: components["schemas"]["ChildReportCardResource"][];
+            absences: components["schemas"]["ChildMarkResource"][];
+            balance: components["schemas"]["ChildBalanceResource"] | null;
+            payments: components["schemas"]["ChildPaymentResource"][];
+        };
+        /** ChildSkillResource */
+        ChildSkillResource: {
+            id: string;
+            domain: string;
+            label: string;
+            level: string | null;
+        };
+        /** ChildStudentResource */
+        ChildStudentResource: {
+            id: string;
+            full_name: string;
+            first_name: string;
+            matricule: string;
+            photo_url: string | null;
+            classroom: {
+                id: string | null;
+                name: string | null;
+            } | null;
+            cycle: {
+                code: string;
+                name: string;
+            } | null;
+        };
+        /** ChildSubjectResource */
+        ChildSubjectResource: {
+            id: string;
+            name: string;
+            coefficient: number;
+            average: number | null;
+            assessments: components["schemas"]["ChildAssessmentResource"][];
+        };
+        /** ChildSummaryResource */
+        ChildSummaryResource: {
+            student: components["schemas"]["ChildStudentResource"];
+            presence: string | null;
+            remaining: number | null;
+            overdue: number | null;
+            next_due_on: string | null;
+            absences_to_justify: number;
         };
         /** ClassResultRowResource */
         ClassResultRowResource: {
@@ -5071,6 +5228,59 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "guardian.children": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ChildSummaryResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ChildSummaryResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "guardian.child": {
+        parameters: {
+            query?: {
+                term_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ChildResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ChildResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
         };

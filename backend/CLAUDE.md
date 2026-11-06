@@ -14,6 +14,7 @@ app/
 │   ├── Billing/      # FeeType, FeeSchedule, Invoice, Payment, CashSession, PaymentGateway
 │   ├── Grading/      # Subject, Assessment, Grade, Skill, ReportCard, GradingStrategy
 │   ├── Attendance/   # Attendance, Pickup, DailyLog
+│   ├── Family/       # Espace parent : lecture des enfants (notes, présences, bulletins, frais) depuis les autres domaines
 │   └── Messaging/    # Announcement, Message, Notifier, canaux
 │       └── <Domaine>/
 │           ├── Models/
@@ -220,6 +221,18 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   mention, validation et déverrouillage (`grades.validate`, personnel du cycle).
 - PDF : interface `App\Support\Pdf\PdfRenderer` ; `GotenbergPdfRenderer` (`services.gotenberg.url`, toujours en
   production, refus explicite sans URL) ; `FakePdfRenderer` en test (`GOTENBERG_URL` vide) et sans Docker.
+
+## Espace parent (domaine Family)
+
+- Lecture seule, depuis les autres domaines (lecture autorisée) : `GET guardian/children` (`ListGuardianChildren` :
+  classe, présence du jour, reste à payer et retard, absences à justifier) et `GET guardian/children/{student}`
+  (`ShowGuardianChild` : notes au fil de l'eau de la période — évaluations et moyenne de chaque matière, **jamais** de
+  moyenne générale, de rang ni de mention, réservés au bulletin validé —, compétences, bulletins validés en PDF,
+  absences et retards de l'année avec leur justification, facture `InvoiceBalance` et paiements).
+- Périmètre : `Support\GuardianChildren` — rôle Parent dans l'école courante et tuteur de même téléphone que le compte ;
+  un membre du personnel n'y voit que ses propres enfants. Autre enfant ou autre école : 404.
+- Écritures du parent par les endpoints existants : justification (`POST attendance/marks/{mark}/justification`,
+  source guardian, à valider par l'école), reçu (`GET payments/{payment}`, `InvoicePolicy::view`).
 
 ## Fichiers
 
