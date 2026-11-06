@@ -113,9 +113,13 @@ src/
   `useAttendanceClassrooms`, `useRollCall`, `useSaveRollCall`, `useAttendanceHistory`, `useAbsences`,
   `useJustifyAbsence`, `useDecideJustification`, `useDaycareBoard`, `useDaycareRecord`) : écrans Présences et Garderie.
   Saisies hors connexion (`networkMode: 'always'`) : `lib/offline/outbox.ts` (`enqueue`), envoi par
-  `features/sync` (`flushOutbox`, `<OutboxSync>` dans le back-office), compteur dans `<OfflineBanner>`.
-  L'espace enseignant garde l'appel et le journal de démonstration (`demoApi.ts`, `DemoRollCallPanel`,
-  `DemoDaycarePage`) jusqu'au lot 8.
+  `features/sync` (`flushOutbox`, `<OutboxSync>` dans le back-office et dans `MobileLayout`), compteur dans
+  `<OfflineBanner>`.
+  **Espace enseignant** (`features/teacher/api.ts` : `useTeacherClasses` — classes dont il est titulaire, d'après
+  `attendance/classrooms` et `grading/classrooms`) : accueil (appel du jour par classe), appel (`RollCallPanel`),
+  garderie (`DaycarePage`), notes et compétences mobiles (`TeacherGrades`), appréciations (`AppreciationDialog` du
+  back-office), élèves et fiche en lecture seule (`useStudentList`, `useStudentFile`). Seuls les messages restent en
+  démonstration (`features/teacher/demoApi.ts`, lot 9).
   **Notes et compétences** (`features/grades/api.ts` : `useGradingClassrooms`, `useGradeGrid`, `useCreateAssessment`,
   `useUpdateAssessment`, `useDeleteAssessment`, `useSaveGrades`, `useClassResults`, `useSkillGrid`, `useSaveSkills`,
   réglages `useGradingSettings`, `useSaveTerms`, `useSaveSubjects`, `useSaveSkillCatalog`) : écrans Notes
@@ -124,10 +128,10 @@ src/
   grille mise à jour aussitôt). **Bulletins** (`useReportCards` — relu toutes les 5 s tant qu'un PDF est en cours —,
   `useSaveAppreciation`, `useCloseTerm`, `useReopenTerm`, `useRetryReportCards`, seuils `useSaveMentionThresholds`) :
   écran Bulletins (appréciations, mention, validation et déverrouillage motivé, PDF par `pdf_url` signée) ; une période
-  validée met les grilles Notes et Compétences en lecture seule (`closed`). L'espace enseignant et l'espace parent
-  gardent les hooks de démonstration de `features/grades/demoApi.ts` (bulletin `ReportDocument`) jusqu'au lot 8.
+  validée met les grilles Notes et Compétences en lecture seule (`closed`). L'espace parent garde les hooks de
+  démonstration de `features/grades/demoApi.ts` (bulletin `ReportDocument`) jusqu'au lot 8b.
   Les paiements et reçus de l'espace parent restent en démonstration (`useDemoReceipt`).
-  Espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
+  Les messages de l'espace enseignant et l'import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).

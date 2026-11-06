@@ -1474,30 +1474,35 @@
       "greeting": "Bonjour, {{name}}",
       "subtitle": "Vos classes aujourd’hui.",
       "noClass": "Aucune classe ne vous est attribuée dans cet établissement.",
-      "students": "{{count}} élève(s)",
+      "students": "Élèves",
       "rollCallDone": "Appel fait · {{count}} absent(s)",
       "rollCallTodo": "Appel à faire",
       "rollCall": "Faire l’appel",
       "grades": "Notes",
       "journal": "Journal",
-      "messages": "Écrire aux parents"
+      "messages": "Écrire aux parents",
+      "skills": "Compétences",
+      "daycare": "Garderie",
+      "appreciations": "Appréciations"
     },
     "rollCall": {
       "title": "Appel",
       "subtitle": "Tout le monde est présent par défaut : touchez les absents, puis enregistrez.",
-      "classroom": "Classe"
+      "classroom": "Classe",
+      "noClass": "Aucune de vos classes ne fait l’appel (la garderie se tient dans « Garderie »)."
     },
     "grades": {
       "title": "Saisie des notes",
       "assessment": "Évaluation",
       "hint": "Note sur 20 (ex. 12,5). Enregistrée en quittant le champ.",
       "noAssessment": "Aucune évaluation pour cette matière.",
-      "noClass": "Aucune de vos classes n’est évaluée par notes."
-    },
-    "journal": {
-      "title": "Journal de la journée",
-      "subtitle": "Repas, sieste, change et humeur des enfants.",
-      "noClass": "Aucune de vos classes ne tient de journal quotidien (paramètre du cycle)."
+      "noClass": "Aucune de vos classes n’est évaluée par notes ou par compétences.",
+      "subtitle": "Choisissez la matière et l’évaluation, puis la note de chaque élève, ou « Abs ». Enregistrée en quittant le champ, même sans réseau.",
+      "assessmentOption": "{{title}} · {{date}} · sur {{outOf}}",
+      "average": "Moyenne de la matière : {{value}} / {{scale}}",
+      "absent": "Abs",
+      "absentFor": "Abs (absent·e à l’évaluation) : {{name}}",
+      "new": "Nouvelle"
     },
     "messages": {
       "title": "Messages aux parents",
@@ -1509,6 +1514,35 @@
       "sent": "Message envoyé à {{name}}",
       "empty": "Aucun échange avec les parents pour l’instant.",
       "to": "À {{name}}"
+    },
+    "skills": {
+      "title": "Compétences",
+      "subtitle": "Choisissez une compétence, puis le niveau de chaque élève (A, EA, NA) ; un second toucher l’efface.",
+      "skill": "Compétence",
+      "none": "Aucune compétence dans le référentiel : la direction le règle dans Paramètres > Notes.",
+      "levelFor": "{{level}} : {{name}}"
+    },
+    "appreciations": {
+      "title": "Appréciations",
+      "subtitle": "L’appréciation générale et celles de chaque matière, avant la validation des bulletins par la direction.",
+      "write": "Écrire",
+      "closed": "Bulletins validés pour cette période : les appréciations ne changent plus.",
+      "writeFor": "Écrire l’appréciation de {{name}}"
+    },
+    "students": {
+      "title": "Mes élèves",
+      "subtitle": "Les élèves de votre classe et le parent à contacter.",
+      "contact": "{{name}} · {{phone}}",
+      "notFound": "Élève introuvable dans vos classes.",
+      "identity": "Né(e) le {{date}} · {{matricule}}",
+      "parents": "Parents",
+      "canPickUp": "peut récupérer l’enfant",
+      "call": "Appeler {{name}}",
+      "medical": "Santé",
+      "allergies": "Allergies : {{value}}",
+      "bloodType": "Groupe sanguin : {{value}}",
+      "none": "aucune",
+      "unknown": "non renseigné"
     }
   },
   "platform": {

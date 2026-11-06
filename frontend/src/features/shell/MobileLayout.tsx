@@ -6,6 +6,8 @@ import { RibbonPattern } from '@/components/brand/Patterns'
 import type { Space } from '@/features/auth/access'
 import { cn } from '@/lib/utils'
 
+import { OutboxSync } from '@/features/sync/OutboxSync'
+
 import { ContextSwitcher } from './ContextSwitcher'
 import type { NavItem } from './nav'
 import { SpaceLink } from './SpaceLink'
@@ -51,6 +53,8 @@ export function MobileLayout({
         {/* Pas de fondu entre deux écrans : le contenu s'affiche dès qu'il est prêt */}
         <Outlet />
       </main>
+      {/* Saisies faites hors connexion (appel, garderie, notes) envoyées au retour du réseau */}
+      <OutboxSync />
 
       <nav
         aria-label={t('common.menu')}

@@ -49,6 +49,7 @@ import { Route as SchoolGestionUtilisateursRouteImport } from './routes/$school/
 import { Route as SchoolEnseignantIndexRouteImport } from './routes/$school/enseignant/index'
 import { Route as SchoolEnseignantSplatRouteImport } from './routes/$school/enseignant/$'
 import { Route as SchoolEnseignantAppelRouteImport } from './routes/$school/enseignant/appel'
+import { Route as SchoolEnseignantAppreciationsRouteImport } from './routes/$school/enseignant/appreciations'
 import { Route as SchoolEnseignantJournalRouteImport } from './routes/$school/enseignant/journal'
 import { Route as SchoolEnseignantMessagesRouteImport } from './routes/$school/enseignant/messages'
 import { Route as SchoolEnseignantNotesRouteImport } from './routes/$school/enseignant/notes'
@@ -62,6 +63,8 @@ import { Route as SchoolParentProfilRouteImport } from './routes/$school/parent/
 import { Route as SchoolGestionElevesIndexRouteImport } from './routes/$school/_gestion/eleves/index'
 import { Route as SchoolGestionElevesStudentIdRouteImport } from './routes/$school/_gestion/eleves/$studentId'
 import { Route as SchoolGestionRecusPaymentIdRouteImport } from './routes/$school/_gestion/recus/$paymentId'
+import { Route as SchoolEnseignantElevesIndexRouteImport } from './routes/$school/enseignant/eleves/index'
+import { Route as SchoolEnseignantElevesStudentIdRouteImport } from './routes/$school/enseignant/eleves/$studentId'
 import { Route as SchoolParentEnfantsStudentIdRouteImport } from './routes/$school/parent/enfants/$studentId'
 import { Route as SchoolParentRecusPaymentIdRouteImport } from './routes/$school/parent/recus/$paymentId'
 
@@ -271,6 +274,12 @@ const SchoolEnseignantAppelRoute = SchoolEnseignantAppelRouteImport.update({
   path: '/appel',
   getParentRoute: () => SchoolEnseignantRouteRoute,
 } as any)
+const SchoolEnseignantAppreciationsRoute =
+  SchoolEnseignantAppreciationsRouteImport.update({
+    id: '/appreciations',
+    path: '/appreciations',
+    getParentRoute: () => SchoolEnseignantRouteRoute,
+  } as any)
 const SchoolEnseignantJournalRoute = SchoolEnseignantJournalRouteImport.update({
   id: '/journal',
   path: '/journal',
@@ -340,6 +349,18 @@ const SchoolGestionRecusPaymentIdRoute =
     path: '/recus/$paymentId',
     getParentRoute: () => SchoolGestionRouteRoute,
   } as any)
+const SchoolEnseignantElevesIndexRoute =
+  SchoolEnseignantElevesIndexRouteImport.update({
+    id: '/eleves/',
+    path: '/eleves/',
+    getParentRoute: () => SchoolEnseignantRouteRoute,
+  } as any)
+const SchoolEnseignantElevesStudentIdRoute =
+  SchoolEnseignantElevesStudentIdRouteImport.update({
+    id: '/eleves/$studentId',
+    path: '/eleves/$studentId',
+    getParentRoute: () => SchoolEnseignantRouteRoute,
+  } as any)
 const SchoolParentEnfantsStudentIdRoute =
   SchoolParentEnfantsStudentIdRouteImport.update({
     id: '/enfants/$studentId',
@@ -393,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/$school/utilisateurs': typeof SchoolGestionUtilisateursRoute
   '/$school/enseignant/$': typeof SchoolEnseignantSplatRoute
   '/$school/enseignant/appel': typeof SchoolEnseignantAppelRoute
+  '/$school/enseignant/appreciations': typeof SchoolEnseignantAppreciationsRoute
   '/$school/enseignant/journal': typeof SchoolEnseignantJournalRoute
   '/$school/enseignant/messages': typeof SchoolEnseignantMessagesRoute
   '/$school/enseignant/notes': typeof SchoolEnseignantNotesRoute
@@ -406,9 +428,11 @@ export interface FileRoutesByFullPath {
   '/$school/parent/': typeof SchoolParentIndexRoute
   '/$school/eleves/$studentId': typeof SchoolGestionElevesStudentIdRoute
   '/$school/recus/$paymentId': typeof SchoolGestionRecusPaymentIdRoute
+  '/$school/enseignant/eleves/$studentId': typeof SchoolEnseignantElevesStudentIdRoute
   '/$school/parent/enfants/$studentId': typeof SchoolParentEnfantsStudentIdRoute
   '/$school/parent/recus/$paymentId': typeof SchoolParentRecusPaymentIdRoute
   '/$school/eleves/': typeof SchoolGestionElevesIndexRoute
+  '/$school/enseignant/eleves/': typeof SchoolEnseignantElevesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -446,6 +470,7 @@ export interface FileRoutesByTo {
   '/$school/utilisateurs': typeof SchoolGestionUtilisateursRoute
   '/$school/enseignant/$': typeof SchoolEnseignantSplatRoute
   '/$school/enseignant/appel': typeof SchoolEnseignantAppelRoute
+  '/$school/enseignant/appreciations': typeof SchoolEnseignantAppreciationsRoute
   '/$school/enseignant/journal': typeof SchoolEnseignantJournalRoute
   '/$school/enseignant/messages': typeof SchoolEnseignantMessagesRoute
   '/$school/enseignant/notes': typeof SchoolEnseignantNotesRoute
@@ -459,9 +484,11 @@ export interface FileRoutesByTo {
   '/$school/parent': typeof SchoolParentIndexRoute
   '/$school/eleves/$studentId': typeof SchoolGestionElevesStudentIdRoute
   '/$school/recus/$paymentId': typeof SchoolGestionRecusPaymentIdRoute
+  '/$school/enseignant/eleves/$studentId': typeof SchoolEnseignantElevesStudentIdRoute
   '/$school/parent/enfants/$studentId': typeof SchoolParentEnfantsStudentIdRoute
   '/$school/parent/recus/$paymentId': typeof SchoolParentRecusPaymentIdRoute
   '/$school/eleves': typeof SchoolGestionElevesIndexRoute
+  '/$school/enseignant/eleves': typeof SchoolEnseignantElevesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -504,6 +531,7 @@ export interface FileRoutesById {
   '/$school/_gestion/utilisateurs': typeof SchoolGestionUtilisateursRoute
   '/$school/enseignant/$': typeof SchoolEnseignantSplatRoute
   '/$school/enseignant/appel': typeof SchoolEnseignantAppelRoute
+  '/$school/enseignant/appreciations': typeof SchoolEnseignantAppreciationsRoute
   '/$school/enseignant/journal': typeof SchoolEnseignantJournalRoute
   '/$school/enseignant/messages': typeof SchoolEnseignantMessagesRoute
   '/$school/enseignant/notes': typeof SchoolEnseignantNotesRoute
@@ -517,9 +545,11 @@ export interface FileRoutesById {
   '/$school/parent/': typeof SchoolParentIndexRoute
   '/$school/_gestion/eleves/$studentId': typeof SchoolGestionElevesStudentIdRoute
   '/$school/_gestion/recus/$paymentId': typeof SchoolGestionRecusPaymentIdRoute
+  '/$school/enseignant/eleves/$studentId': typeof SchoolEnseignantElevesStudentIdRoute
   '/$school/parent/enfants/$studentId': typeof SchoolParentEnfantsStudentIdRoute
   '/$school/parent/recus/$paymentId': typeof SchoolParentRecusPaymentIdRoute
   '/$school/_gestion/eleves/': typeof SchoolGestionElevesIndexRoute
+  '/$school/enseignant/eleves/': typeof SchoolEnseignantElevesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -563,6 +593,7 @@ export interface FileRouteTypes {
     | '/$school/utilisateurs'
     | '/$school/enseignant/$'
     | '/$school/enseignant/appel'
+    | '/$school/enseignant/appreciations'
     | '/$school/enseignant/journal'
     | '/$school/enseignant/messages'
     | '/$school/enseignant/notes'
@@ -576,9 +607,11 @@ export interface FileRouteTypes {
     | '/$school/parent/'
     | '/$school/eleves/$studentId'
     | '/$school/recus/$paymentId'
+    | '/$school/enseignant/eleves/$studentId'
     | '/$school/parent/enfants/$studentId'
     | '/$school/parent/recus/$paymentId'
     | '/$school/eleves/'
+    | '/$school/enseignant/eleves/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -616,6 +649,7 @@ export interface FileRouteTypes {
     | '/$school/utilisateurs'
     | '/$school/enseignant/$'
     | '/$school/enseignant/appel'
+    | '/$school/enseignant/appreciations'
     | '/$school/enseignant/journal'
     | '/$school/enseignant/messages'
     | '/$school/enseignant/notes'
@@ -629,9 +663,11 @@ export interface FileRouteTypes {
     | '/$school/parent'
     | '/$school/eleves/$studentId'
     | '/$school/recus/$paymentId'
+    | '/$school/enseignant/eleves/$studentId'
     | '/$school/parent/enfants/$studentId'
     | '/$school/parent/recus/$paymentId'
     | '/$school/eleves'
+    | '/$school/enseignant/eleves'
   id:
     | '__root__'
     | '/'
@@ -673,6 +709,7 @@ export interface FileRouteTypes {
     | '/$school/_gestion/utilisateurs'
     | '/$school/enseignant/$'
     | '/$school/enseignant/appel'
+    | '/$school/enseignant/appreciations'
     | '/$school/enseignant/journal'
     | '/$school/enseignant/messages'
     | '/$school/enseignant/notes'
@@ -686,9 +723,11 @@ export interface FileRouteTypes {
     | '/$school/parent/'
     | '/$school/_gestion/eleves/$studentId'
     | '/$school/_gestion/recus/$paymentId'
+    | '/$school/enseignant/eleves/$studentId'
     | '/$school/parent/enfants/$studentId'
     | '/$school/parent/recus/$paymentId'
     | '/$school/_gestion/eleves/'
+    | '/$school/enseignant/eleves/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -989,6 +1028,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SchoolEnseignantAppelRouteImport
       parentRoute: typeof SchoolEnseignantRouteRoute
     }
+    '/$school/enseignant/appreciations': {
+      id: '/$school/enseignant/appreciations'
+      path: '/appreciations'
+      fullPath: '/$school/enseignant/appreciations'
+      preLoaderRoute: typeof SchoolEnseignantAppreciationsRouteImport
+      parentRoute: typeof SchoolEnseignantRouteRoute
+    }
     '/$school/enseignant/journal': {
       id: '/$school/enseignant/journal'
       path: '/journal'
@@ -1079,6 +1125,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$school/recus/$paymentId'
       preLoaderRoute: typeof SchoolGestionRecusPaymentIdRouteImport
       parentRoute: typeof SchoolGestionRouteRoute
+    }
+    '/$school/enseignant/eleves/': {
+      id: '/$school/enseignant/eleves/'
+      path: '/eleves'
+      fullPath: '/$school/enseignant/eleves/'
+      preLoaderRoute: typeof SchoolEnseignantElevesIndexRouteImport
+      parentRoute: typeof SchoolEnseignantRouteRoute
+    }
+    '/$school/enseignant/eleves/$studentId': {
+      id: '/$school/enseignant/eleves/$studentId'
+      path: '/eleves/$studentId'
+      fullPath: '/$school/enseignant/eleves/$studentId'
+      preLoaderRoute: typeof SchoolEnseignantElevesStudentIdRouteImport
+      parentRoute: typeof SchoolEnseignantRouteRoute
     }
     '/$school/parent/enfants/$studentId': {
       id: '/$school/parent/enfants/$studentId'
@@ -1173,21 +1233,27 @@ const SchoolGestionRouteRouteWithChildren =
 interface SchoolEnseignantRouteRouteChildren {
   SchoolEnseignantSplatRoute: typeof SchoolEnseignantSplatRoute
   SchoolEnseignantAppelRoute: typeof SchoolEnseignantAppelRoute
+  SchoolEnseignantAppreciationsRoute: typeof SchoolEnseignantAppreciationsRoute
   SchoolEnseignantJournalRoute: typeof SchoolEnseignantJournalRoute
   SchoolEnseignantMessagesRoute: typeof SchoolEnseignantMessagesRoute
   SchoolEnseignantNotesRoute: typeof SchoolEnseignantNotesRoute
   SchoolEnseignantProfilRoute: typeof SchoolEnseignantProfilRoute
   SchoolEnseignantIndexRoute: typeof SchoolEnseignantIndexRoute
+  SchoolEnseignantElevesStudentIdRoute: typeof SchoolEnseignantElevesStudentIdRoute
+  SchoolEnseignantElevesIndexRoute: typeof SchoolEnseignantElevesIndexRoute
 }
 
 const SchoolEnseignantRouteRouteChildren: SchoolEnseignantRouteRouteChildren = {
   SchoolEnseignantSplatRoute: SchoolEnseignantSplatRoute,
   SchoolEnseignantAppelRoute: SchoolEnseignantAppelRoute,
+  SchoolEnseignantAppreciationsRoute: SchoolEnseignantAppreciationsRoute,
   SchoolEnseignantJournalRoute: SchoolEnseignantJournalRoute,
   SchoolEnseignantMessagesRoute: SchoolEnseignantMessagesRoute,
   SchoolEnseignantNotesRoute: SchoolEnseignantNotesRoute,
   SchoolEnseignantProfilRoute: SchoolEnseignantProfilRoute,
   SchoolEnseignantIndexRoute: SchoolEnseignantIndexRoute,
+  SchoolEnseignantElevesStudentIdRoute: SchoolEnseignantElevesStudentIdRoute,
+  SchoolEnseignantElevesIndexRoute: SchoolEnseignantElevesIndexRoute,
 }
 
 const SchoolEnseignantRouteRouteWithChildren =

@@ -16,7 +16,7 @@ import { MobileConversations } from '@/features/messaging/components/MobileConve
 import { useDemoStudents } from '@/features/students/api'
 import { toast } from '@/lib/toast'
 
-import { useMessageParent, useMyClasses, useTeacherConversations } from '../api'
+import { useMessageParent, useMyClasses, useTeacherConversations } from '../demoApi'
 
 /** Messages aux parents des élèves de ses classes : nouveaux messages et suite des échanges. */
 export function TeacherMessages() {

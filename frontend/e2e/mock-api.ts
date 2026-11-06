@@ -1602,18 +1602,28 @@ export async function mockApi(
       ) ?? false
     )
   }
+  /** Titulaire : l'enseignant(e) connecté(e) tient cette classe (comme AttendanceAccess et GradingAccess). */
+  const isHomeroom = (classroom: MockClassroom) =>
+    current !== null &&
+    classroom.homeroom_teacher_id === userId(current.phone) &&
+    current.roles.some((assignment) => assignment.role === 'teacher')
   const attendanceClassrooms = (schoolId: string) =>
     classroomsOf(schoolId).flatMap((classroom) => {
       const found = levelOf(schoolId, classroom.level_id)
-      if (found === undefined || !staffHolds(schoolId, 'attendance.view', found.cycle.id)) return []
+      const homeroom = isHomeroom(classroom)
+      if (
+        found === undefined ||
+        (!homeroom && !staffHolds(schoolId, 'attendance.view', found.cycle.id))
+      )
+        return []
       return [
         {
           id: classroom.id,
           name: `${found.level.code} ${classroom.section}`,
           cycle: { id: found.cycle.id, code: found.cycle.code, name: found.cycle.name },
           mode: found.cycle.settings.attendance_mode,
-          can_take: staffHolds(schoolId, 'attendance.manage', found.cycle.id),
-          is_homeroom: false,
+          can_take: homeroom || staffHolds(schoolId, 'attendance.manage', found.cycle.id),
+          is_homeroom: homeroom,
         },
       ]
     })
@@ -1779,7 +1789,12 @@ export async function mockApi(
   const gradingClassrooms = (schoolId: string) =>
     classroomsOf(schoolId).flatMap((classroom) => {
       const found = levelOf(schoolId, classroom.level_id)
-      if (found === undefined || !staffHolds(schoolId, 'grades.view', found.cycle.id)) return []
+      const homeroom = isHomeroom(classroom)
+      if (
+        found === undefined ||
+        (!homeroom && !staffHolds(schoolId, 'grades.view', found.cycle.id))
+      )
+        return []
       return [
         {
           id: classroom.id,
@@ -1788,8 +1803,8 @@ export async function mockApi(
           cycle: { id: found.cycle.id, code: found.cycle.code, name: found.cycle.name },
           mode: found.cycle.settings.assessment_mode,
           grade_scale: Number(found.cycle.settings.grade_scale ?? '10'),
-          can_manage: staffHolds(schoolId, 'grades.manage', found.cycle.id),
-          is_homeroom: false,
+          can_manage: homeroom || staffHolds(schoolId, 'grades.manage', found.cycle.id),
+          is_homeroom: homeroom,
           cycleSettings: found.cycle.settings,
         },
       ]
