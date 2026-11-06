@@ -328,6 +328,11 @@ it('évalue les compétences en maternelle', function (): void {
     spa('PUT', $uri, ['term_id' => $termId, 'evaluations' => [['student_id' => $awa->id, 'skill_id' => $skills[2], 'level' => null]]], $school)->assertOk()
         ->assertJsonPath('data.rows.0.levels.2.level', null);
 
+    // Saisie hors connexion plus ancienne que l'effacement : ignorée
+    spa('POST', '/api/v1/sync', ['operations' => [['id' => (string) Str::uuid(), 'type' => 'skills.save', 'payload' => [
+        'classroom_id' => $classroom->id, 'term_id' => $termId, 'recorded_at' => '2026-10-05T07:00:00Z',
+        'evaluations' => [['student_id' => $awa->id, 'skill_id' => $skills[2], 'level' => 'A']],
+    ]]]], $school)->assertOk()->assertJsonPath('data.0.status', 'applied');
     spa('GET', '/api/v1/classrooms/'.$classroom->id.'/results', [], $school)->assertOk()
         ->assertJsonPath('data.mode', 'competency')
         ->assertJsonPath('data.rows.0.skills.A', 1)
@@ -377,6 +382,19 @@ it('applique les notes saisies hors connexion une seule fois, sans écraser une 
     spa('GET', '/api/v1/classrooms/'.$classroom->id.'/grade-grid?term_id='.$termId.'&subject_id='.$french, [], $school)->assertOk()
         ->assertJsonPath('data.rows.0.grades.0.value', 9)
         ->assertJsonPath('data.rows.1.grades.0.value', 7);
+
+    // Effacement en ligne à 9 h, puis une saisie de l'appareil faite à 8 h 45 : l'effacement reste
+    Carbon::setTestNow('2026-10-05 09:00:00');
+    login($teacher);
+    spa('PUT', '/api/v1/assessments/'.$assessmentId.'/grades', ['grades' => [['student_id' => $yao->id, 'value' => null, 'absent' => false]]], $school)->assertOk()
+        ->assertJsonPath('data.rows.1.grades.0.value', null);
+    spa('POST', '/api/v1/sync', ['operations' => [['id' => (string) Str::uuid(), 'type' => 'grades.save', 'payload' => [
+        'assessment_id' => $assessmentId, 'recorded_at' => '2026-10-05T08:45:00Z',
+        'grades' => [['student_id' => $yao->id, 'value' => 4, 'absent' => false]],
+    ]]]], $school)->assertOk()->assertJsonPath('data.0.status', 'applied');
+    spa('GET', '/api/v1/classrooms/'.$classroom->id.'/results?term_id='.$termId, [], $school)->assertOk()
+        ->assertJsonPath('data.rows.1.average', null)
+        ->assertJsonPath('data.rows.1.rank', null);
 
     // Hors droits : refus enregistré
     actingAsRole(Role::Secretary, $school);

@@ -67,9 +67,11 @@ final readonly class SaveSkills
             }
 
             $removed = array_values(array_diff(array_map(strval(...), $existing->keys()->all()), $kept));
-            if ($removed !== [] && SkillEvaluation::query()->whereIn('skill_id', $removed)->exists()) {
+            if ($removed !== [] && SkillEvaluation::query()->whereIn('skill_id', $removed)->whereNotNull('level')->exists()) {
                 throw new BusinessConflict('skill_used', 'Une compétence retirée a déjà été évaluée : gardez-la.');
             }
+            // Évaluations effacées de ces compétences : seules leurs dates restaient
+            SkillEvaluation::query()->whereIn('skill_id', $removed)->whereNull('level')->delete();
             Skill::query()->whereKey($removed)->delete();
         });
     }

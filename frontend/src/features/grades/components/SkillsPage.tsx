@@ -87,7 +87,15 @@ export function SkillsPage() {
               ))}
             </ul>
             <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
-              <ClassPicker classrooms={classrooms} value={classroom.id} onChange={setClassroomId} />
+              <ClassPicker
+                classrooms={classrooms}
+                value={classroom.id}
+                onChange={(id) => {
+                  // Périodes propres au cycle de la classe : celle du jour par défaut
+                  setClassroomId(id)
+                  setTermId(null)
+                }}
+              />
               <TermSelect
                 terms={grid.data?.terms ?? []}
                 value={grid.data?.term.id ?? ''}

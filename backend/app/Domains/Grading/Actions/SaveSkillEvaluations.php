@@ -75,11 +75,10 @@ final readonly class SaveSkillEvaluations
                 if ($evaluation instanceof SkillEvaluation && $recordedAt !== null && $evaluation->updated_at !== null && $evaluation->updated_at->gt($recordedAt)) {
                     continue;
                 }
-                if ($data['level'] === null) {
-                    $evaluation?->delete();
-
+                if ($evaluation === null && $data['level'] === null) {
                     continue;
                 }
+                // Une évaluation effacée garde sa ligne (niveau nul) : sa date protège l'effacement
                 $evaluation ??= new SkillEvaluation(['term_id' => $term->id, 'student_id' => $data['student_id'], 'skill_id' => $data['skill_id']]);
                 $evaluation->fill(['level' => $data['level'], 'entered_by' => $user->id]);
                 if ($recordedAt !== null) {
