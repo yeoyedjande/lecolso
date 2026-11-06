@@ -6,6 +6,7 @@ use App\Domains\Academic\Models\Classroom;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\User;
 use App\Domains\Messaging\Models\Message;
+use App\Domains\Students\Models\Enrollment;
 use App\Domains\Students\Models\Guardian;
 use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Models\School;
@@ -160,6 +161,29 @@ it('laisse l’école écrire à un tuteur de l’enfant, et refuse les écritur
     spa('POST', '/api/v1/conversations', ['student_id' => $awa->id, 'channel' => 'principal', 'subject' => 'Canal', 'body' => 'x'], $school)
         ->assertUnprocessable()->assertJsonValidationErrors('channel');
     expect($classroom->id)->not->toBe('')->and($yao->id)->not->toBe('');
+});
+
+it('fait suivre les fils quand l’enfant change de classe : nouvelle titulaire, plus l’ancienne', function (): void {
+    [$school, , $teacher, $awa, , $mother] = messagingSchool();
+    $other = User::factory()->createOne(['name' => 'Ama Titulaire']);
+    assignRole($other, $school, Role::Teacher, cycleOf($school, 'primary'));
+    $b = classroomOf($school, 'CE1', 'B', ['homeroom_teacher_id' => $other->id]);
+
+    login($mother);
+    $id = conversationId(spa('POST', '/api/v1/conversations', ['student_id' => $awa->id, 'channel' => 'teacher', 'subject' => 'Lecture', 'body' => 'Bonjour'], $school)->assertSuccessful());
+
+    actingAsRole(Role::Director, $school);
+    $enrollment = inSchool($school, static fn (): Enrollment => Enrollment::query()->where('student_id', $awa->id)->firstOrFail());
+    spa('PATCH', '/api/v1/enrollments/'.$enrollment->id, ['classroom_id' => $b->id], $school)->assertOk();
+
+    login($teacher);
+    spa('GET', "/api/v1/conversations/{$id}", [], $school)->assertNotFound();
+    spa('GET', '/api/v1/conversations', [], $school)->assertOk()->assertJsonCount(0, 'data');
+
+    login($other);
+    spa('GET', "/api/v1/conversations/{$id}", [], $school)->assertOk()
+        ->assertJsonPath('data.conversation.classroom.name', 'CE1 B')
+        ->assertJsonPath('data.conversation.can_write', true);
 });
 
 it('garde les messages immuables pour la connexion applicative', function (): void {

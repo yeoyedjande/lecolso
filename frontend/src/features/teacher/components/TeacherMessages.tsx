@@ -1,5 +1,5 @@
 import { Send } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ClassPicker } from '@/components/ClassPicker'
@@ -32,6 +32,11 @@ function NewMessage() {
     status: 'active',
   })
   const pupils = students.data?.pages.flatMap((page) => page.data) ?? []
+  // Liste déroulante : toute la classe (pages de 25 élèves chargées l'une après l'autre)
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = students
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
   const [studentId, setStudentId] = useState('')
   const pupil = pupils.find((row) => row.id === studentId) ?? pupils[0]
   const file = useStudentFile(pupil?.id ?? '')
