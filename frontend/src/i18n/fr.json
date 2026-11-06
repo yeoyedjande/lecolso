@@ -1129,7 +1129,14 @@
     "justifyReason": "Motif",
     "proof": "Justificatif (photo, facultatif)",
     "proofHint": "Certificat médical ou mot du parent : JPEG, PNG ou WebP, 5 Mo au plus.",
-    "justifiedDone": "Absence justifiée"
+    "justifiedDone": "Absence justifiée",
+    "plannedBadge": "Absence annoncée",
+    "planned": {
+      "title": "Absences annoncées par les parents",
+      "on": "Le {{date}}",
+      "range": "Du {{from}} au {{to}}",
+      "by": "Annoncée par {{name}}"
+    }
   },
   "daycare": {
     "title": "Garderie",
@@ -1205,7 +1212,24 @@
     "published": "Annonce envoyée à {{count}} famille(s)",
     "reach": "{{count}} famille(s)",
     "by": "Par {{author}}, le {{date}}",
-    "noAnnouncement": "Aucune annonce publiée."
+    "noAnnouncement": "Aucune annonce publiée.",
+    "channel": {
+      "teacher": "Enseignant(e)",
+      "office": "Administration"
+    },
+    "notFound": "Cette conversation n’est plus disponible.",
+    "thread": "Messages de la conversation",
+    "readOnly": "Échange entre le parent et l’enseignant(e) : vous pouvez le lire, la réponse revient à l’enseignant(e).",
+    "unreadThreads": "{{count}} conversation(s) non lue(s)",
+    "planned": {
+      "on": "Absence annoncée le {{date}}",
+      "range": "Absence annoncée du {{from}} au {{to}}",
+      "status": {
+        "pending": "en attente",
+        "accepted": "acceptée",
+        "refused": "refusée"
+      }
+    }
   },
   "calendar": {
     "title": "Calendrier",
@@ -1445,11 +1469,38 @@
     "messages": {
       "title": "Messages",
       "subtitle": "Vos échanges avec l’école.",
-      "about": "À propos de {{child}}",
-      "empty": "Aucun message pour l’instant."
+      "about": "{{child}} · {{to}}",
+      "empty": "Aucun message pour l’instant.",
+      "new": "Nouveau message",
+      "write": "Écrire à l’école",
+      "to": "Destinataire",
+      "channels": {
+        "teacher": "L’enseignant(e) de la classe",
+        "office": "L’administration (direction, secrétariat)"
+      },
+      "sent": "Message envoyé"
     },
     "profile": {
       "title": "Mon profil"
+    },
+    "plan": {
+      "title": "Prévenir d’une absence",
+      "subtitle": "Votre enfant sera absent(e) ? Indiquez les jours et le motif : l’école est prévenue et valide l’absence.",
+      "from": "Du",
+      "to": "Au",
+      "reasonPlaceholder": "Rendez-vous médical, voyage familial…",
+      "message": "Message à l’école (facultatif)",
+      "submit": "Prévenir l’école",
+      "sent": "L’école est prévenue",
+      "link": "Absence à venir ? Prévenez l’école",
+      "listTitle": "Absences annoncées",
+      "on": "Le {{date}}",
+      "range": "Du {{from}} au {{to}}",
+      "status": {
+        "pending": "En attente de l’école",
+        "accepted": "Acceptée",
+        "refused": "Refusée"
+      }
     }
   },
   "teacher": {
@@ -1496,7 +1547,8 @@
       "send": "Envoyer",
       "sent": "Message envoyé à {{name}}",
       "empty": "Aucun échange avec les parents pour l’instant.",
-      "to": "À {{name}}"
+      "to": "À {{name}}",
+      "guardian": "Parent"
     },
     "skills": {
       "title": "Compétences",

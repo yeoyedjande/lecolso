@@ -10,6 +10,7 @@ export type RollCall = components['schemas']['RollCallResource']
 export type RollCallRow = components['schemas']['RollCallRowResource']
 export type AttendanceDay = components['schemas']['AttendanceDayResource']
 export type Absence = components['schemas']['AbsenceResource']
+export type PlannedAbsence = components['schemas']['PlannedAbsenceResource']
 export type DaycareBoard = components['schemas']['DaycareBoardResource']
 export type DaycareLogKind = components['schemas']['DaycareLogRequest']['kind']
 export type MarkStatus = 'present' | 'absent' | 'late'
@@ -190,6 +191,51 @@ export function useDecideJustification() {
         {
           params: { path: { justification: justificationId } },
           body: { decision: accepted ? 'accepted' : 'refused', note },
+        },
+      )
+      if (data === undefined) throw new Error(`Décision impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: key })
+    },
+  })
+}
+
+/** Absences annoncées par les parents : en cours ou à venir, ou celles à traiter (`pending`). */
+export function usePlannedAbsences(pending = false) {
+  const { school, key } = useAttendanceKey()
+  return useQuery({
+    queryKey: [...key, 'planned', pending],
+    enabled: school !== null,
+    queryFn: async ({ signal }): Promise<PlannedAbsence[]> => {
+      const { data, error } = await api.GET('/attendance/planned-absences', {
+        params: { query: { pending: pending ? true : null } },
+        signal,
+      })
+      if (data === undefined) throw new Error('Absences annoncées indisponibles', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Accepter ou refuser une absence annoncée (vaut aussi pour les absences relevées ces jours-là). */
+export function useDecidePlannedAbsence() {
+  const { key } = useAttendanceKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      plannedId,
+      accepted,
+    }: {
+      plannedId: string
+      accepted: boolean
+    }): Promise<PlannedAbsence> => {
+      const { data, response } = await api.POST(
+        '/attendance/planned-absences/{plannedAbsence}/decision',
+        {
+          params: { path: { plannedAbsence: plannedId } },
+          body: { decision: accepted ? 'accepted' : 'refused', note: null },
         },
       )
       if (data === undefined) throw new Error(`Décision impossible (${String(response.status)})`)

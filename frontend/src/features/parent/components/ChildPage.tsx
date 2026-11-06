@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, FileDown, Receipt } from 'lucide-react'
+import { ArrowLeft, CalendarPlus, FileDown, Receipt } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -127,57 +127,120 @@ function Skills({ child }: { child: Child }) {
   )
 }
 
-function Absences({ child }: { child: Child }) {
+function Planned({ child }: { child: Child }) {
   const { t } = useTranslation()
-  if (child.absences.length === 0) return <EmptyState title={t('parent.child.noAbsence')} />
   return (
-    <ul className="grid gap-2">
-      {child.absences.map((mark) => (
-        <li key={mark.id}>
-          <Card>
-            <CardContent className="flex flex-wrap items-center gap-3 p-3">
-              <span className="grid min-w-0 flex-1">
-                <span className="font-medium first-letter:uppercase">{formatDate(mark.date)}</span>
-                <span className="text-sm text-muted-foreground">
-                  {mark.status === 'late'
-                    ? t('parent.child.late', { minutes: mark.late_minutes ?? 0 })
-                    : t('parent.child.absent')}
-                </span>
-                {mark.justification !== null && (
+    <section aria-labelledby="planned-title" className="grid gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="planned-title" className="font-display text-base font-semibold">
+          {t('parent.plan.listTitle')}
+        </h2>
+        <Button asChild variant="outline" size="sm">
+          <Link from="/$school" to="/$school/parent/prevenir" search={{ eleve: child.student.id }}>
+            <CalendarPlus aria-hidden />
+            {t('parent.plan.title')}
+          </Link>
+        </Button>
+      </div>
+      {child.planned_absences.length > 0 && (
+        <ul className="grid gap-2">
+          {child.planned_absences.map((planned) => (
+            <li key={planned.id}>
+              <Card>
+                <CardContent className="grid gap-1 p-3 text-sm">
+                  <span className="font-medium">
+                    {planned.starts_on === planned.ends_on
+                      ? t('parent.plan.on', { date: formatDate(planned.starts_on) })
+                      : t('parent.plan.range', {
+                          from: formatDate(planned.starts_on),
+                          to: formatDate(planned.ends_on),
+                        })}
+                  </span>
+                  <span className="text-muted-foreground">{planned.reason}</span>
                   <Badge
                     variant={
-                      mark.justification.status === 'accepted'
+                      planned.status === 'accepted'
                         ? 'success'
-                        : mark.justification.status === 'refused'
+                        : planned.status === 'refused'
                           ? 'destructive'
                           : 'outline'
                     }
-                    className="mt-1 w-fit"
+                    className="w-fit"
                   >
-                    {mark.justification.status === 'accepted'
-                      ? t('parent.child.justified')
-                      : mark.justification.status === 'refused'
-                        ? t('parent.child.refused')
-                        : t('parent.child.pending')}
+                    {t(`parent.plan.status.${planned.status}`)}
                   </Badge>
-                )}
-              </span>
-              {mark.can_justify && (
-                <Button asChild variant="outline" size="lg">
-                  <Link
-                    from="/$school"
-                    to="/$school/parent/justifier"
-                    search={{ eleve: child.student.id, absence: mark.id }}
-                  >
-                    {t('parent.child.justify')}
-                  </Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </li>
-      ))}
-    </ul>
+                  {planned.note !== null && (
+                    <span className="text-xs text-muted-foreground">{planned.note}</span>
+                  )}
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function Absences({ child }: { child: Child }) {
+  const { t } = useTranslation()
+  return (
+    <div className="grid gap-5">
+      <Planned child={child} />
+      {child.absences.length === 0 ? (
+        <EmptyState title={t('parent.child.noAbsence')} />
+      ) : (
+        <ul className="grid gap-2">
+          {child.absences.map((mark) => (
+            <li key={mark.id}>
+              <Card>
+                <CardContent className="flex flex-wrap items-center gap-3 p-3">
+                  <span className="grid min-w-0 flex-1">
+                    <span className="font-medium first-letter:uppercase">
+                      {formatDate(mark.date)}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {mark.status === 'late'
+                        ? t('parent.child.late', { minutes: mark.late_minutes ?? 0 })
+                        : t('parent.child.absent')}
+                    </span>
+                    {mark.justification !== null && (
+                      <Badge
+                        variant={
+                          mark.justification.status === 'accepted'
+                            ? 'success'
+                            : mark.justification.status === 'refused'
+                              ? 'destructive'
+                              : 'outline'
+                        }
+                        className="mt-1 w-fit"
+                      >
+                        {mark.justification.status === 'accepted'
+                          ? t('parent.child.justified')
+                          : mark.justification.status === 'refused'
+                            ? t('parent.child.refused')
+                            : t('parent.child.pending')}
+                      </Badge>
+                    )}
+                  </span>
+                  {mark.can_justify && (
+                    <Button asChild variant="outline" size="lg">
+                      <Link
+                        from="/$school"
+                        to="/$school/parent/justifier"
+                        search={{ eleve: child.student.id, absence: mark.id }}
+                      >
+                        {t('parent.child.justify')}
+                      </Link>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 

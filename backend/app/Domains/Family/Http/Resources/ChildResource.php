@@ -19,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class ChildResource extends JsonResource
 {
     /**
-     * @return array{student: ChildStudentResource, assessment_mode: string, grade_scale: int, terms: AnonymousResourceCollection, term: TermResource|null, subjects: AnonymousResourceCollection, skills: AnonymousResourceCollection, report_cards: AnonymousResourceCollection, absences: AnonymousResourceCollection, balance: ChildBalanceResource|null, payments: AnonymousResourceCollection}
+     * @return array{student: ChildStudentResource, assessment_mode: string, grade_scale: int, terms: AnonymousResourceCollection, term: TermResource|null, subjects: AnonymousResourceCollection, skills: AnonymousResourceCollection, report_cards: AnonymousResourceCollection, absences: AnonymousResourceCollection, balance: ChildBalanceResource|null, payments: AnonymousResourceCollection, planned_absences: AnonymousResourceCollection}
      */
     public function toArray(Request $request): array
     {
@@ -37,6 +37,7 @@ final class ChildResource extends JsonResource
             'absences' => ChildMarkResource::collection($view->marks),
             'balance' => $view->balance === null ? null : new ChildBalanceResource($view->balance),
             'payments' => ChildPaymentResource::collection($view->payments),
+            'planned_absences' => ChildPlannedAbsenceResource::collection($view->plannedAbsences),
         ];
     }
 }

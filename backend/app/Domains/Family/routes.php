@@ -11,4 +11,5 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::get('guardian/children', [GuardianController::class, 'index'])->name('guardian.children');
     Route::get('guardian/children/{student}', [GuardianController::class, 'show'])->name('guardian.child');
+    Route::post('guardian/children/{student}/planned-absences', [GuardianController::class, 'planAbsence'])->name('guardian.planned-absences');
 });

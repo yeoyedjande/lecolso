@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Domains\Attendance\Models\AbsenceJustification;
 use App\Domains\Attendance\Models\AttendanceMark;
+use App\Domains\Attendance\Models\PlannedAbsence;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -16,5 +17,6 @@ final class AttendanceServiceProvider extends ServiceProvider
     {
         Route::model('mark', AttendanceMark::class);
         Route::model('justification', AbsenceJustification::class);
+        Route::model('plannedAbsence', PlannedAbsence::class);
     }
 }

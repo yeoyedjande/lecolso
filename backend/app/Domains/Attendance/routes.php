@@ -7,6 +7,7 @@ declare(strict_types=1);
 use App\Domains\Attendance\Http\Controllers\AbsenceProofFileController;
 use App\Domains\Attendance\Http\Controllers\AttendanceController;
 use App\Domains\Attendance\Http\Controllers\DaycareController;
+use App\Domains\Attendance\Http\Controllers\PlannedAbsenceController;
 use App\Domains\Attendance\Http\Controllers\SyncController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,8 @@ Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::get('attendance/absences', [AttendanceController::class, 'absences'])->name('attendance.absences');
     Route::post('attendance/marks/{mark}/justification', [AttendanceController::class, 'justify'])->name('attendance.justify');
     Route::post('attendance/justifications/{justification}/decision', [AttendanceController::class, 'decide'])->name('attendance.decide');
+    Route::get('attendance/planned-absences', [PlannedAbsenceController::class, 'index'])->name('attendance.planned-absences');
+    Route::post('attendance/planned-absences/{plannedAbsence}/decision', [PlannedAbsenceController::class, 'decide'])->name('attendance.planned-absences.decide');
 
     Route::get('daycare/board', [DaycareController::class, 'show'])->name('daycare.board');
     Route::post('daycare/visits', [DaycareController::class, 'check'])->name('daycare.visits.store');

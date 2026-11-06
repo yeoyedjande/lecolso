@@ -121,7 +121,7 @@ export function RollCallPanel({ call, onSaved }: { call: RollCall; onSaved?: () 
                   <Avatar name={row.student.full_name} photoUrl={row.student.photo_url} size="sm" />
                   <span className="grid min-w-0 flex-1">
                     <span className="truncate font-medium">{row.student.full_name}</span>
-                    {row.justification !== null && (
+                    {row.justification !== null ? (
                       <Badge
                         variant={row.justification.status === 'accepted' ? 'success' : 'outline'}
                         className="mt-1 w-fit"
@@ -130,6 +130,12 @@ export function RollCallPanel({ call, onSaved }: { call: RollCall; onSaved?: () 
                           `attendance.justification.${justificationKey(row.justification.status)}`,
                         )}
                       </Badge>
+                    ) : (
+                      row.planned !== null && (
+                        <Badge variant="outline" className="mt-1 w-fit">
+                          {t('attendance.plannedBadge')}
+                        </Badge>
+                      )
                     )}
                   </span>
                   <div

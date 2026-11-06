@@ -13,6 +13,7 @@ use App\Domains\Attendance\Models\AttendanceMark;
 use App\Domains\Attendance\Models\RollCall;
 use App\Domains\Attendance\Support\AttendanceAccess;
 use App\Domains\Attendance\Support\ClassRoster;
+use App\Domains\Attendance\Support\PlannedAbsences;
 use App\Domains\Attendance\Support\RollCallWindow;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AttendanceMode;
@@ -111,6 +112,16 @@ final readonly class SaveRollCall
             // Redevenu présent : la marque (et sa justification) disparaît
             AttendanceMark::query()->where('roll_call_id', $rollCall->id)->whereNotIn('student_id', $kept)->get()
                 ->each(static fn (AttendanceMark $mark): ?bool => $mark->delete());
+
+            // Jours couverts par une absence annoncée : l'absence reçoit la justification du parent
+            $absences = AttendanceMark::query()->where('roll_call_id', $rollCall->id)->where('status', AttendanceStatus::Absent)->get();
+            $planned = PlannedAbsences::covering(array_values($absences->map(static fn (AttendanceMark $mark): string => $mark->student_id)->all()), $date);
+            foreach ($absences as $absence) {
+                $announcement = $planned->get($absence->student_id);
+                if ($announcement !== null) {
+                    PlannedAbsences::justify($announcement, $absence);
+                }
+            }
 
             if ($closed) {
                 AttendanceCorrection::query()->create([

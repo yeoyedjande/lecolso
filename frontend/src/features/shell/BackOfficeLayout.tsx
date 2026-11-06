@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
 
 import { ContextSwitcher } from './ContextSwitcher'
 import { BACK_OFFICE_NAV, visibleSections } from './nav'
+import { UnreadBadge } from '@/features/messaging/components/UnreadBadge'
+
 import { SpaceLink } from './SpaceLink'
 import { UserMenu } from './UserMenu'
 import { OutboxSync } from '@/features/sync/OutboxSync'
@@ -82,6 +84,9 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                 >
                   <Icon aria-hidden className="size-5 shrink-0" />
                   {!collapsed && <span className="truncate">{t(`nav.${item.key}`)}</span>}
+                  {item.key === 'messages' && (
+                    <UnreadBadge className={collapsed ? 'absolute top-1 right-1' : 'ml-auto'} />
+                  )}
                 </SpaceLink>
               )
               return (

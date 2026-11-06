@@ -1,5 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
-import { Send } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { CalendarPlus, Send } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -45,6 +45,16 @@ export function JustifyPage({
       <div className="grid gap-2">
         <h1 className="font-display text-2xl font-bold">{t('parent.justify.title')}</h1>
         <p className="text-muted-foreground">{t('parent.justify.subtitle')}</p>
+        <Button asChild variant="outline" className="justify-self-start">
+          <Link
+            from="/$school"
+            to="/$school/parent/prevenir"
+            search={current === '' ? {} : { eleve: current }}
+          >
+            <CalendarPlus aria-hidden />
+            {t('parent.plan.link')}
+          </Link>
+        </Button>
       </div>
       {children.isPending ? (
         <ListSkeleton />

@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Domains\Family\Http\Controllers;
 
 use App\Domains\Family\Actions\ListGuardianChildren;
+use App\Domains\Family\Actions\PlanChildAbsence;
 use App\Domains\Family\Actions\ShowGuardianChild;
 use App\Domains\Family\Http\Requests\GuardianChildRequest;
+use App\Domains\Family\Http\Requests\PlanChildAbsenceRequest;
+use App\Domains\Family\Http\Resources\ChildPlannedAbsenceResource;
 use App\Domains\Family\Http\Resources\ChildResource;
 use App\Domains\Family\Http\Resources\ChildSummaryResource;
 use App\Domains\Identity\Models\User;
@@ -39,6 +42,28 @@ final class GuardianController
     public function show(GuardianChildRequest $request, Student $student, ShowGuardianChild $show): ChildResource
     {
         return new ChildResource($show->handle($this->user($request), $student->id, $request->termId(), Carbon::now()));
+    }
+
+    /**
+     * Prévenir d'une absence à venir.
+     *
+     * Du … au … (aujourd'hui ou plus tard, 30 jours au plus), motif : l'administration reçoit un message et décide
+     * comme pour une justification ; l'appel de ces jours marque l'enfant absent avec cette justification.
+     * 409 `overlap`, `not_enrolled`. Enfant d'un autre parent : 404.
+     */
+    public function planAbsence(PlanChildAbsenceRequest $request, Student $student, PlanChildAbsence $plan): ChildPlannedAbsenceResource
+    {
+        $message = trim($request->string('message')->toString());
+
+        return new ChildPlannedAbsenceResource($plan->handle(
+            $this->user($request),
+            $student->id,
+            $request->string('starts_on')->toString(),
+            $request->string('ends_on')->toString(),
+            trim($request->string('reason')->toString()),
+            $message === '' ? null : $message,
+            Carbon::now(),
+        ));
     }
 
     private function user(Request $request): User

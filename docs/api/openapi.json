@@ -1496,6 +1496,309 @@
                 }
             }
         },
+        "/conversations": {
+            "get": {
+                "operationId": "conversations.index",
+                "description": "Parent : les siens ; titulaire : ceux de ses classes ; direction et secr\u00e9tariat : ceux de leurs cycles. Le plus\nr\u00e9cent d'abord ; `unread=1` : seulement ceux qui ont des messages non lus.",
+                "summary": "Fils de messages",
+                "tags": [
+                    "Conversation"
+                ],
+                "parameters": [
+                    {
+                        "name": "unread",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ConversationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ConversationResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "conversations.store",
+                "description": "Le parent \u00e9crit au titulaire (`teacher`) ou \u00e0 l'administration (`office`) ; l'\u00e9cole \u00e9crit \u00e0 un tuteur\n(`guardian_id`). Un fil existe d\u00e9j\u00e0 pour cet enfant, ce tuteur et ce destinataire : le message s'y ajoute.\n409 `not_enrolled`, `no_teacher`.",
+                "summary": "\u00c9crire \u00e0 propos d'un enfant",
+                "tags": [
+                    "Conversation"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StartConversationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ConversationDetailResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ConversationDetailResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/conversations/unread-count": {
+            "get": {
+                "operationId": "conversations.unread",
+                "description": "Pastille de la navigation.",
+                "summary": "Nombre de fils non lus",
+                "tags": [
+                    "Conversation"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "count": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/conversations/{conversation}": {
+            "get": {
+                "operationId": "conversations.show",
+                "summary": "Un fil et ses messages",
+                "tags": [
+                    "Conversation"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The conversation ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ConversationDetailResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ConversationDetailResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/conversations/{conversation}/messages": {
+            "post": {
+                "operationId": "conversations.reply",
+                "description": "Parent du fil, titulaire d'un fil \u00ab enseignant \u00bb, administration d'un fil \u00ab administration \u00bb (403 sinon).",
+                "summary": "R\u00e9pondre dans un fil",
+                "tags": [
+                    "Conversation"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The conversation ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PostMessageRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ConversationDetailResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ConversationDetailResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/conversations/{conversation}/read": {
+            "post": {
+                "operationId": "conversations.read",
+                "summary": "Marquer un fil comme lu",
+                "tags": [
+                    "Conversation"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The conversation ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ConversationDetailResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ConversationDetailResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/platform/schools": {
             "post": {
                 "operationId": "platform.schools.store",
@@ -2979,6 +3282,67 @@
                 }
             }
         },
+        "/guardian/children/{student}/planned-absences": {
+            "post": {
+                "operationId": "guardian.planned-absences",
+                "description": "Du \u2026 au \u2026 (aujourd'hui ou plus tard, 30 jours au plus), motif : l'administration re\u00e7oit un message et d\u00e9cide\ncomme pour une justification ; l'appel de ces jours marque l'enfant absent avec cette justification.\n409 `overlap`, `not_enrolled`. Enfant d'un autre parent : 404.",
+                "summary": "Pr\u00e9venir d'une absence \u00e0 venir",
+                "tags": [
+                    "Guardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlanChildAbsenceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ChildPlannedAbsenceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ChildPlannedAbsenceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "operationId": "health",
@@ -3754,6 +4118,124 @@
                     },
                     "404": {
                         "$ref": "#/components/responses/NotFoundHttpException"
+                    }
+                }
+            }
+        },
+        "/attendance/planned-absences": {
+            "get": {
+                "operationId": "attendance.planned-absences",
+                "description": "Dans les classes que l'utilisateur voit : en cours ou \u00e0 venir, ou avec `pending=1` celles \u00e0 traiter.",
+                "summary": "Absences annonc\u00e9es par les parents",
+                "tags": [
+                    "PlannedAbsence"
+                ],
+                "parameters": [
+                    {
+                        "name": "pending",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PlannedAbsenceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PlannedAbsenceResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/attendance/planned-absences/{plannedAbsence}/decision": {
+            "post": {
+                "operationId": "attendance.planned-absences.decide",
+                "description": "Personnel avec attendance.manage sur le cycle. La d\u00e9cision vaut pour les justifications d\u00e9j\u00e0 rattach\u00e9es aux\nabsences relev\u00e9es et pour les appels \u00e0 venir. 409 `already_decided`.",
+                "summary": "Accepter ou refuser une absence annonc\u00e9e",
+                "tags": [
+                    "PlannedAbsence"
+                ],
+                "parameters": [
+                    {
+                        "name": "plannedAbsence",
+                        "in": "path",
+                        "required": true,
+                        "description": "The planned absence ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DecidePlannedAbsenceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`PlannedAbsenceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlannedAbsenceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
             }
@@ -7279,6 +7761,46 @@
                 ],
                 "title": "ChildPaymentResource"
             },
+            "ChildPlannedAbsenceResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "starts_on": {
+                        "type": "string"
+                    },
+                    "ends_on": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "accepted",
+                            "refused"
+                        ]
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "starts_on",
+                    "ends_on",
+                    "reason",
+                    "status",
+                    "note"
+                ],
+                "title": "ChildPlannedAbsenceResource"
+            },
             "ChildReportCardResource": {
                 "type": "object",
                 "properties": {
@@ -7370,6 +7892,12 @@
                         "items": {
                             "$ref": "#/components/schemas/ChildPaymentResource"
                         }
+                    },
+                    "planned_absences": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChildPlannedAbsenceResource"
+                        }
                     }
                 },
                 "required": [
@@ -7383,7 +7911,8 @@
                     "report_cards",
                     "absences",
                     "balance",
-                    "payments"
+                    "payments",
+                    "planned_absences"
                 ],
                 "title": "ChildResource"
             },
@@ -7846,6 +8375,168 @@
                     "term_id"
                 ],
                 "title": "CloseTermRequest"
+            },
+            "ConversationChannel": {
+                "type": "string",
+                "description": "Destinataire c\u00f4t\u00e9 \u00e9cole d'un fil : le titulaire de la classe, ou l'administration (direction, secr\u00e9tariat du cycle).\n",
+                "enum": [
+                    "teacher",
+                    "office"
+                ],
+                "title": "ConversationChannel"
+            },
+            "ConversationDetailResource": {
+                "type": "object",
+                "properties": {
+                    "conversation": {
+                        "$ref": "#/components/schemas/ConversationResource"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MessageResource"
+                        }
+                    }
+                },
+                "required": [
+                    "conversation",
+                    "messages"
+                ],
+                "title": "ConversationDetailResource"
+            },
+            "ConversationResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "channel": {
+                        "type": "string",
+                        "enum": [
+                            "teacher",
+                            "office"
+                        ]
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "student": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "full_name": {
+                                "type": "string"
+                            },
+                            "first_name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "full_name",
+                            "first_name"
+                        ]
+                    },
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "guardian": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "phone": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "phone"
+                        ]
+                    },
+                    "last_message": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "side": {
+                                "type": "string",
+                                "enum": [
+                                    "guardian",
+                                    "school"
+                                ]
+                            },
+                            "author_name": {
+                                "type": "string"
+                            },
+                            "preview": {
+                                "type": "string"
+                            },
+                            "sent_at": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "side",
+                            "author_name",
+                            "preview",
+                            "sent_at"
+                        ]
+                    },
+                    "last_message_at": {
+                        "type": "string"
+                    },
+                    "unread": {
+                        "type": "integer"
+                    },
+                    "side": {
+                        "type": "string",
+                        "enum": [
+                            "guardian",
+                            "school"
+                        ]
+                    },
+                    "can_write": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "channel",
+                    "subject",
+                    "student",
+                    "classroom",
+                    "guardian",
+                    "last_message",
+                    "last_message_at",
+                    "unread",
+                    "side",
+                    "can_write"
+                ],
+                "title": "ConversationResource"
             },
             "CreateSchoolRequest": {
                 "type": "object",
@@ -8530,6 +9221,30 @@
                     "decision"
                 ],
                 "title": "DecideJustificationRequest"
+            },
+            "DecidePlannedAbsenceRequest": {
+                "type": "object",
+                "description": "D\u00e9cision sur une absence annonc\u00e9e (personnel avec attendance.manage sur le cycle de la classe de l'enfant) :\n`decision` accepted ou refused, `note` facultative. Absence que l'utilisateur ne voit pas : 404.",
+                "properties": {
+                    "decision": {
+                        "type": "string",
+                        "enum": [
+                            "accepted",
+                            "refused"
+                        ]
+                    },
+                    "note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "decision"
+                ],
+                "title": "DecidePlannedAbsenceRequest"
             },
             "DeparturePolicy": {
                 "type": "string",
@@ -9725,6 +10440,74 @@
                 ],
                 "title": "MentionThresholdsResource"
             },
+            "MessageResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "side": {
+                        "type": "string",
+                        "enum": [
+                            "guardian",
+                            "school"
+                        ]
+                    },
+                    "author_name": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "sent_at": {
+                        "type": "string"
+                    },
+                    "mine": {
+                        "type": "boolean"
+                    },
+                    "planned_absence": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "starts_on": {
+                                "type": "string"
+                            },
+                            "ends_on": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "pending",
+                                    "accepted",
+                                    "refused"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "starts_on",
+                            "ends_on",
+                            "status"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "side",
+                    "author_name",
+                    "body",
+                    "sent_at",
+                    "mine",
+                    "planned_absence"
+                ],
+                "title": "MessageResource"
+            },
             "PaymentMethod": {
                 "type": "string",
                 "description": "Moyen de paiement au guichet. Seules les esp\u00e8ces se comptent dans la caisse ; les autres exigent une r\u00e9f\u00e9rence.\n",
@@ -9833,6 +10616,138 @@
                     "staff_assignable"
                 ],
                 "title": "PermissionResource"
+            },
+            "PlanChildAbsenceRequest": {
+                "type": "object",
+                "description": "Pr\u00e9venir d'une absence \u00e0 venir : `starts_on`, `ends_on` (AAAA-MM-JJ, aujourd'hui ou plus tard, 30 jours au plus),\n`reason` (3 \u00e0 300 caract\u00e8res), `message` facultatif pour l'administration. Enfant d'un autre parent : 404.",
+                "properties": {
+                    "starts_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "ends_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 300
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 1500
+                    }
+                },
+                "required": [
+                    "starts_on",
+                    "ends_on",
+                    "reason"
+                ],
+                "title": "PlanChildAbsenceRequest"
+            },
+            "PlannedAbsenceResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "student": {
+                        "$ref": "#/components/schemas/AttendanceStudentResource"
+                    },
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "starts_on": {
+                        "type": "string"
+                    },
+                    "ends_on": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "accepted",
+                            "refused"
+                        ]
+                    },
+                    "submitted_by_name": {
+                        "type": "string"
+                    },
+                    "submitted_at": {
+                        "type": "string"
+                    },
+                    "decided_by_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "decided_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "decision_note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "can_decide": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "student",
+                    "classroom",
+                    "starts_on",
+                    "ends_on",
+                    "reason",
+                    "status",
+                    "submitted_by_name",
+                    "submitted_at",
+                    "decided_by_name",
+                    "decided_at",
+                    "decision_note",
+                    "can_decide"
+                ],
+                "title": "PlannedAbsenceResource"
+            },
+            "PostMessageRequest": {
+                "type": "object",
+                "description": "R\u00e9ponse dans un fil : `body` (1 \u00e0 2000 caract\u00e8res). Lecture seule (fil d'un enseignant lu par la direction) : 403.",
+                "properties": {
+                    "body": {
+                        "type": "string",
+                        "maxLength": 2000
+                    }
+                },
+                "required": [
+                    "body"
+                ],
+                "title": "PostMessageRequest"
             },
             "ProfileResource": {
                 "type": "object",
@@ -10609,6 +11524,7 @@
                             {
                                 "type": "string",
                                 "enum": [
+                                    "absent",
                                     "present"
                                 ]
                             }
@@ -10643,6 +11559,24 @@
                             "status",
                             "source"
                         ]
+                    },
+                    "planned": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "status"
+                        ]
                     }
                 },
                 "required": [
@@ -10650,7 +11584,8 @@
                     "mark_id",
                     "status",
                     "late_minutes",
-                    "justification"
+                    "justification",
+                    "planned"
                 ],
                 "title": "RollCallRowResource"
             },
@@ -11797,6 +12732,42 @@
                     "position"
                 ],
                 "title": "SkillResource"
+            },
+            "StartConversationRequest": {
+                "type": "object",
+                "description": "\u00c9crire \u00e0 propos d'un enfant : `student_id`, `channel` (teacher : le titulaire, office : l'administration),\n`subject` (120 caract\u00e8res), `body` (2000 caract\u00e8res), et c\u00f4t\u00e9 \u00e9cole `guardian_id` (tuteur de l'enfant).\nLes droits sont v\u00e9rifi\u00e9s par l'Action (parent de l'enfant, titulaire, personnel du cycle).",
+                "properties": {
+                    "student_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "channel": {
+                        "$ref": "#/components/schemas/ConversationChannel"
+                    },
+                    "subject": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "body": {
+                        "type": "string",
+                        "maxLength": 2000
+                    },
+                    "guardian_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "student_id",
+                    "channel",
+                    "subject",
+                    "body"
+                ],
+                "title": "StartConversationRequest"
             },
             "StoreAssessmentRequest": {
                 "type": "object",

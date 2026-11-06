@@ -54,10 +54,12 @@ test('session expirée pendant la navigation : connexion, puis retour à l’éc
   await page.goto('/les-lauriers/eleves')
   await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
 
-  // Le profil reste en cache côté navigateur ; le serveur, lui, a fermé la session. Deux minutes plus tard,
-  // l'écran suivant revérifie le profil (/me → 401) alors que l'ancien profil est encore en cache.
+  // Le profil reste en cache côté navigateur ; le serveur, lui, a fermé la session. 70 secondes plus tard
+  // (profil revérifié après 60 s, avant la relecture des messages non lus à 90 s), l'écran suivant revérifie
+  // le profil (/me → 401) alors que l'ancien profil est encore en cache.
+  await page.waitForLoadState('networkidle') // premières lectures de l'écran (dont les non-lus) terminées
   api.expireSession()
-  await page.clock.fastForward('02:00')
+  await page.clock.fastForward('01:10')
   await page.getByRole('navigation', { name: 'Menu' }).getByRole('link', { name: 'Notes' }).click()
 
   await expect(page).toHaveURL(/\/connexion\?redirect=/)

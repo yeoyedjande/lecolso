@@ -10,6 +10,7 @@ use App\Domains\Attendance\Models\AttendanceMark;
 use App\Domains\Attendance\Models\RollCall;
 use App\Domains\Attendance\Support\AttendanceAccess;
 use App\Domains\Attendance\Support\ClassRoster;
+use App\Domains\Attendance\Support\PlannedAbsences;
 use App\Domains\Attendance\Support\RollCallWindow;
 use App\Domains\Identity\Models\User;
 use App\Support\Time\SchoolClock;
@@ -31,10 +32,17 @@ final readonly class ShowRollCall
             ->get()
             ->keyBy('student_id');
 
+        $roster = ClassRoster::on($classroom, $date);
+        $planned = PlannedAbsences::covering(array_values($roster->modelKeys()), $date);
         $rows = [];
-        foreach (ClassRoster::on($classroom, $date) as $student) {
+        foreach ($roster as $student) {
             $mark = $marks->get($student->id);
-            $rows[] = ['student' => $student, 'mark' => $mark instanceof AttendanceMark ? $mark : null];
+            $rows[] = [
+                'student' => $student,
+                'mark' => $mark instanceof AttendanceMark ? $mark : null,
+                'planned' => $planned->get($student->id),
+                'taken' => $rollCall !== null,
+            ];
         }
 
         $closed = RollCallWindow::isClosed($date, $now);

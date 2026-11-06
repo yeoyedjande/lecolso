@@ -18,21 +18,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useMe } from '@/features/auth/api'
 import { useClassroomOptions } from '@/features/classes/api'
-import { formatDateTime, formatDay } from '@/lib/format'
+import { formatDateTime, formatDay, formatPhone } from '@/lib/format'
 import type { DemoAnnouncement } from '@/lib/demo/types'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
-import { useAnnounce, useAnnouncements, useConversations, useMarkRead, useReply } from '../api'
+import { useConversations } from '../api'
+import { useAnnounce, useAnnouncements } from '../demoApi'
+
+import { ConversationThread } from './ConversationThread'
 
 function Conversations() {
   const { t } = useTranslation()
-  const { data: profile } = useMe()
   const query = useConversations()
-  const reply = useReply()
-  const markRead = useMarkRead()
   const [selected, setSelected] = useState<string | null>(null)
-  const [body, setBody] = useState('')
 
   return (
     <QueryState query={query}>
@@ -40,9 +39,12 @@ function Conversations() {
         if (conversations.length === 0) return <EmptyState title={t('messaging.empty')} />
         const current = conversations.find((conversation) => conversation.id === selected)
         return (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <ul
-              className={cn('grid content-start gap-2', current !== undefined && 'hidden lg:grid')}
+              className={cn(
+                'grid grid-cols-1 content-start gap-2',
+                current !== undefined && 'hidden lg:grid',
+              )}
             >
               {conversations.map((conversation) => (
                 <li key={conversation.id}>
@@ -51,31 +53,40 @@ function Conversations() {
                     aria-current={conversation.id === selected ? 'true' : undefined}
                     onClick={() => {
                       setSelected(conversation.id)
-                      if (conversation.unread > 0) markRead.mutate(conversation.id)
                     }}
                     className={cn(
                       'flex w-full items-start gap-3 rounded-2xl border bg-card p-3 text-left transition hover:border-accent',
                       conversation.id === selected && 'border-accent ring-2 ring-accent/20',
                     )}
                   >
-                    <Avatar name={conversation.guardianName} size="sm" />
+                    <Avatar name={conversation.guardian.name} size="sm" />
                     <span className="grid min-w-0 flex-1 gap-0.5">
                       <span className="flex items-center justify-between gap-2">
-                        <span className="truncate font-semibold">{conversation.guardianName}</span>
+                        <span className="truncate font-semibold">{conversation.guardian.name}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">
-                          {formatDay(conversation.lastAt.slice(0, 10))}
+                          {formatDay(conversation.last_message_at.slice(0, 10))}
                         </span>
                       </span>
                       <span className="truncate text-sm font-medium">{conversation.subject}</span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {conversation.preview}
+                        {`${conversation.student.full_name} · ${conversation.classroom.name}`}
                       </span>
+                      {conversation.last_message !== null && (
+                        <span className="truncate text-xs text-muted-foreground">
+                          {conversation.last_message.preview}
+                        </span>
+                      )}
                     </span>
-                    {conversation.unread > 0 && (
-                      <Badge variant="accent">
-                        {t('messaging.unread', { count: conversation.unread })}
+                    <span className="grid justify-items-end gap-1">
+                      <Badge variant="outline">
+                        {t(`messaging.channel.${conversation.channel}`)}
                       </Badge>
-                    )}
+                      {conversation.unread > 0 && (
+                        <Badge variant="accent">
+                          {t('messaging.unread', { count: conversation.unread })}
+                        </Badge>
+                      )}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -102,66 +113,18 @@ function Conversations() {
                     <div>
                       <h2 className="font-display text-lg font-semibold">{current.subject}</h2>
                       <p className="text-sm text-muted-foreground">
-                        {current.guardianName} ·{' '}
+                        {current.guardian.name}
+                        {current.guardian.phone !== null &&
+                          ` · ${formatPhone(current.guardian.phone)}`}
+                        {' · '}
                         {t('messaging.about', {
-                          student: current.studentName,
-                          classroom: current.classroom,
+                          student: current.student.full_name,
+                          classroom: current.classroom.name,
                         })}
                       </p>
                     </div>
                   </div>
-                  <ol className="grid flex-1 content-start gap-3">
-                    {current.messages.map((message) => (
-                      <li
-                        key={message.id}
-                        className={cn(
-                          'grid max-w-[85%] gap-1 rounded-2xl px-4 py-2.5 text-sm',
-                          message.from === 'school'
-                            ? 'justify-self-end rounded-br-md bg-primary text-primary-foreground'
-                            : 'justify-self-start rounded-bl-md bg-muted',
-                        )}
-                      >
-                        <span>{message.body}</span>
-                        <span className="text-xs opacity-80">
-                          {message.from === 'school' ? message.author : current.guardianName} ·{' '}
-                          {formatDateTime(message.sentAt)}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                  <form
-                    className="flex items-end gap-2"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      if (body.trim() === '') return
-                      void reply
-                        .mutateAsync({
-                          conversationId: current.id,
-                          body,
-                          author: profile?.name ?? t('messaging.school'),
-                        })
-                        .then(() => {
-                          setBody('')
-                        })
-                    }}
-                  >
-                    <Label htmlFor="reply" className="sr-only">
-                      {t('messaging.reply')}
-                    </Label>
-                    <Textarea
-                      id="reply"
-                      rows={2}
-                      placeholder={t('messaging.replyPlaceholder')}
-                      value={body}
-                      onChange={(event) => {
-                        setBody(event.target.value)
-                      }}
-                    />
-                    <Button type="submit" disabled={body.trim() === '' || reply.isPending}>
-                      <Send aria-hidden />
-                      {t('messaging.send')}
-                    </Button>
-                  </form>
+                  <ConversationThread key={current.id} conversationId={current.id} />
                 </CardContent>
               </Card>
             )}

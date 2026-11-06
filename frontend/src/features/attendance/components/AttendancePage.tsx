@@ -41,9 +41,12 @@ import {
   useAttendanceClassrooms,
   useAttendanceHistory,
   useDecideJustification,
+  useDecidePlannedAbsence,
   useJustifyAbsence,
+  usePlannedAbsences,
   useRollCall,
   type Absence,
+  type PlannedAbsence,
 } from '../api'
 import { justificationKey, monthEnd, schoolToday } from '../status'
 
@@ -385,6 +388,97 @@ function Absences() {
   )
 }
 
+/** Absences annoncées par les parents (en cours ou à venir) : la direction les accepte ou les refuse. */
+function PlannedAbsences() {
+  const { t } = useTranslation()
+  const query = usePlannedAbsences()
+  const decide = useDecidePlannedAbsence()
+  const rows = query.data ?? []
+  if (rows.length === 0) return null
+
+  const onDecide = (planned: PlannedAbsence, accepted: boolean) => {
+    decide
+      .mutateAsync({ plannedId: planned.id, accepted })
+      .then(() => {
+        toast(accepted ? t('attendance.accepted') : t('attendance.refused'), { tone: 'success' })
+      })
+      .catch((caught: unknown) => {
+        toast(caught instanceof ConflictError ? caught.message : t('common.error'), {
+          tone: 'error',
+        })
+      })
+  }
+
+  return (
+    <section aria-labelledby="planned-title" className="grid gap-2">
+      <h2 id="planned-title" className="font-display text-lg font-semibold">
+        {t('attendance.planned.title')}
+      </h2>
+      <ul className="grid gap-2">
+        {rows.map((planned) => (
+          <li key={planned.id}>
+            <Card className="flex flex-wrap items-center gap-3 p-3">
+              <Avatar
+                name={planned.student.full_name}
+                photoUrl={planned.student.photo_url}
+                size="sm"
+              />
+              <span className="grid min-w-0 flex-1 gap-0.5 text-sm">
+                <span className="font-medium">
+                  {planned.student.full_name}
+                  <span className="text-muted-foreground">{` · ${planned.classroom.name}`}</span>
+                </span>
+                <span>
+                  {planned.starts_on === planned.ends_on
+                    ? t('attendance.planned.on', { date: formatDate(planned.starts_on) })
+                    : t('attendance.planned.range', {
+                        from: formatDate(planned.starts_on),
+                        to: formatDate(planned.ends_on),
+                      })}
+                  {` · ${planned.reason}`}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {t('attendance.planned.by', { name: planned.submitted_by_name })}
+                </span>
+              </span>
+              {planned.status === 'pending' && planned.can_decide ? (
+                <span className="inline-flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={decide.isPending}
+                    onClick={() => {
+                      onDecide(planned, true)
+                    }}
+                  >
+                    <Check aria-hidden />
+                    {t('attendance.accept')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={decide.isPending}
+                    onClick={() => {
+                      onDecide(planned, false)
+                    }}
+                  >
+                    <X aria-hidden />
+                    {t('attendance.refuse')}
+                  </Button>
+                </span>
+              ) : (
+                <Badge variant={planned.status === 'accepted' ? 'success' : 'outline'}>
+                  {t(`attendance.justification.${justificationKey(planned.status)}`)}
+                </Badge>
+              )}
+            </Card>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function RollCallTab({ classroomId }: { classroomId: string }) {
   const { t } = useTranslation()
   const today = schoolToday()
@@ -469,7 +563,10 @@ export function AttendancePage() {
             <History classroomId={classroom.id} />
           </TabsContent>
           <TabsContent value="today" className="mt-4">
-            <Absences />
+            <div className="grid gap-6">
+              <PlannedAbsences />
+              <Absences />
+            </div>
           </TabsContent>
         </Tabs>
       )}

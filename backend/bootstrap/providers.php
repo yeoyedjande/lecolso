@@ -8,6 +8,7 @@ use App\Providers\BillingServiceProvider;
 use App\Providers\GradingServiceProvider;
 use App\Providers\HorizonServiceProvider;
 use App\Providers\IdentityServiceProvider;
+use App\Providers\MessagingServiceProvider;
 use App\Providers\TenancyServiceProvider;
 
 return [
@@ -18,4 +19,5 @@ return [
     BillingServiceProvider::class,
     AttendanceServiceProvider::class,
     GradingServiceProvider::class,
+    MessagingServiceProvider::class,
 ];

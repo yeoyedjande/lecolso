@@ -7,6 +7,7 @@ namespace App\Domains\Students\Actions;
 use App\Domains\Academic\Enums\AcademicYearStatus;
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Students\Enums\EnrollmentStatus;
+use App\Domains\Students\Events\StudentChangedClass;
 use App\Domains\Students\Events\StudentLeft;
 use App\Domains\Students\Events\StudentReturned;
 use App\Domains\Students\Models\Enrollment;
@@ -42,6 +43,8 @@ final readonly class ChangeEnrollment
             }
 
             $enrollment->fill(['classroom_id' => $classroom->id])->save();
+            // Même transaction que ses conséquences (fils de messages : Messaging\Listeners\FollowStudentClass)
+            StudentChangedClass::dispatch($enrollment->school_id, $enrollment->student_id, $enrollment->id);
 
             return $enrollment;
         });

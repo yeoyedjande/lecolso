@@ -234,6 +234,24 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Écritures du parent par les endpoints existants : justification (`POST attendance/marks/{mark}/justification`,
   source guardian, à valider par l'école), reçu (`GET payments/{payment}`, `InvoicePolicy::view`).
 
+## Messagerie (domaine Messaging)
+
+- `conversations` (un fil par enfant, tuteur et destinataire `channel` : `teacher` ou `office` ; classe et cycle de
+  l'enfant, mis à jour s'il change de classe), `messages` (immuables : `REVOKE UPDATE, DELETE` pour `app_user` et
+  `app_platform` ; auteur recopié ; texte jamais journalisé, aucun `Auditable`), `conversation_reads` (lecture par compte).
+- Droits : `Support\ConversationAccess` (permission `messaging.send`) — parent : ses fils (tuteur de même téléphone,
+  rôle Parent) ; titulaire de la classe du fil : fils `teacher` ; personnel du cycle (`StaffScope`) : fils `office`,
+  et lecture seule des fils `teacher`. Fil non lisible : 404 ; lecture seule : 403 sur l'envoi.
+- `StartConversation` (`POST conversations`) : ajoute au fil existant (enfant, tuteur, destinataire) ; classe sans
+  titulaire : 409 `no_teacher`. Non-lus : `ListConversations` (une requête groupée), `GET conversations/unread-count`.
+- Absences annoncées (domaine Attendance) : `planned_absences` ; `Family\Actions\PlanChildAbsence`
+  (`POST guardian/children/{student}/planned-absences`) appelle `Attendance\Actions\PlanAbsence` (aujourd'hui ou
+  plus tard, 30 jours au plus, pas de chevauchement : 409 `overlap`) et `StartConversation` (fil `office`) dans une
+  transaction. `Support\PlannedAbsences` : l'appel propose l'enfant absent (`planned` sur la ligne) et `SaveRollCall`
+  rattache la justification (`absence_justifications.planned_absence_id`, même statut) ; `DecidePlannedAbsence`
+  (`POST attendance/planned-absences/{id}/decision`, `attendance.manage`) décide aussi les justifications en attente.
+  Classe d'un élève un jour donné : `Students\Support\CurrentClassroom`.
+
 ## Fichiers
 
 - Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).

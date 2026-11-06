@@ -468,6 +468,107 @@ export interface paths {
         patch: operations["classrooms.update"];
         trace?: never;
     };
+    "/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fils de messages
+         * @description Parent : les siens ; titulaire : ceux de ses classes ; direction et secrétariat : ceux de leurs cycles. Le plus
+         *     récent d'abord ; `unread=1` : seulement ceux qui ont des messages non lus.
+         */
+        get: operations["conversations.index"];
+        put?: never;
+        /**
+         * Écrire à propos d'un enfant
+         * @description Le parent écrit au titulaire (`teacher`) ou à l'administration (`office`) ; l'école écrit à un tuteur
+         *     (`guardian_id`). Un fil existe déjà pour cet enfant, ce tuteur et ce destinataire : le message s'y ajoute.
+         *     409 `not_enrolled`, `no_teacher`.
+         */
+        post: operations["conversations.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Nombre de fils non lus
+         * @description Pastille de la navigation.
+         */
+        get: operations["conversations.unread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{conversation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un fil et ses messages */
+        get: operations["conversations.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{conversation}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Répondre dans un fil
+         * @description Parent du fil, titulaire d'un fil « enseignant », administration d'un fil « administration » (403 sinon).
+         */
+        post: operations["conversations.reply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{conversation}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marquer un fil comme lu */
+        post: operations["conversations.read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/schools": {
         parameters: {
             query?: never;
@@ -930,6 +1031,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/guardian/children/{student}/planned-absences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prévenir d'une absence à venir
+         * @description Du … au … (aujourd'hui ou plus tard, 30 jours au plus), motif : l'administration reçoit un message et décide
+         *     comme pour une justification ; l'appel de ces jours marque l'enfant absent avec cette justification.
+         *     409 `overlap`, `not_enrolled`. Enfant d'un autre parent : 404.
+         */
+        post: operations["guardian.planned-absences"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1184,6 +1307,47 @@ export interface paths {
         get: operations["files.person-photo"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/planned-absences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Absences annoncées par les parents
+         * @description Dans les classes que l'utilisateur voit : en cours ou à venir, ou avec `pending=1` celles à traiter.
+         */
+        get: operations["attendance.planned-absences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/planned-absences/{plannedAbsence}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepter ou refuser une absence annoncée
+         * @description Personnel avec attendance.manage sur le cycle. La décision vaut pour les justifications déjà rattachées aux
+         *     absences relevées et pour les appels à venir. 409 `already_decided`.
+         */
+        post: operations["attendance.planned-absences.decide"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2099,6 +2263,16 @@ export interface components {
             paid_at: string;
             cancelled: boolean;
         };
+        /** ChildPlannedAbsenceResource */
+        ChildPlannedAbsenceResource: {
+            id: string;
+            starts_on: string;
+            ends_on: string;
+            reason: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "refused";
+            note: string | null;
+        };
         /** ChildReportCardResource */
         ChildReportCardResource: {
             id: string;
@@ -2119,6 +2293,7 @@ export interface components {
             absences: components["schemas"]["ChildMarkResource"][];
             balance: components["schemas"]["ChildBalanceResource"] | null;
             payments: components["schemas"]["ChildPaymentResource"][];
+            planned_absences: components["schemas"]["ChildPlannedAbsenceResource"][];
         };
         /** ChildSkillResource */
         ChildSkillResource: {
@@ -2228,6 +2403,50 @@ export interface components {
         CloseTermRequest: {
             /** Format: uuid */
             term_id: string;
+        };
+        /**
+         * ConversationChannel
+         * @description Destinataire côté école d'un fil : le titulaire de la classe, ou l'administration (direction, secrétariat du cycle).
+         * @enum {string}
+         */
+        ConversationChannel: "teacher" | "office";
+        /** ConversationDetailResource */
+        ConversationDetailResource: {
+            conversation: components["schemas"]["ConversationResource"];
+            messages: components["schemas"]["MessageResource"][];
+        };
+        /** ConversationResource */
+        ConversationResource: {
+            id: string;
+            /** @enum {string} */
+            channel: "teacher" | "office";
+            subject: string;
+            student: {
+                id: string;
+                full_name: string;
+                first_name: string;
+            };
+            classroom: {
+                id: string;
+                name: string;
+            };
+            guardian: {
+                id: string;
+                name: string;
+                phone: string | null;
+            };
+            last_message: {
+                /** @enum {string} */
+                side: "guardian" | "school";
+                author_name: string;
+                preview: string;
+                sent_at: string;
+            } | null;
+            last_message_at: string;
+            unread: number;
+            /** @enum {string} */
+            side: "guardian" | "school";
+            can_write: boolean;
         };
         /** CreateSchoolRequest */
         CreateSchoolRequest: {
@@ -2409,6 +2628,16 @@ export interface components {
          *     `decision` accepted ou refused, `note` facultative. Justification que l'utilisateur ne voit pas : 404.
          */
         DecideJustificationRequest: {
+            /** @enum {string} */
+            decision: "accepted" | "refused";
+            note?: string | null;
+        };
+        /**
+         * DecidePlannedAbsenceRequest
+         * @description Décision sur une absence annoncée (personnel avec attendance.manage sur le cycle de la classe de l'enfant) :
+         *     `decision` accepted ou refused, `note` facultative. Absence que l'utilisateur ne voit pas : 404.
+         */
+        DecidePlannedAbsenceRequest: {
             /** @enum {string} */
             decision: "accepted" | "refused";
             note?: string | null;
@@ -2728,6 +2957,23 @@ export interface components {
             encouragement: number;
             warning_below: number;
         };
+        /** MessageResource */
+        MessageResource: {
+            id: string;
+            /** @enum {string} */
+            side: "guardian" | "school";
+            author_name: string;
+            body: string;
+            sent_at: string;
+            mine: boolean;
+            planned_absence: {
+                id: string;
+                starts_on: string;
+                ends_on: string;
+                /** @enum {string} */
+                status: "pending" | "accepted" | "refused";
+            } | null;
+        };
         /**
          * PaymentMethod
          * @description Moyen de paiement au guichet. Seules les espèces se comptent dans la caisse ; les autres exigent une référence.
@@ -2756,6 +3002,46 @@ export interface components {
             key: string;
             group: string;
             staff_assignable: boolean;
+        };
+        /**
+         * PlanChildAbsenceRequest
+         * @description Prévenir d'une absence à venir : `starts_on`, `ends_on` (AAAA-MM-JJ, aujourd'hui ou plus tard, 30 jours au plus),
+         *     `reason` (3 à 300 caractères), `message` facultatif pour l'administration. Enfant d'un autre parent : 404.
+         */
+        PlanChildAbsenceRequest: {
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string;
+            reason: string;
+            message?: string | null;
+        };
+        /** PlannedAbsenceResource */
+        PlannedAbsenceResource: {
+            id: string;
+            student: components["schemas"]["AttendanceStudentResource"];
+            classroom: {
+                id: string;
+                name: string;
+            };
+            starts_on: string;
+            ends_on: string;
+            reason: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "refused";
+            submitted_by_name: string;
+            submitted_at: string;
+            decided_by_name: string | null;
+            decided_at: string | null;
+            decision_note: string | null;
+            can_decide: boolean;
+        };
+        /**
+         * PostMessageRequest
+         * @description Réponse dans un fil : `body` (1 à 2000 caractères). Lecture seule (fil d'un enseignant lu par la direction) : 403.
+         */
+        PostMessageRequest: {
+            body: string;
         };
         /** ProfileResource */
         ProfileResource: {
@@ -2944,11 +3230,15 @@ export interface components {
         RollCallRowResource: {
             student: components["schemas"]["AttendanceStudentResource"];
             mark_id: string | null;
-            status: string | "present";
+            status: string | ("absent" | "present");
             late_minutes: string | null;
             justification: {
                 status: string | null;
                 source: string | null;
+            } | null;
+            planned: {
+                id: string;
+                status: string;
             } | null;
         };
         /**
@@ -3289,6 +3579,21 @@ export interface components {
             domain: string;
             label: string;
             position: number;
+        };
+        /**
+         * StartConversationRequest
+         * @description Écrire à propos d'un enfant : `student_id`, `channel` (teacher : le titulaire, office : l'administration),
+         *     `subject` (120 caractères), `body` (2000 caractères), et côté école `guardian_id` (tuteur de l'enfant).
+         *     Les droits sont vérifiés par l'Action (parent de l'enfant, titulaire, personnel du cycle).
+         */
+        StartConversationRequest: {
+            /** Format: uuid */
+            student_id: string;
+            channel: components["schemas"]["ConversationChannel"];
+            subject: string;
+            body: string;
+            /** Format: uuid */
+            guardian_id?: string | null;
         };
         /**
          * StoreAssessmentRequest
@@ -4514,6 +4819,174 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "conversations.index": {
+        parameters: {
+            query?: {
+                unread?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `ConversationResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ConversationResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "conversations.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartConversationRequest"];
+            };
+        };
+        responses: {
+            /** @description `ConversationDetailResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ConversationDetailResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "conversations.unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            count: number;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "conversations.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The conversation ID */
+                conversation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ConversationDetailResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ConversationDetailResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "conversations.reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The conversation ID */
+                conversation: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description `ConversationDetailResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ConversationDetailResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "conversations.read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The conversation ID */
+                conversation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ConversationDetailResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ConversationDetailResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "platform.schools.index": {
         parameters: {
             query?: never;
@@ -5285,6 +5758,38 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "guardian.planned-absences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanChildAbsenceRequest"];
+            };
+        };
+        responses: {
+            /** @description `ChildPlannedAbsenceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ChildPlannedAbsenceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -5688,6 +6193,66 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFoundHttpException"];
+        };
+    };
+    "attendance.planned-absences": {
+        parameters: {
+            query?: {
+                pending?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `PlannedAbsenceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PlannedAbsenceResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "attendance.planned-absences.decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The planned absence ID */
+                plannedAbsence: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecidePlannedAbsenceRequest"];
+            };
+        };
+        responses: {
+            /** @description `PlannedAbsenceResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PlannedAbsenceResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "grading.mentions": {
