@@ -282,6 +282,56 @@ export function useReceipt(paymentId: string) {
   })
 }
 
+export type ReceiptPdf = components['schemas']['ReceiptPdfResource']
+
+/** Relecture du reçu PDF pendant son rendu, puis avant l'expiration de son URL signée (10 minutes). */
+export const RECEIPT_PDF_POLL_MS = 2_000
+export const RECEIPT_PDF_REFRESH_MS = 8 * 60_000
+
+/**
+ * Reçu PDF d'un paiement (version « ANNULÉ » après une annulation), rendu en arrière-plan par l'API : relu toutes
+ * les 2 s tant qu'il est en préparation ; URL signée relue avant ses 10 minutes de validité.
+ */
+export function useReceiptPdf(paymentId: string) {
+  const { school, key } = useBillingKey()
+  return useQuery({
+    queryKey: [...key, 'receipt', paymentId, 'pdf'],
+    enabled: school !== null,
+    queryFn: async ({ signal }): Promise<ReceiptPdf | null> => {
+      const { data, error, response } = await api.GET('/payments/{payment}/receipt-pdf', {
+        params: { path: { payment: paymentId } },
+        signal,
+      })
+      if (response.status === 404) return null
+      if (data === undefined) throw new Error('Reçu PDF indisponible', { cause: error })
+      return data.data
+    },
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      if (status === 'pending') return RECEIPT_PDF_POLL_MS
+      return status === 'ready' ? RECEIPT_PDF_REFRESH_MS : false
+    },
+  })
+}
+
+/** Nouveau rendu d'un reçu PDF en échec. */
+export function useRetryReceiptPdf(paymentId: string) {
+  const queryClient = useQueryClient()
+  const { key } = useBillingKey()
+  return useMutation({
+    mutationFn: async (): Promise<ReceiptPdf> => {
+      const { data, response } = await api.POST('/payments/{payment}/receipt-pdf', {
+        params: { path: { payment: paymentId } },
+      })
+      if (data === undefined) throw new Error(`Reçu PDF indisponible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: (pdf) => {
+      queryClient.setQueryData([...key, 'receipt', paymentId, 'pdf'], pdf)
+    },
+  })
+}
+
 /** Annulation d'un paiement par la direction (motif obligatoire) ; le reçu reste, marqué annulé. */
 export function useCancelPayment() {
   const invalidate = useInvalidateMoney()

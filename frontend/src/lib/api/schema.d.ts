@@ -1380,6 +1380,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payments/{payment}/receipt-pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reçu PDF d'un paiement
+         * @description Qui voit la facture de l'élève. Version actuelle du reçu (marquée « ANNULÉ » après une annulation), rendue en
+         *     arrière-plan : `pending` (relire dans quelques secondes), `ready` (URL signée de 10 minutes) ou `failed`.
+         */
+        get: operations["payments.receipt-pdf.show"];
+        put?: never;
+        /**
+         * Relancer le rendu du reçu PDF
+         * @description Qui voit la facture de l'élève ; seul un rendu en échec est relancé.
+         */
+        post: operations["payments.receipt-pdf.retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/payments/{payment}/cancel": {
         parameters: {
             query?: never;
@@ -1478,6 +1503,27 @@ export interface paths {
          *     absences relevées et pour les appels à venir. 409 `already_decided`.
          */
         post: operations["attendance.planned-absences.decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/receipts/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire un reçu PDF
+         * @description URL signée renvoyée par l'API (`GET payments/{payment}/receipt-pdf`) à qui voit la facture, valable 10 minutes ;
+         *     sans signature valide : 403. Jamais mise en cache partagé ni transmise dans l'en-tête Referer.
+         */
+        get: operations["files.receipt"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3347,6 +3393,13 @@ export interface components {
             cycle_id?: string | null;
             /** Format: uuid */
             classroom_id?: string | null;
+        };
+        /** ReceiptPdfResource */
+        ReceiptPdfResource: {
+            /** @enum {string} */
+            status: "pending" | "ready" | "failed";
+            cancelled: boolean;
+            url: string | null;
         };
         /** ReceiptResource */
         ReceiptResource: {
@@ -6613,6 +6666,64 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "payments.receipt-pdf.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The payment ID */
+                payment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ReceiptPdfResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReceiptPdfResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "payments.receipt-pdf.retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The payment ID */
+                payment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ReceiptPdfResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReceiptPdfResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "payments.cancel": {
         parameters: {
             query?: never;
@@ -6764,6 +6875,32 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "files.receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, max-age=600";
+                    "X-Content-Type-Options"?: "nosniff";
+                    "Content-Disposition"?: "inline; filename=\"recu.pdf\"";
+                    "Referrer-Policy"?: "no-referrer";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string | null;
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
         };
     };
     "grading.mentions": {

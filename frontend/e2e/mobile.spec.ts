@@ -48,6 +48,7 @@ test.describe('parcours parent', () => {
     await dialog.getByRole('link', { name: 'Voir le reçu' }).click()
     await expect(page.getByText(/quinze mille francs CFA/)).toBeVisible()
     await expect(page.getByText('Wave')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Télécharger le reçu (PDF)' })).toBeVisible()
   })
 
   test('paiement Mobile Money refusé : motif et nouvel essai', async ({ page }) => {

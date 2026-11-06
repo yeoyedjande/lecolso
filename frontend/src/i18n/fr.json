@@ -695,7 +695,12 @@
       "cancelDescription": "Le reçu {{number}} ({{amount}}) restera visible, marqué « annulé », et son numéro ne sera jamais réutilisé. Le montant est retiré de la caisse.",
       "cancelReason": "Motif de l’annulation",
       "cancelConfirm": "Annuler le paiement",
-      "cancelDone": "Paiement annulé"
+      "cancelDone": "Paiement annulé",
+      "pdf": "Télécharger le reçu (PDF)",
+      "pdfCancelled": "Télécharger le reçu annulé (PDF)",
+      "pdfPending": "Reçu PDF en préparation…",
+      "pdfRetry": "Réessayer le reçu PDF",
+      "pdfFailed": "Le reçu PDF n’a pas pu être préparé. Réessayez dans un instant."
     },
     "unpaid": {
       "title": "Impayés",
