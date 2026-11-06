@@ -8,6 +8,11 @@ use App\Domains\Academic\Models\Classroom;
 use App\Domains\Attendance\Enums\AttendanceStatus;
 use App\Domains\Attendance\Enums\DaycareLogKind;
 use App\Domains\Attendance\Models\SyncOperation;
+use App\Domains\Grading\Actions\SaveAssessment;
+use App\Domains\Grading\Actions\SaveGrades;
+use App\Domains\Grading\Actions\SaveSkillEvaluations;
+use App\Domains\Grading\Http\Requests\AssessmentRules;
+use App\Domains\Grading\Models\Assessment;
 use App\Domains\Identity\Models\User;
 use App\Domains\Students\Models\Student;
 use App\Support\Http\BusinessConflict;
@@ -22,15 +27,19 @@ use Illuminate\Validation\ValidationException;
 /**
  * File hors connexion (POST /sync) : chaque opération porte l'UUID généré par l'appareil. Une opération déjà traitée
  * renvoie son premier résultat sans être rejouée ; les autres passent par les mêmes Actions et les mêmes droits que
- * l'API en ligne, chacune dans sa transaction. Types : attendance.roll_call, daycare.check, daycare.log.
+ * l'API en ligne, chacune dans sa transaction. Types : attendance.roll_call, daycare.check, daycare.log ;
+ * grades.assessment (évaluation créée sur l'appareil), grades.save (notes), skills.save (compétences).
  */
 final readonly class ApplySyncOperations
 {
-    public const array TYPES = ['attendance.roll_call', 'daycare.check', 'daycare.log'];
+    public const array TYPES = ['attendance.roll_call', 'daycare.check', 'daycare.log', 'grades.assessment', 'grades.save', 'skills.save'];
 
     public function __construct(
         private SaveRollCall $rollCall,
         private RecordDaycare $daycare,
+        private SaveAssessment $assessment,
+        private SaveGrades $grades,
+        private SaveSkillEvaluations $skills,
     ) {}
 
     /**
@@ -88,6 +97,21 @@ final readonly class ApplySyncOperations
             $recordedAt = Carbon::parse(self::text($data, 'recorded_at'));
 
             match ($type) {
+                'grades.assessment' => $this->assessment->handle(
+                    $user,
+                    Classroom::query()->findOrFail(self::text($data, 'classroom_id')),
+                    AssessmentRules::data($data),
+                    null,
+                    self::text($data, 'assessment_id'),
+                ),
+                'grades.save' => $this->grades->handle($user, Assessment::query()->findOrFail(self::text($data, 'assessment_id')), AssessmentRules::grades($data), $recordedAt),
+                'skills.save' => $this->skills->handle(
+                    $user,
+                    Classroom::query()->findOrFail(self::text($data, 'classroom_id')),
+                    self::text($data, 'term_id'),
+                    AssessmentRules::evaluations($data),
+                    $recordedAt,
+                ),
                 'attendance.roll_call' => $this->rollCall->handle(
                     $user,
                     Classroom::query()->findOrFail(self::text($data, 'classroom_id')),
@@ -129,7 +153,7 @@ final readonly class ApplySyncOperations
         } catch (AuthorizationException) {
             return ['rejected', 'forbidden', 'Action non autorisée.'];
         } catch (ModelNotFoundException) {
-            return ['rejected', 'not_found', 'Classe ou élève introuvable.'];
+            return ['rejected', 'not_found', 'Classe, élève ou évaluation introuvable.'];
         }
     }
 
@@ -141,6 +165,9 @@ final readonly class ApplySyncOperations
         $common = ['recorded_at' => ['required', 'date'], 'date' => ['required', 'date_format:Y-m-d']];
 
         return match ($type) {
+            'grades.assessment' => [...AssessmentRules::rules(), 'recorded_at' => ['required', 'date'], 'assessment_id' => ['required', 'uuid'], 'classroom_id' => ['required', 'uuid']],
+            'grades.save' => [...AssessmentRules::gradeRules(), 'recorded_at' => ['required', 'date'], 'assessment_id' => ['required', 'uuid']],
+            'skills.save' => [...AssessmentRules::skillRules(), 'recorded_at' => ['required', 'date'], 'classroom_id' => ['required', 'uuid']],
             'attendance.roll_call' => [...$common,
                 'roll_call_id' => ['nullable', 'uuid'],
                 'classroom_id' => ['required', 'uuid'],

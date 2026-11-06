@@ -57,6 +57,7 @@ return [
             'billing_period' => 'quarterly',
             'report_document' => 'report_card',
             'daily_log' => 'none',
+            'grade_scale' => '10',
         ],
     ],
 ];

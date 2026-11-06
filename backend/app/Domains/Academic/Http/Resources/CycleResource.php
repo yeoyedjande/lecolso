@@ -15,7 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class CycleResource extends JsonResource
 {
     /**
-     * @return array{id: string, code: string, name: string, position: int, is_active: bool, settings: array{term_type: string, assessment_mode: string, attendance_mode: string, billing_period: string, report_document: string, daily_log: string}, levels: AnonymousResourceCollection}
+     * @return array{id: string, code: string, name: string, position: int, is_active: bool, settings: array{term_type: string, assessment_mode: string, attendance_mode: string, billing_period: string, report_document: string, daily_log: string, grade_scale: string}, levels: AnonymousResourceCollection}
      */
     public function toArray(Request $request): array
     {

@@ -2112,6 +2112,775 @@
                 }
             }
         },
+        "/grading/classrooms": {
+            "get": {
+                "operationId": "grading.classrooms",
+                "description": "Classes de l'ann\u00e9e en cours que l'utilisateur voit (titulaire, ou personnel du cycle), avec leur mode\nd'\u00e9valuation (weighted_average, competency, observation), l'\u00e9chelle des moyennes et le droit de saisie.",
+                "summary": "Classes pour les notes",
+                "tags": [
+                    "Grading"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `GradingClassroomResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/GradingClassroomResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/grade-grid": {
+            "get": {
+                "operationId": "grading.grid",
+                "description": "P\u00e9riode (`term_id`, celle du jour par d\u00e9faut) et mati\u00e8re (`subject_id`, la premi\u00e8re par d\u00e9faut). 409 `wrong_mode`\nhors cycles en moyenne pond\u00e9r\u00e9e.",
+                "summary": "Grille de notes d'une classe",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "term_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "subject_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`GradeGridResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/GradeGridResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/assessments": {
+            "post": {
+                "operationId": "assessments.store",
+                "description": "Titulaire ou direction (grades.manage). 409 `wrong_mode`, `year_closed`.",
+                "summary": "Cr\u00e9er une \u00e9valuation",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreAssessmentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/assessments/{assessment}": {
+            "patch": {
+                "operationId": "assessments.update",
+                "description": "Le bar\u00e8me ne descend jamais sous une note d\u00e9j\u00e0 saisie. 409 `year_closed`.",
+                "summary": "Modifier une \u00e9valuation",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "assessment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The assessment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAssessmentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AssessmentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AssessmentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "assessments.destroy",
+                "description": "Ses notes sont supprim\u00e9es avec elle. 409 `year_closed`.",
+                "summary": "Supprimer une \u00e9valuation",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "assessment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The assessment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/assessments/{assessment}/grades": {
+            "put": {
+                "operationId": "assessments.grades",
+                "description": "Renvoie la grille de la mati\u00e8re et de la p\u00e9riode de l'\u00e9valuation. 409 `year_closed`.",
+                "summary": "Enregistrer les notes d'une \u00e9valuation",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "assessment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The assessment ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveGradesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`GradeGridResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/GradeGridResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/results": {
+            "get": {
+                "operationId": "grading.results",
+                "description": "Moyennes, rangs, moyenne de classe (moyenne pond\u00e9r\u00e9e) ou bilan des comp\u00e9tences, pour une p\u00e9riode (`term_id`).",
+                "summary": "R\u00e9sultats d'une classe",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "term_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ClassResultsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ClassResultsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/classrooms/{classroom}/skills": {
+            "get": {
+                "operationId": "grading.skills.show",
+                "description": "Niveau de chaque \u00e9l\u00e8ve dans chaque comp\u00e9tence pour une p\u00e9riode (`term_id`). 409 `wrong_mode`.",
+                "summary": "Comp\u00e9tences d'une classe",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "term_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`SkillGridResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SkillGridResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "grading.skills.save",
+                "description": "Titulaire ou direction. 409 `wrong_mode`, `year_closed`.",
+                "summary": "Enregistrer les comp\u00e9tences d'une classe",
+                "tags": [
+                    "Grading"
+                ],
+                "parameters": [
+                    {
+                        "name": "classroom",
+                        "in": "path",
+                        "required": true,
+                        "description": "The classroom ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveSkillEvaluationsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`SkillGridResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SkillGridResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/grading/settings": {
+            "get": {
+                "operationId": "grading.settings",
+                "description": "P\u00e9riodes, mati\u00e8res par niveau (cycles en moyenne pond\u00e9r\u00e9e) et comp\u00e9tences (cycles en comp\u00e9tences) de l'ann\u00e9e\n(en cours par d\u00e9faut), cr\u00e9\u00e9es d'apr\u00e8s les listes par d\u00e9faut \u00e0 la premi\u00e8re lecture. 409 `no_current_year`.",
+                "summary": "R\u00e9glages des notes d'un cycle",
+                "tags": [
+                    "GradingSettings"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "academic_year_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`GradingSettingsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/GradingSettingsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/grading/cycles/{cycle}/terms": {
+            "put": {
+                "operationId": "grading.terms",
+                "description": "school.settings.manage sur le cycle. 409 `year_closed`.",
+                "summary": "Enregistrer les p\u00e9riodes d'un cycle",
+                "tags": [
+                    "GradingSettings"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cycle ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveTermsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`GradingSettingsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/GradingSettingsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/grading/levels/{level}/subjects": {
+            "put": {
+                "operationId": "grading.subjects",
+                "description": "school.settings.manage sur le cycle. 409 `year_closed`, `wrong_mode`, `subject_used`.",
+                "summary": "Enregistrer les mati\u00e8res d'un niveau",
+                "tags": [
+                    "GradingSettings"
+                ],
+                "parameters": [
+                    {
+                        "name": "level",
+                        "in": "path",
+                        "required": true,
+                        "description": "The level ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveSubjectsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`GradingSettingsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/GradingSettingsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/grading/cycles/{cycle}/skills": {
+            "put": {
+                "operationId": "grading.skills",
+                "description": "school.settings.manage sur le cycle. 409 `year_closed`, `wrong_mode`, `skill_used`.",
+                "summary": "Enregistrer le r\u00e9f\u00e9rentiel de comp\u00e9tences d'un cycle",
+                "tags": [
+                    "GradingSettings"
+                ],
+                "parameters": [
+                    {
+                        "name": "cycle",
+                        "in": "path",
+                        "required": true,
+                        "description": "The cycle ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveSkillsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`GradingSettingsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/GradingSettingsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "operationId": "health",
@@ -5211,6 +5980,42 @@
                 ],
                 "title": "AddOptionRequest"
             },
+            "AssessmentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "classroom_id": {
+                        "type": "string"
+                    },
+                    "subject_id": {
+                        "type": "string"
+                    },
+                    "term_id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "out_of": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "classroom_id",
+                    "subject_id",
+                    "term_id",
+                    "title",
+                    "date",
+                    "out_of"
+                ],
+                "title": "AssessmentResource"
+            },
             "AssignUserRoleRequest": {
                 "type": "object",
                 "properties": {
@@ -5709,6 +6514,149 @@
                 ],
                 "title": "ChangePasswordRequest"
             },
+            "ClassResultRowResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/GradingStudentResource"
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubjectAverageResource"
+                        }
+                    },
+                    "average": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "rank": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "skills": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "A": {
+                                "type": "integer"
+                            },
+                            "EA": {
+                                "type": "integer"
+                            },
+                            "NA": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "A",
+                            "EA",
+                            "NA"
+                        ]
+                    }
+                },
+                "required": [
+                    "student",
+                    "subjects",
+                    "average",
+                    "rank",
+                    "skills"
+                ],
+                "title": "ClassResultRowResource"
+            },
+            "ClassResultsResource": {
+                "type": "object",
+                "properties": {
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "observation",
+                            "competency",
+                            "weighted_average"
+                        ]
+                    },
+                    "grade_scale": {
+                        "type": "integer"
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TermResource"
+                        }
+                    },
+                    "term": {
+                        "$ref": "#/components/schemas/TermResource"
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubjectResource"
+                        }
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ClassResultRowResource"
+                        }
+                    },
+                    "class_average": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "highest": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "lowest": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "ranked_count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "classroom",
+                    "mode",
+                    "grade_scale",
+                    "terms",
+                    "term",
+                    "subjects",
+                    "rows",
+                    "class_average",
+                    "highest",
+                    "lowest",
+                    "ranked_count"
+                ],
+                "title": "ClassResultsResource"
+            },
             "ClassroomResource": {
                 "type": "object",
                 "properties": {
@@ -6036,6 +6984,13 @@
                                     "optional",
                                     "required"
                                 ]
+                            },
+                            "grade_scale": {
+                                "type": "string",
+                                "enum": [
+                                    "10",
+                                    "20"
+                                ]
                             }
                         },
                         "required": [
@@ -6044,7 +6999,8 @@
                             "attendance_mode",
                             "billing_period",
                             "report_document",
-                            "daily_log"
+                            "daily_log",
+                            "grade_scale"
                         ]
                     },
                     "levels": {
@@ -6832,6 +7788,308 @@
                     }
                 },
                 "title": "GenerateInvoicesRequest"
+            },
+            "GradeCellResource": {
+                "type": "object",
+                "properties": {
+                    "assessment_id": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "absent": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "assessment_id",
+                    "value",
+                    "absent"
+                ],
+                "title": "GradeCellResource"
+            },
+            "GradeGridResource": {
+                "type": "object",
+                "properties": {
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "grade_scale": {
+                        "type": "integer"
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TermResource"
+                        }
+                    },
+                    "term": {
+                        "$ref": "#/components/schemas/TermResource"
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubjectResource"
+                        }
+                    },
+                    "subject": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/SubjectResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "assessments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AssessmentResource"
+                        }
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GradeGridRowResource"
+                        }
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "classroom",
+                    "grade_scale",
+                    "terms",
+                    "term",
+                    "subjects",
+                    "subject",
+                    "assessments",
+                    "rows",
+                    "can_manage"
+                ],
+                "title": "GradeGridResource"
+            },
+            "GradeGridRowResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/GradingStudentResource"
+                    },
+                    "grades": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GradeCellResource"
+                        }
+                    },
+                    "average": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "student",
+                    "grades",
+                    "average"
+                ],
+                "title": "GradeGridRowResource"
+            },
+            "GradingClassroomResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "level_id": {
+                        "type": "string"
+                    },
+                    "cycle": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "code",
+                            "name"
+                        ]
+                    },
+                    "mode": {
+                        "type": "string"
+                    },
+                    "grade_scale": {
+                        "type": "integer"
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    },
+                    "is_homeroom": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "level_id",
+                    "cycle",
+                    "mode",
+                    "grade_scale",
+                    "can_manage",
+                    "is_homeroom"
+                ],
+                "title": "GradingClassroomResource"
+            },
+            "GradingSettingsResource": {
+                "type": "object",
+                "properties": {
+                    "cycle": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "mode": {
+                                "type": "string",
+                                "enum": [
+                                    "observation",
+                                    "competency",
+                                    "weighted_average"
+                                ]
+                            },
+                            "term_type": {
+                                "type": "string",
+                                "enum": [
+                                    "trimester",
+                                    "semester",
+                                    "free_period"
+                                ]
+                            },
+                            "grade_scale": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "mode",
+                            "term_type",
+                            "grade_scale"
+                        ]
+                    },
+                    "academic_year": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "label": {
+                                "type": "string"
+                            },
+                            "closed": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "label",
+                            "closed"
+                        ]
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SettingsTermResource"
+                        }
+                    },
+                    "levels": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SettingsLevelResource"
+                        }
+                    },
+                    "skills": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SettingsSkillResource"
+                        }
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "cycle",
+                    "academic_year",
+                    "terms",
+                    "levels",
+                    "skills",
+                    "can_manage"
+                ],
+                "title": "GradingSettingsResource"
+            },
+            "GradingStudentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "matricule": {
+                        "type": "string"
+                    },
+                    "photo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "full_name",
+                    "first_name",
+                    "matricule",
+                    "photo_url"
+                ],
+                "title": "GradingStudentResource"
             },
             "GuardianLinkResource": {
                 "type": "object",
@@ -8206,6 +9464,52 @@
                 ],
                 "title": "SaveFinancialPolicyRequest"
             },
+            "SaveGradesRequest": {
+                "type": "object",
+                "description": "Notes d'une \u00e9valuation : `grades` (\u00e9l\u00e8ve, `value` au bar\u00e8me avec 2 d\u00e9cimales au plus, ou `absent`; ni l'un ni\nl'autre : note effac\u00e9e), `recorded_at` (saisie hors connexion). Droit de saisie contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "grades": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "student_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "value": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ],
+                                    "minimum": 0,
+                                    "maximum": 100
+                                },
+                                "absent": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "student_id",
+                                "absent"
+                            ]
+                        },
+                        "maxItems": 200,
+                        "uniqueItems": true
+                    },
+                    "recorded_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "grades"
+                ],
+                "title": "SaveGradesRequest"
+            },
             "SaveRollCallRequest": {
                 "type": "object",
                 "description": "Appel d'une classe : `marks` (\u00e9l\u00e8ve, statut present/absent/late, minutes de retard), `reason` (obligatoire pour\ncorriger une journ\u00e9e pass\u00e9e), `roll_call_id` et `recorded_at` (saisie hors connexion). Droits contr\u00f4l\u00e9s par l'Action.",
@@ -8270,6 +9574,198 @@
                     "marks"
                 ],
                 "title": "SaveRollCallRequest"
+            },
+            "SaveSkillEvaluationsRequest": {
+                "type": "object",
+                "description": "Comp\u00e9tences d'une classe pour une p\u00e9riode : `term_id`, `evaluations` (\u00e9l\u00e8ve, comp\u00e9tence, `level` A, EA, NA ou null\npour effacer), `recorded_at` (saisie hors connexion). Droit de saisie contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "term_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "evaluations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "student_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "skill_id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "level": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "enum": [
+                                        "A",
+                                        "EA",
+                                        "NA",
+                                        null
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "student_id",
+                                "skill_id"
+                            ]
+                        },
+                        "maxItems": 2000
+                    },
+                    "recorded_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "term_id",
+                    "evaluations"
+                ],
+                "title": "SaveSkillEvaluationsRequest"
+            },
+            "SaveSkillsRequest": {
+                "type": "object",
+                "description": "R\u00e9f\u00e9rentiel de comp\u00e9tences d'un cycle : `academic_year_id`, `skills` dans l'ordre (`id` d'une comp\u00e9tence\nexistante ou rien, `domain`, `label`). school.settings.manage sur le cycle, contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "academic_year_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "skills": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "format": "uuid"
+                                },
+                                "domain": {
+                                    "type": "string",
+                                    "minLength": 2,
+                                    "maxLength": 80
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "minLength": 2,
+                                    "maxLength": 160
+                                }
+                            },
+                            "required": [
+                                "domain",
+                                "label"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "academic_year_id",
+                    "skills"
+                ],
+                "title": "SaveSkillsRequest"
+            },
+            "SaveSubjectsRequest": {
+                "type": "object",
+                "description": "Mati\u00e8res d'un niveau : `academic_year_id`, `subjects` dans l'ordre (`id` d'une mati\u00e8re existante ou rien,\n`name`, `coefficient` de 1 \u00e0 20). school.settings.manage sur le cycle, contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "academic_year_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "format": "uuid"
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "minLength": 2,
+                                    "maxLength": 80
+                                },
+                                "coefficient": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 20
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "coefficient"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 30,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "academic_year_id",
+                    "subjects"
+                ],
+                "title": "SaveSubjectsRequest"
+            },
+            "SaveTermsRequest": {
+                "type": "object",
+                "description": "P\u00e9riodes d'un cycle : `academic_year_id`, `terms` dans l'ordre (libell\u00e9, d\u00e9but, fin), autant que le veut le type\nde p\u00e9riode du cycle. school.settings.manage sur le cycle, contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "academic_year_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "label": {
+                                    "type": "string",
+                                    "minLength": 2,
+                                    "maxLength": 60
+                                },
+                                "starts_on": {
+                                    "type": "string",
+                                    "format": "date"
+                                },
+                                "ends_on": {
+                                    "type": "string",
+                                    "format": "date"
+                                }
+                            },
+                            "required": [
+                                "label",
+                                "starts_on",
+                                "ends_on"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 6
+                    }
+                },
+                "required": [
+                    "academic_year_id",
+                    "terms"
+                ],
+                "title": "SaveTermsRequest"
             },
             "ScheduleRowResource": {
                 "type": "object",
@@ -8580,6 +10076,117 @@
                 ],
                 "title": "SchoolUserResource"
             },
+            "SettingsLevelResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "subjects": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SettingsSubjectResource"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "subjects"
+                ],
+                "title": "SettingsLevelResource"
+            },
+            "SettingsSkillResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "domain": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "string"
+                    },
+                    "used": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "domain",
+                    "label",
+                    "position",
+                    "used"
+                ],
+                "title": "SettingsSkillResource"
+            },
+            "SettingsSubjectResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "coefficient": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "string"
+                    },
+                    "used": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "coefficient",
+                    "position",
+                    "used"
+                ],
+                "title": "SettingsSubjectResource"
+            },
+            "SettingsTermResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "starts_on": {
+                        "type": "string"
+                    },
+                    "ends_on": {
+                        "type": "string"
+                    },
+                    "used": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "position",
+                    "label",
+                    "starts_on",
+                    "ends_on",
+                    "used"
+                ],
+                "title": "SettingsTermResource"
+            },
             "SiblingResource": {
                 "type": "object",
                 "properties": {
@@ -8606,6 +10213,164 @@
                     "classroom_name"
                 ],
                 "title": "SiblingResource"
+            },
+            "SkillCellResource": {
+                "type": "object",
+                "properties": {
+                    "skill_id": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "skill_id",
+                    "level"
+                ],
+                "title": "SkillCellResource"
+            },
+            "SkillGridResource": {
+                "type": "object",
+                "properties": {
+                    "classroom": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TermResource"
+                        }
+                    },
+                    "term": {
+                        "$ref": "#/components/schemas/TermResource"
+                    },
+                    "skills": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SkillResource"
+                        }
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SkillGridRowResource"
+                        }
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "classroom",
+                    "terms",
+                    "term",
+                    "skills",
+                    "rows",
+                    "can_manage"
+                ],
+                "title": "SkillGridResource"
+            },
+            "SkillGridRowResource": {
+                "type": "object",
+                "properties": {
+                    "student": {
+                        "$ref": "#/components/schemas/GradingStudentResource"
+                    },
+                    "levels": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SkillCellResource"
+                        }
+                    }
+                },
+                "required": [
+                    "student",
+                    "levels"
+                ],
+                "title": "SkillGridRowResource"
+            },
+            "SkillResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "domain": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "domain",
+                    "label",
+                    "position"
+                ],
+                "title": "SkillResource"
+            },
+            "StoreAssessmentRequest": {
+                "type": "object",
+                "description": "Nouvelle \u00e9valuation : `subject_id`, `term_id`, `title`, `date` (dans la p\u00e9riode), `out_of` (bar\u00e8me, 1 \u00e0 100) ;\n`id` facultatif (UUID de l'appareil). Droit de saisie contr\u00f4l\u00e9 par l'Action.",
+                "properties": {
+                    "subject_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "term_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 80
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "out_of": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                    },
+                    "id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "subject_id",
+                    "term_id",
+                    "title",
+                    "date",
+                    "out_of"
+                ],
+                "title": "StoreAssessmentRequest"
             },
             "StoreGuardianRequest": {
                 "type": "object",
@@ -8977,6 +10742,49 @@
                 ],
                 "title": "StudentRowResource"
             },
+            "SubjectAverageResource": {
+                "type": "object",
+                "properties": {
+                    "subject_id": {
+                        "type": "string"
+                    },
+                    "average": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "subject_id",
+                    "average"
+                ],
+                "title": "SubjectAverageResource"
+            },
+            "SubjectResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "coefficient": {
+                        "type": "integer"
+                    },
+                    "position": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "coefficient",
+                    "position"
+                ],
+                "title": "SubjectResource"
+            },
             "SyncRequest": {
                 "type": "object",
                 "description": "File hors connexion : 1 \u00e0 100 op\u00e9rations `{ id (UUID de l'appareil), type, payload }`. Chaque op\u00e9ration est\ncontr\u00f4l\u00e9e comme son \u00e9quivalent en ligne ; une op\u00e9ration d\u00e9j\u00e0 trait\u00e9e renvoie son premier r\u00e9sultat.",
@@ -8995,7 +10803,10 @@
                                     "enum": [
                                         "attendance.roll_call",
                                         "daycare.check",
-                                        "daycare.log"
+                                        "daycare.log",
+                                        "grades.assessment",
+                                        "grades.save",
+                                        "skills.save"
                                     ]
                                 },
                                 "payload": {
@@ -9055,6 +10866,34 @@
                     "replayed"
                 ],
                 "title": "SyncResultResource"
+            },
+            "TermResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "integer"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "starts_on": {
+                        "type": "string"
+                    },
+                    "ends_on": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "position",
+                    "label",
+                    "starts_on",
+                    "ends_on"
+                ],
+                "title": "TermResource"
             },
             "TransferCreditRequest": {
                 "type": "object",
@@ -9208,6 +11047,42 @@
                 ],
                 "title": "UnpaidRowResource"
             },
+            "UpdateAssessmentRequest": {
+                "type": "object",
+                "description": "Modifier une \u00e9valuation : m\u00eames champs qu'\u00e0 la cr\u00e9ation ; bar\u00e8me jamais sous une note d\u00e9j\u00e0 saisie.",
+                "properties": {
+                    "subject_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "term_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 80
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "out_of": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                    }
+                },
+                "required": [
+                    "subject_id",
+                    "term_id",
+                    "title",
+                    "date",
+                    "out_of"
+                ],
+                "title": "UpdateAssessmentRequest"
+            },
             "UpdateCycleRequest": {
                 "type": "object",
                 "properties": {
@@ -9235,6 +11110,9 @@
                                 "type": "string"
                             },
                             "daily_log": {
+                                "type": "string"
+                            },
+                            "grade_scale": {
                                 "type": "string"
                             }
                         }
