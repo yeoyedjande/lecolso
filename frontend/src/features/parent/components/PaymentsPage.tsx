@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronRight, Wallet } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { MoneyAmount } from '@/components/MoneyAmount'
@@ -12,13 +13,16 @@ import { formatDay, formatMoney } from '@/lib/format'
 
 import { useMyChildren } from '../api'
 
+import { MobileMoneyDialog } from './MobileMoneyDialog'
+
 /**
- * Paiements : reste à payer de chaque enfant, accès à son échéancier, ses paiements et ses reçus. Le paiement par
- * Mobile Money arrive au lot 10 (encaissement réel, webhook de l'opérateur).
+ * Paiements : reste à payer de chaque enfant, accès à son échéancier, ses paiements et ses reçus, paiement Mobile Money
+ * (lot 10a ; « bientôt disponible » tant qu'aucun prestataire n'est configuré).
  */
 export function PaymentsPage() {
   const { t } = useTranslation()
   const children = useMyChildren()
+  const [paying, setPaying] = useState<string | null>(null)
 
   return (
     <div className="grid gap-5">
@@ -64,6 +68,20 @@ export function PaymentsPage() {
                         {t('parent.payments.detailsOf', { name: child.student.first_name })}
                       </span>
                     </Link>
+                    {child.remaining !== null && child.remaining > 0 && (
+                      <CardContent className="px-4 pt-0 pb-4">
+                        <Button
+                          variant="accent"
+                          className="w-full"
+                          onClick={() => {
+                            setPaying(child.student.id)
+                          }}
+                        >
+                          <Wallet aria-hidden />
+                          {t('parent.payments.payFor', { name: child.student.first_name })}
+                        </Button>
+                      </CardContent>
+                    )}
                   </Card>
                 </li>
               ))}
@@ -71,15 +89,15 @@ export function PaymentsPage() {
           )
         }
       </QueryState>
-      <Card>
-        <CardContent className="grid gap-3 p-4">
-          <Button size="lg" variant="accent" disabled>
-            <Wallet aria-hidden />
-            {t('parent.payments.pay')}
-          </Button>
-          <p className="text-sm text-muted-foreground">{t('parent.payments.soon')}</p>
-        </CardContent>
-      </Card>
+      {paying !== null && (
+        <MobileMoneyDialog
+          studentId={paying}
+          open
+          onOpenChange={(open) => {
+            if (!open) setPaying(null)
+          }}
+        />
+      )}
     </div>
   )
 }

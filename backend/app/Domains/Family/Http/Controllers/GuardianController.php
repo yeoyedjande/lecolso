@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domains\Family\Http\Controllers;
 
+use App\Domains\Billing\Http\Resources\PaymentIntentResource;
+use App\Domains\Billing\Models\PaymentIntent;
 use App\Domains\Family\Actions\ListGuardianChildren;
+use App\Domains\Family\Actions\PayForChild;
 use App\Domains\Family\Actions\PlanChildAbsence;
 use App\Domains\Family\Actions\ShowGuardianChild;
 use App\Domains\Family\Http\Requests\GuardianChildRequest;
+use App\Domains\Family\Http\Requests\PayForChildRequest;
 use App\Domains\Family\Http\Requests\PlanChildAbsenceRequest;
 use App\Domains\Family\Http\Resources\ChildPlannedAbsenceResource;
 use App\Domains\Family\Http\Resources\ChildResource;
@@ -64,6 +68,35 @@ final class GuardianController
             $message === '' ? null : $message,
             Carbon::now(),
         ));
+    }
+
+    /**
+     * Payer par Mobile Money.
+     *
+     * Montant libre plafonné au reste dû, frais selon l'école ; le parent valide sur son téléphone, puis suit l'état
+     * (`GET guardian/payment-intents/{id}`). 409 `no_invoice`, `nothing_due`, `amount_exceeds`, `payment_pending`,
+     * `gateway_unavailable`. Enfant d'un autre parent : 404.
+     */
+    public function pay(PayForChildRequest $request, Student $student, PayForChild $pay): PaymentIntentResource
+    {
+        return new PaymentIntentResource($pay->handle(
+            $this->user($request),
+            $student->id,
+            $request->integer('amount'),
+            $request->paymentMethod(),
+            $request->phone(),
+            Carbon::now(),
+        ));
+    }
+
+    /**
+     * Suivre un paiement Mobile Money.
+     *
+     * Tant qu'il est en attente, l'état est relu chez le prestataire ; sans réponse après 30 minutes, il expire.
+     */
+    public function payment(Request $request, PaymentIntent $paymentIntent, PayForChild $pay): PaymentIntentResource
+    {
+        return new PaymentIntentResource($pay->show($this->user($request), $paymentIntent, Carbon::now()));
     }
 
     private function user(Request $request): User

@@ -363,8 +363,12 @@ export function useSaveFinancialPolicy() {
   const { key } = useBillingKey()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (departure: FinancialPolicy['departure']): Promise<FinancialPolicy> => {
-      const { data, response } = await api.PUT('/billing/policy', { body: { departure } })
+    mutationFn: async (
+      change:
+        | { departure: FinancialPolicy['departure'] }
+        | { mobile_money: FinancialPolicy['mobile_money'] },
+    ): Promise<FinancialPolicy> => {
+      const { data, response } = await api.PUT('/billing/policy', { body: change })
       if (data === undefined)
         throw new Error(`Enregistrement impossible (${String(response.status)})`)
       return data.data

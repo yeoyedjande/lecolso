@@ -19,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class ChildResource extends JsonResource
 {
     /**
-     * @return array{student: ChildStudentResource, assessment_mode: string, grade_scale: int, terms: AnonymousResourceCollection, term: TermResource|null, subjects: AnonymousResourceCollection, skills: AnonymousResourceCollection, report_cards: AnonymousResourceCollection, absences: AnonymousResourceCollection, balance: ChildBalanceResource|null, payments: AnonymousResourceCollection, planned_absences: AnonymousResourceCollection}
+     * @return array{student: ChildStudentResource, assessment_mode: string, grade_scale: int, terms: AnonymousResourceCollection, term: TermResource|null, subjects: AnonymousResourceCollection, skills: AnonymousResourceCollection, report_cards: AnonymousResourceCollection, absences: AnonymousResourceCollection, balance: ChildBalanceResource|null, payments: AnonymousResourceCollection, planned_absences: AnonymousResourceCollection, mobile_money: array{available: bool, fee_payer: string, fee_rate_bps: int}}
      */
     public function toArray(Request $request): array
     {
@@ -38,6 +38,12 @@ final class ChildResource extends JsonResource
             'balance' => $view->balance === null ? null : new ChildBalanceResource($view->balance),
             'payments' => ChildPaymentResource::collection($view->payments),
             'planned_absences' => ChildPlannedAbsenceResource::collection($view->plannedAbsences),
+            // Paiement Mobile Money : disponible si un prestataire est configuré ; frais pour l'affichage avant paiement
+            'mobile_money' => [
+                'available' => $view->mobileMoneyAvailable === true,
+                'fee_payer' => $view->mobileMoneyFees->payer->value,
+                'fee_rate_bps' => $view->mobileMoneyFees->rateBps,
+            ],
         ];
     }
 }

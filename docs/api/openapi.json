@@ -1400,13 +1400,12 @@
             },
             "put": {
                 "operationId": "billing.policy.update",
-                "description": "Direction de toute l'\u00e9cole (`school.settings.manage`). S'applique aux d\u00e9parts enregistr\u00e9s ensuite.",
+                "description": "Direction de toute l'\u00e9cole (`school.settings.manage`). D\u00e9parts : s'applique aux d\u00e9parts enregistr\u00e9s ensuite ;\nfrais Mobile Money : aux paiements lanc\u00e9s ensuite.",
                 "summary": "Modifier la politique financi\u00e8re",
                 "tags": [
                     "CashDesk"
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -3495,6 +3494,115 @@
                 }
             }
         },
+        "/guardian/children/{student}/payments": {
+            "post": {
+                "operationId": "guardian.payments.store",
+                "description": "Montant libre plafonn\u00e9 au reste d\u00fb, frais selon l'\u00e9cole ; le parent valide sur son t\u00e9l\u00e9phone, puis suit l'\u00e9tat\n(`GET guardian/payment-intents/{id}`). 409 `no_invoice`, `nothing_due`, `amount_exceeds`, `payment_pending`,\n`gateway_unavailable`. Enfant d'un autre parent : 404.",
+                "summary": "Payer par Mobile Money",
+                "tags": [
+                    "Guardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "student",
+                        "in": "path",
+                        "required": true,
+                        "description": "The student ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PayForChildRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`PaymentIntentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PaymentIntentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/guardian/payment-intents/{paymentIntent}": {
+            "get": {
+                "operationId": "guardian.payment-intents.show",
+                "description": "Tant qu'il est en attente, l'\u00e9tat est relu chez le prestataire ; sans r\u00e9ponse apr\u00e8s 30 minutes, il expire.",
+                "summary": "Suivre un paiement Mobile Money",
+                "tags": [
+                    "Guardian"
+                ],
+                "parameters": [
+                    {
+                        "name": "paymentIntent",
+                        "in": "path",
+                        "required": true,
+                        "description": "The payment intent ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PaymentIntentResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PaymentIntentResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "operationId": "health",
@@ -4208,6 +4316,66 @@
                         "$ref": "#/components/responses/AuthorizationException"
                     }
                 }
+            }
+        },
+        "/webhooks/payments/{provider}": {
+            "post": {
+                "operationId": "webhooks.payments",
+                "description": "Hors \u00e9tablissement : signature v\u00e9rifi\u00e9e (401 sinon), \u00e9cole retrouv\u00e9e depuis la demande de paiement (404 si\ninconnue), traitement idempotent (une notification rejou\u00e9e n'a aucun effet).",
+                "summary": "Notification d'un prestataire Mobile Money",
+                "tags": [
+                    "PaymentWebhook"
+                ],
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "received": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "received"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Signature invalide."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
             }
         },
         "/files/person-photos/{file}": {
@@ -8404,6 +8572,30 @@
                         "items": {
                             "$ref": "#/components/schemas/ChildPlannedAbsenceResource"
                         }
+                    },
+                    "mobile_money": {
+                        "type": "object",
+                        "description": "Paiement Mobile Money : disponible si un prestataire est configur\u00e9 ; frais pour l'affichage avant paiement",
+                        "properties": {
+                            "available": {
+                                "type": "boolean"
+                            },
+                            "fee_payer": {
+                                "type": "string",
+                                "enum": [
+                                    "school",
+                                    "guardian"
+                                ]
+                            },
+                            "fee_rate_bps": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "available",
+                            "fee_payer",
+                            "fee_rate_bps"
+                        ]
                     }
                 },
                 "required": [
@@ -8418,7 +8610,8 @@
                     "absences",
                     "balance",
                     "payments",
-                    "planned_absences"
+                    "planned_absences",
+                    "mobile_money"
                 ],
                 "title": "ChildResource"
             },
@@ -10007,6 +10200,15 @@
                 ],
                 "title": "EnrollmentResource"
             },
+            "FeePayer": {
+                "type": "string",
+                "description": "Qui paie les frais Mobile Money : l'\u00e9cole (d\u00e9duits au reversement) ou le parent (ajout\u00e9s au montant d\u00e9bit\u00e9).\n",
+                "enum": [
+                    "school",
+                    "guardian"
+                ],
+                "title": "FeePayer"
+            },
             "FeeTypeResource": {
                 "type": "object",
                 "properties": {
@@ -10048,10 +10250,30 @@
                             "cancel_unstarted",
                             "keep_all"
                         ]
+                    },
+                    "mobile_money": {
+                        "type": "object",
+                        "properties": {
+                            "fee_payer": {
+                                "type": "string",
+                                "enum": [
+                                    "school",
+                                    "guardian"
+                                ]
+                            },
+                            "fee_rate_bps": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "fee_payer",
+                            "fee_rate_bps"
+                        ]
                     }
                 },
                 "required": [
-                    "departure"
+                    "departure",
+                    "mobile_money"
                 ],
                 "title": "FinancialPolicyResource"
             },
@@ -11014,9 +11236,127 @@
                 ],
                 "title": "MessageResource"
             },
+            "PayForChildRequest": {
+                "type": "object",
+                "description": "Payer par Mobile Money : `amount` (FCFA, entier, au plus le reste d\u00fb), `method` (orange_money, mtn_momo,\nmoov_money, wave), `phone` (num\u00e9ro Mobile Money, normalis\u00e9 en E.164). Enfant d'un autre parent : 404.",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 100000000
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "orange_money",
+                            "mtn_momo",
+                            "moov_money",
+                            "wave"
+                        ]
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 30
+                    }
+                },
+                "required": [
+                    "amount",
+                    "method",
+                    "phone"
+                ],
+                "title": "PayForChildRequest"
+            },
+            "PaymentIntentResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "succeeded",
+                            "failed",
+                            "expired"
+                        ]
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "cash",
+                            "orange_money",
+                            "mtn_momo",
+                            "moov_money",
+                            "wave",
+                            "cheque",
+                            "transfer"
+                        ]
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "fee": {
+                        "type": "integer"
+                    },
+                    "charged": {
+                        "type": "integer"
+                    },
+                    "fee_payer": {
+                        "type": "string",
+                        "enum": [
+                            "school",
+                            "guardian"
+                        ]
+                    },
+                    "failure_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "payment_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "receipt_number": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "status",
+                    "method",
+                    "phone",
+                    "amount",
+                    "fee",
+                    "charged",
+                    "fee_payer",
+                    "failure_reason",
+                    "payment_id",
+                    "receipt_number",
+                    "expires_at",
+                    "created_at"
+                ],
+                "title": "PaymentIntentResource"
+            },
             "PaymentMethod": {
                 "type": "string",
-                "description": "Moyen de paiement au guichet. Seules les esp\u00e8ces se comptent dans la caisse ; les autres exigent une r\u00e9f\u00e9rence.\n",
+                "description": "Moyen de paiement (guichet, ou Mobile Money en ligne par le parent). Seules les esp\u00e8ces se comptent dans la caisse ; les autres exigent une r\u00e9f\u00e9rence.\n",
                 "enum": [
                     "cash",
                     "orange_money",
@@ -12364,15 +12704,25 @@
             },
             "SaveFinancialPolicyRequest": {
                 "type": "object",
-                "description": "Politique financi\u00e8re de l'\u00e9cole (direction de toute l'\u00e9cole : school.settings.manage sans cycle).\n`departure` : cancel_unstarted (d\u00e9faut) ou keep_all.",
+                "description": "Politique financi\u00e8re de l'\u00e9cole (direction de toute l'\u00e9cole : school.settings.manage sans cycle).\n`departure` : cancel_unstarted (d\u00e9faut) ou keep_all ; `mobile_money` : `fee_payer` (school, guardian) et `fee_rate_bps`\n(0 \u00e0 1000 : 150 = 1,5 %). Chaque partie est facultative.",
                 "properties": {
                     "departure": {
                         "$ref": "#/components/schemas/DeparturePolicy"
+                    },
+                    "mobile_money": {
+                        "type": "object",
+                        "properties": {
+                            "fee_payer": {
+                                "$ref": "#/components/schemas/FeePayer"
+                            },
+                            "fee_rate_bps": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000
+                            }
+                        }
                     }
                 },
-                "required": [
-                    "departure"
-                ],
                 "title": "SaveFinancialPolicyRequest"
             },
             "SaveGradesRequest": {

@@ -478,7 +478,8 @@ export interface paths {
         get: operations["billing.policy.show"];
         /**
          * Modifier la politique financière
-         * @description Direction de toute l'école (`school.settings.manage`). S'applique aux départs enregistrés ensuite.
+         * @description Direction de toute l'école (`school.settings.manage`). Départs : s'applique aux départs enregistrés ensuite ;
+         *     frais Mobile Money : aux paiements lancés ensuite.
          */
         put: operations["billing.policy.update"];
         post?: never;
@@ -1119,6 +1120,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/guardian/children/{student}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Payer par Mobile Money
+         * @description Montant libre plafonné au reste dû, frais selon l'école ; le parent valide sur son téléphone, puis suit l'état
+         *     (`GET guardian/payment-intents/{id}`). 409 `no_invoice`, `nothing_due`, `amount_exceeds`, `payment_pending`,
+         *     `gateway_unavailable`. Enfant d'un autre parent : 404.
+         */
+        post: operations["guardian.payments.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/guardian/payment-intents/{paymentIntent}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suivre un paiement Mobile Money
+         * @description Tant qu'il est en attente, l'état est relu chez le prestataire ; sans réponse après 30 minutes, il expire.
+         */
+        get: operations["guardian.payment-intents.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1352,6 +1395,27 @@ export interface paths {
          *     `cash_closed`.
          */
         post: operations["payments.cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/payments/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notification d'un prestataire Mobile Money
+         * @description Hors établissement : signature vérifiée (401 sinon), école retrouvée depuis la demande de paiement (404 si
+         *     inconnue), traitement idempotent (une notification rejouée n'a aucun effet).
+         */
+        post: operations["webhooks.payments"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2444,6 +2508,13 @@ export interface components {
             balance: components["schemas"]["ChildBalanceResource"] | null;
             payments: components["schemas"]["ChildPaymentResource"][];
             planned_absences: components["schemas"]["ChildPlannedAbsenceResource"][];
+            /** @description Paiement Mobile Money : disponible si un prestataire est configuré ; frais pour l'affichage avant paiement */
+            mobile_money: {
+                available: boolean;
+                /** @enum {string} */
+                fee_payer: "school" | "guardian";
+                fee_rate_bps: number;
+            };
         };
         /** ChildSkillResource */
         ChildSkillResource: {
@@ -2858,6 +2929,12 @@ export interface components {
                 homeroom_teacher: string | null;
             };
         };
+        /**
+         * FeePayer
+         * @description Qui paie les frais Mobile Money : l'école (déduits au reversement) ou le parent (ajoutés au montant débité).
+         * @enum {string}
+         */
+        FeePayer: "school" | "guardian";
         /** FeeTypeResource */
         FeeTypeResource: {
             id: string;
@@ -2871,6 +2948,11 @@ export interface components {
         FinancialPolicyResource: {
             /** @enum {string} */
             departure: "cancel_unstarted" | "keep_all";
+            mobile_money: {
+                /** @enum {string} */
+                fee_payer: "school" | "guardian";
+                fee_rate_bps: number;
+            };
         };
         /**
          * Gender
@@ -3125,8 +3207,38 @@ export interface components {
             } | null;
         };
         /**
+         * PayForChildRequest
+         * @description Payer par Mobile Money : `amount` (FCFA, entier, au plus le reste dû), `method` (orange_money, mtn_momo,
+         *     moov_money, wave), `phone` (numéro Mobile Money, normalisé en E.164). Enfant d'un autre parent : 404.
+         */
+        PayForChildRequest: {
+            amount: number;
+            /** @enum {string} */
+            method: "orange_money" | "mtn_momo" | "moov_money" | "wave";
+            phone: string;
+        };
+        /** PaymentIntentResource */
+        PaymentIntentResource: {
+            id: string;
+            /** @enum {string} */
+            status: "pending" | "succeeded" | "failed" | "expired";
+            /** @enum {string} */
+            method: "cash" | "orange_money" | "mtn_momo" | "moov_money" | "wave" | "cheque" | "transfer";
+            phone: string;
+            amount: number;
+            fee: number;
+            charged: number;
+            /** @enum {string} */
+            fee_payer: "school" | "guardian";
+            failure_reason: string | null;
+            payment_id: string | null;
+            receipt_number: string | null;
+            expires_at: string;
+            created_at: string;
+        };
+        /**
          * PaymentMethod
-         * @description Moyen de paiement au guichet. Seules les espèces se comptent dans la caisse ; les autres exigent une référence.
+         * @description Moyen de paiement (guichet, ou Mobile Money en ligne par le parent). Seules les espèces se comptent dans la caisse ; les autres exigent une référence.
          * @enum {string}
          */
         PaymentMethod: "cash" | "orange_money" | "mtn_momo" | "moov_money" | "wave" | "cheque" | "transfer";
@@ -3487,10 +3599,15 @@ export interface components {
         /**
          * SaveFinancialPolicyRequest
          * @description Politique financière de l'école (direction de toute l'école : school.settings.manage sans cycle).
-         *     `departure` : cancel_unstarted (défaut) ou keep_all.
+         *     `departure` : cancel_unstarted (défaut) ou keep_all ; `mobile_money` : `fee_payer` (school, guardian) et `fee_rate_bps`
+         *     (0 à 1000 : 150 = 1,5 %). Chaque partie est facultative.
          */
         SaveFinancialPolicyRequest: {
-            departure: components["schemas"]["DeparturePolicy"];
+            departure?: components["schemas"]["DeparturePolicy"];
+            mobile_money?: {
+                fee_payer?: components["schemas"]["FeePayer"];
+                fee_rate_bps?: number;
+            };
         };
         /**
          * SaveGradesRequest
@@ -4984,7 +5101,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["SaveFinancialPolicyRequest"];
             };
@@ -6091,6 +6208,65 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "guardian.payments.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The student ID */
+                student: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayForChildRequest"];
+            };
+        };
+        responses: {
+            /** @description `PaymentIntentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PaymentIntentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "guardian.payment-intents.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The payment intent ID */
+                paymentIntent: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `PaymentIntentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PaymentIntentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -6468,6 +6644,40 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "webhooks.payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        received: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        message: "Signature invalide.";
+                    };
+                };
+            };
         };
     };
     "files.person-photo": {
