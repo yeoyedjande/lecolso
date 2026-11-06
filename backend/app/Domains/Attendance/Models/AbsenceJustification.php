@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $decided_by_name
  * @property Carbon|null $decided_at
  * @property string|null $decision_note
+ * @property string|null $planned_absence_id absence annoncée par le parent, d'où vient la justification
  * @property Carbon $created_at
  * @property-read AttendanceMark $mark
  */
@@ -42,7 +43,7 @@ final class AbsenceJustification extends Model
     /** @var list<string> */
     protected $fillable = [
         'attendance_mark_id', 'reason', 'proof_path', 'source', 'status', 'submitted_by', 'submitted_by_name',
-        'decided_by', 'decided_by_name', 'decided_at', 'decision_note',
+        'decided_by', 'decided_by_name', 'decided_at', 'decision_note', 'planned_absence_id',
     ];
 
     /**

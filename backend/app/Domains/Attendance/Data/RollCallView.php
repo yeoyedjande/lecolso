@@ -6,17 +6,18 @@ namespace App\Domains\Attendance\Data;
 
 use App\Domains\Academic\Models\Classroom;
 use App\Domains\Attendance\Models\AttendanceMark;
+use App\Domains\Attendance\Models\PlannedAbsence;
 use App\Domains\Attendance\Models\RollCall;
 use App\Domains\Students\Models\Student;
 
 /**
  * Appel d'une classe pour un jour : élèves inscrits ce jour-là avec leur statut (présent si aucune marque), appel
- * enregistré ou non, droits (modifier, motif exigé car la journée est passée).
+ * enregistré ou non, absence annoncée par un parent (l'enfant est alors proposé absent tant que l'appel n'est pas fait), droits (modifier, motif exigé car la journée est passée).
  */
 final readonly class RollCallView
 {
     /**
-     * @param  list<array{student: Student, mark: AttendanceMark|null}>  $rows
+     * @param  list<array{student: Student, mark: AttendanceMark|null, planned: PlannedAbsence|null, taken: bool}>  $rows
      */
     public function __construct(
         public Classroom $classroom,

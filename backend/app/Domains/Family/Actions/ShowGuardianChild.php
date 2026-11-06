@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Family\Actions;
 
 use App\Domains\Attendance\Models\AttendanceMark;
+use App\Domains\Attendance\Models\PlannedAbsence;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Support\InvoiceBalance;
@@ -99,6 +100,12 @@ final readonly class ShowGuardianChild
         $invoice = $enrollment === null ? null : Invoice::query()->where('enrollment_id', $enrollment->id)->first();
         $payments = $invoice === null ? new Collection : Payment::query()->where('invoice_id', $invoice->id)->with('cancellation')->orderByDesc('paid_at')->get();
 
+        // Absences annoncées encore à venir ou en cours, et les autres de l'année
+        $planned = PlannedAbsence::query()->where('student_id', $student->id)
+            ->when($enrollment !== null, static fn ($query) => $query->whereDate('ends_on', '>=', $enrollment?->academicYear->starts_on->toDateString()))
+            ->orderByDesc('starts_on')
+            ->get();
+
         return new ChildView(
             $student,
             $enrollment,
@@ -112,6 +119,7 @@ final readonly class ShowGuardianChild
             $marks,
             $invoice === null ? null : InvoiceBalance::of($invoice, $now),
             $payments,
+            $planned,
         );
     }
 }
