@@ -103,7 +103,7 @@ it('isole les paiements et les caisses entre deux écoles', function (): void {
     [$school, $invoice] = billedSchool();
     actingAsRole(Role::Accountant, $school);
     $payment = pay($school, $invoice->id, 5000);
-    $session = inSchool($school, static fn (): string => Payment::query()->findOrFail($payment)->cash_session_id);
+    $session = inSchool($school, static fn (): string => Payment::query()->findOrFail($payment)->cash_session_id ?? throw new LogicException('Caisse attendue.'));
 
     $other = makeSchool(['primary']);
     actingAsRole(Role::Director, $other);

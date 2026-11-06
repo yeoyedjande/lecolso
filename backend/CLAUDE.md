@@ -165,6 +165,18 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   payeur, `MIN_DAYS_BETWEEN` = 7, table `payment_reminders` sans le texte) puis job `Jobs\SendPaymentReminderSms`
   (`TenantAware`, `SmsSender`, texte composé à l'envoi, échec noté sans nouvel essai). `BuildDashboard`
   (`GET billing/dashboard`) : effectifs (`students.view`) et finances (`billing.view`) de l'année en cours par cycle.
+- Mobile Money (lot 10a) : interface `Contracts\PaymentGateway` (`initiate`, `parseWebhook`, `status`) ;
+  `Gateways\FakePaymentGateway` hors production (numéro finissant par 99 refusé, signature HMAC `x-fake-signature`,
+  `services.payments.fake_secret`), `UnconfiguredPaymentGateway` (refus) en production tant qu'aucun prestataire n'est
+  choisi. `payment_intents` (montant crédité, `fee`, `charged`, `fee_payer`, numéro jamais journalisé, état
+  pending/succeeded/failed/expired, expiration 30 min) et `payment_webhook_events` (idempotence). Parent :
+  `POST guardian/children/{student}/payments` (`Family\Actions\PayForChild` → `StartMobilePayment` : plafond du reste
+  dû, une demande en attente par facture) et `GET guardian/payment-intents/{id}` (`RefreshMobilePayment` : interrogation
+  du prestataire, puis expiration). Webhook `POST webhooks/payments/{provider}` (hors établissement, sans session,
+  `HandlePaymentWebhook` : signature, école par `payment_intent_school()` SECURITY DEFINER, `TenantContext::run`).
+  `SettleMobilePayment` → `RecordPayment::online()` : paiement sans caisse (`cash_session_id` nul), reçu `REC-…`,
+  enregistré même si la facture a été réglée entre-temps (trop-perçu). Frais : `FinancialPolicy::mobileMoney()`
+  (`schools.settings.billing_mobile_money`, `GET/PUT billing/policy`).
 - Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` (modifier, encaisser, relancer),
   `billing.discount`, `billing.cancel`, `billing.refund` sur le cycle de la classe (`InvoicePolicy`, `BillingScope`) ;
   caisse : la sienne, toutes avec `billing.manage` sur toute l'école. Payeur suivi par l'événement

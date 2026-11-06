@@ -6,6 +6,7 @@ namespace App\Domains\Family\Data;
 
 use App\Domains\Attendance\Models\AttendanceMark;
 use App\Domains\Attendance\Models\PlannedAbsence;
+use App\Domains\Billing\Data\MobileMoneyFees;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Billing\Support\InvoiceBalance;
 use App\Domains\Grading\Enums\SkillLevel;
@@ -48,5 +49,7 @@ final readonly class ChildView
         public ?InvoiceBalance $balance,
         public Collection $payments,
         public Collection $plannedAbsences,
+        public bool $mobileMoneyAvailable,
+        public MobileMoneyFees $mobileMoneyFees,
     ) {}
 }

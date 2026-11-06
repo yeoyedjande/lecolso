@@ -21,6 +21,11 @@ return [
     |
     */
 
+    // Mobile Money : aucun prestataire réel choisi (lot 10a) ; factice hors production, refus en production
+    'payments' => [
+        'fake_secret' => env('PAYMENTS_FAKE_SECRET', 'fake-webhook-secret'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

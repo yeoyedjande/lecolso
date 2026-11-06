@@ -74,4 +74,38 @@ final readonly class RecordPayment
 
         return $payment;
     }
+
+    /**
+     * Paiement Mobile Money confirmé par le prestataire (aucune caisse). L'argent est déjà reçu : il est enregistré même
+     * si la facture a été réglée entre-temps au guichet (le trop-perçu se rembourse ou se reporte). Une même référence
+     * d'opérateur n'est enregistrée qu'une fois. À appeler dans la transaction qui verrouille la demande de paiement.
+     *
+     * @param  string  $payerId  compte du parent qui a payé (recopié comme auteur)
+     */
+    public function online(Invoice $invoice, int $amount, PaymentMethod $method, string $reference, string $payerId, string $payerName, Carbon $now): Payment
+    {
+        $locked = Invoice::query()->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
+        $existing = Payment::query()->where('method', $method)->where('reference', $reference)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+        $year = (int) substr(CashRegister::businessDate($now), 0, 4);
+        $number = $this->sequence->next('receipt:'.$year);
+
+        $payment = Payment::query()->create([
+            'invoice_id' => $locked->id,
+            'cash_session_id' => null,
+            'receipt_number' => sprintf('REC-%d-%06d', $year, $number),
+            'amount' => $amount,
+            'method' => $method,
+            'reference' => $reference,
+            'payer_name' => $payerName,
+            'cashier_id' => $payerId,
+            'cashier_name' => 'Mobile Money',
+            'paid_at' => $now,
+        ]);
+        DB::afterCommit(static fn () => PaymentReceived::dispatch($payment->school_id, $payment->id));
+
+        return $payment;
+    }
 }

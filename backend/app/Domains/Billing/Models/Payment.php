@@ -20,7 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property string $school_id
  * @property string $invoice_id
- * @property string $cash_session_id
+ * @property string|null $cash_session_id caisse du guichet ; null pour un paiement Mobile Money en ligne
  * @property string $receipt_number
  * @property int $amount
  * @property PaymentMethod $method
@@ -30,7 +30,7 @@ use Illuminate\Support\Carbon;
  * @property string $cashier_name
  * @property Carbon $paid_at
  * @property-read Invoice $invoice
- * @property-read CashSession $cashSession
+ * @property-read CashSession|null $cashSession
  * @property-read PaymentCancellation|null $cancellation
  */
 final class Payment extends Model

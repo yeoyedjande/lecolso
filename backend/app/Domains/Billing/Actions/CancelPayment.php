@@ -31,8 +31,9 @@ final class CancelPayment
                 throw new BusinessConflict('already_cancelled', 'Ce paiement est déjà annulé.');
             }
 
-            $original = CashRegister::lock($payment->cashSession);
-            $session = $original->isClosed() ? CashRegister::openFor($author, $now) : $original;
+            // Paiement en ligne (sans caisse) ou caisse clôturée : l'annulation est comptée dans la caisse de l'auteur
+            $original = $payment->cashSession === null ? null : CashRegister::lock($payment->cashSession);
+            $session = $original === null || $original->isClosed() ? CashRegister::openFor($author, $now) : $original;
 
             PaymentCancellation::query()->create([
                 'payment_id' => $payment->id,

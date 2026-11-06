@@ -6,8 +6,10 @@ namespace App\Domains\Family\Actions;
 
 use App\Domains\Attendance\Models\AttendanceMark;
 use App\Domains\Attendance\Models\PlannedAbsence;
+use App\Domains\Billing\Contracts\PaymentGateway;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\Payment;
+use App\Domains\Billing\Support\FinancialPolicy;
 use App\Domains\Billing\Support\InvoiceBalance;
 use App\Domains\Family\Data\ChildView;
 use App\Domains\Family\Support\GuardianChildren;
@@ -22,6 +24,7 @@ use App\Domains\Grading\Support\GradingCatalog;
 use App\Domains\Grading\Support\GradingResults;
 use App\Domains\Identity\Models\User;
 use App\Support\Cycles\Enums\AssessmentMode;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -39,6 +42,8 @@ final readonly class ShowGuardianChild
         private ClassroomGrading $grading,
         private GradingCatalog $catalog,
         private GradingResults $results,
+        private PaymentGateway $gateway,
+        private TenantContext $context,
     ) {}
 
     public function handle(User $user, string $studentId, ?string $termId, Carbon $now): ChildView
@@ -120,6 +125,8 @@ final readonly class ShowGuardianChild
             $invoice === null ? null : InvoiceBalance::of($invoice, $now),
             $payments,
             $planned,
+            $this->gateway->name() !== 'none',
+            FinancialPolicy::mobileMoney($this->context->school()),
         );
     }
 }

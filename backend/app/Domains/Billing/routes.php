@@ -9,8 +9,15 @@ use App\Domains\Billing\Http\Controllers\CashDeskController;
 use App\Domains\Billing\Http\Controllers\DashboardController;
 use App\Domains\Billing\Http\Controllers\InvoiceController;
 use App\Domains\Billing\Http\Controllers\PaymentController;
+use App\Domains\Billing\Http\Controllers\PaymentWebhookController;
 use App\Domains\Billing\Http\Controllers\UnpaidController;
 use Illuminate\Support\Facades\Route;
+
+// Notifications des prestataires Mobile Money : hors établissement et sans session (l'école vient de la demande)
+Route::post('webhooks/payments/{provider}', PaymentWebhookController::class)
+    ->where('provider', '[a-z0-9_-]{2,30}')
+    ->middleware('throttle:120,1')
+    ->name('webhooks.payments');
 
 // Routes d'un établissement (en-tête X-School-Id)
 Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {

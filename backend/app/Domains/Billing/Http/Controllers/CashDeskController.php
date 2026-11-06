@@ -7,6 +7,7 @@ namespace App\Domains\Billing\Http\Controllers;
 use App\Domains\Billing\Actions\CloseCashSession;
 use App\Domains\Billing\Actions\SaveFinancialPolicy;
 use App\Domains\Billing\Actions\ShowCashDesk;
+use App\Domains\Billing\Data\FinancialPolicyView;
 use App\Domains\Billing\Http\Requests\CashDeskRequest;
 use App\Domains\Billing\Http\Requests\CloseCashSessionRequest;
 use App\Domains\Billing\Http\Requests\SaveFinancialPolicyRequest;
@@ -52,19 +53,22 @@ final class CashDeskController
     /** Politique financière de l'école. */
     public function policy(ShowFinancialPolicyRequest $request, TenantContext $context): FinancialPolicyResource
     {
-        return new FinancialPolicyResource(FinancialPolicy::departure($context->school()));
+        $school = $context->school();
+
+        return new FinancialPolicyResource(new FinancialPolicyView(FinancialPolicy::departure($school), FinancialPolicy::mobileMoney($school)));
     }
 
     /**
      * Modifier la politique financière.
      *
-     * Direction de toute l'école (`school.settings.manage`). S'applique aux départs enregistrés ensuite.
+     * Direction de toute l'école (`school.settings.manage`). Départs : s'applique aux départs enregistrés ensuite ;
+     * frais Mobile Money : aux paiements lancés ensuite.
      */
     public function savePolicy(SaveFinancialPolicyRequest $request, SaveFinancialPolicy $save, TenantContext $context): FinancialPolicyResource
     {
         $school = $context->school() ?? throw new LogicException('Aucune école courante.');
 
-        return new FinancialPolicyResource($save->handle($school, $request->departure()));
+        return new FinancialPolicyResource($save->handle($school, $request->departure(), $request->mobileMoney()));
     }
 
     private function user(Request $request): User
