@@ -1,4 +1,4 @@
-import { Send } from 'lucide-react'
+import { Megaphone, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { useConversations, useStartConversation } from '@/features/messaging/api'
+import { AnnouncementForm } from '@/features/messaging/components/Announcements'
 import { MobileConversations } from '@/features/messaging/components/MobileConversations'
 import { useStudentFile, useStudentList } from '@/features/students/api'
 import { ConflictError } from '@/lib/api/errors'
@@ -174,10 +175,32 @@ function NewMessage() {
 export function TeacherMessages() {
   const { t } = useTranslation()
   const conversations = useConversations()
+  const [announcing, setAnnouncing] = useState(false)
 
   return (
     <div className="grid gap-5">
       <h1 className="font-display text-2xl font-bold">{t('teacher.messages.title')}</h1>
+      <Button
+        variant="outline"
+        className="justify-self-start"
+        onClick={() => {
+          setAnnouncing(!announcing)
+        }}
+      >
+        <Megaphone aria-hidden />
+        {announcing ? t('common.cancel') : t('teacher.messages.announce')}
+      </Button>
+      {announcing && (
+        <Card>
+          <CardContent className="p-4">
+            <AnnouncementForm
+              onPublished={() => {
+                setAnnouncing(false)
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
       <NewMessage />
       <QueryState query={conversations}>
         {(list) => (

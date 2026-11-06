@@ -54,6 +54,9 @@ return [
 
     // Messagerie (comptable : relances ; parent : répondre)
     'messaging.send' => ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],
+    // Publier une annonce pour l'école, un cycle ou une classe de son cycle (06/11/2026 ; l'enseignant publie pour sa
+    // classe avec messaging.send)
+    'messaging.announce' => ['promoter', 'director', 'secretary'],
 
     // Abonnement SaaS de l'école
     'subscription.view' => ['promoter', 'director'],

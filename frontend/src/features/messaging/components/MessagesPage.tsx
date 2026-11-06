@@ -1,4 +1,4 @@
-import { ArrowLeft, Megaphone, Send } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,23 +9,13 @@ import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Field } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { NativeSelect } from '@/components/ui/native-select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
-import { useMe } from '@/features/auth/api'
-import { useClassroomOptions } from '@/features/classes/api'
-import { formatDateTime, formatDay, formatPhone } from '@/lib/format'
-import type { DemoAnnouncement } from '@/lib/demo/types'
-import { toast } from '@/lib/toast'
+import { formatDay, formatPhone } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { useConversations } from '../api'
-import { useAnnounce, useAnnouncements } from '../demoApi'
 
+import { AnnouncementForm, AnnouncementList } from './Announcements'
 import { ConversationThread } from './ConversationThread'
 
 function Conversations() {
@@ -136,175 +126,14 @@ function Conversations() {
 }
 
 function Announcements() {
-  const { t } = useTranslation()
-  const { data: profile } = useMe()
-  const query = useAnnouncements()
-  const announce = useAnnounce()
-  const classes = useClassroomOptions()
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [audience, setAudience] = useState<DemoAnnouncement['audience']>('all')
-  const [sms, setSms] = useState(false)
-
-  const audienceLabel = (value: DemoAnnouncement['audience']): string => {
-    if (value.startsWith('class:')) {
-      const classroom = classes.data?.find((candidate) => `class:${candidate.id}` === value)
-      return t('messaging.classAudience', { name: classroom?.name ?? '' })
-    }
-    return value === 'all' || value === 'daycare' || value === 'kindergarten' || value === 'primary'
-      ? t(`messaging.audiences.${value}`)
-      : value
-  }
-
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <Card>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <Card className="h-fit">
         <CardContent className="pt-6">
-          <form
-            className="grid gap-4"
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (title.trim() === '' || body.trim() === '') return
-              void announce
-                .mutateAsync({
-                  title: title.trim(),
-                  body: body.trim(),
-                  audience,
-                  channels: sms ? ['app', 'sms'] : ['app'],
-                  author: profile?.name ?? '',
-                })
-                .then((created) => {
-                  toast(t('messaging.published', { count: created.reach }), { tone: 'success' })
-                  setTitle('')
-                  setBody('')
-                })
-            }}
-          >
-            <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
-              <Megaphone aria-hidden className="size-5 text-accent-ink" />
-              {t('messaging.new')}
-            </h2>
-            <Field label={t('messaging.announcementTitle')}>
-              {(control) => (
-                <Input
-                  {...control}
-                  required
-                  value={title}
-                  onChange={(event) => {
-                    setTitle(event.target.value)
-                  }}
-                />
-              )}
-            </Field>
-            <Field
-              label={t('messaging.announcementBody')}
-              hint={t('messaging.chars', { count: body.length })}
-            >
-              {(control) => (
-                <Textarea
-                  {...control}
-                  required
-                  rows={4}
-                  value={body}
-                  onChange={(event) => {
-                    setBody(event.target.value)
-                  }}
-                />
-              )}
-            </Field>
-            <Field label={t('messaging.audience')}>
-              {(control) => (
-                <NativeSelect
-                  {...control}
-                  value={audience}
-                  onChange={(event) => {
-                    const value = event.target.value
-                    if (
-                      value === 'all' ||
-                      value === 'daycare' ||
-                      value === 'kindergarten' ||
-                      value === 'primary'
-                    )
-                      setAudience(value)
-                    else if (value.startsWith('class:')) setAudience(`class:${value.slice(6)}`)
-                  }}
-                >
-                  <option value="all">{t('messaging.audiences.all')}</option>
-                  <option value="daycare">{t('messaging.audiences.daycare')}</option>
-                  <option value="kindergarten">{t('messaging.audiences.kindergarten')}</option>
-                  <option value="primary">{t('messaging.audiences.primary')}</option>
-                  {(classes.data ?? []).map((classroom) => (
-                    <option key={classroom.id} value={`class:${classroom.id}`}>
-                      {t('messaging.classAudience', { name: classroom.name })}
-                    </option>
-                  ))}
-                </NativeSelect>
-              )}
-            </Field>
-            <fieldset className="grid gap-2">
-              <legend className="mb-1 text-sm font-medium">{t('messaging.channels')}</legend>
-              <div className="flex items-center gap-2">
-                <Checkbox id="channel-app" checked disabled />
-                <Label htmlFor="channel-app">{t('messaging.channelApp')}</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="channel-sms"
-                  checked={sms}
-                  onCheckedChange={(checked) => {
-                    setSms(checked === true)
-                  }}
-                />
-                <Label htmlFor="channel-sms">{t('messaging.channelSms')}</Label>
-              </div>
-              {sms && <p className="text-xs text-muted-foreground">{t('messaging.smsHint')}</p>}
-            </fieldset>
-            <Button
-              type="submit"
-              variant="accent"
-              disabled={title.trim() === '' || body.trim() === '' || announce.isPending}
-            >
-              <Send aria-hidden />
-              {t('messaging.publish')}
-            </Button>
-          </form>
+          <AnnouncementForm />
         </CardContent>
       </Card>
-      <QueryState query={query}>
-        {(announcements) =>
-          announcements.length === 0 ? (
-            <EmptyState title={t('messaging.noAnnouncement')} />
-          ) : (
-            <ul className="grid content-start gap-3">
-              {announcements.map((announcement) => (
-                <li key={announcement.id}>
-                  <Card>
-                    <CardContent className="grid gap-2 pt-5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="font-semibold">{announcement.title}</h3>
-                        <div className="flex gap-1">
-                          <Badge variant="secondary">{audienceLabel(announcement.audience)}</Badge>
-                          {announcement.channels.includes('sms') && (
-                            <Badge variant="outline">{t('messaging.channelSms')}</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm">{announcement.body}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t('messaging.by', {
-                          author: announcement.author,
-                          date: formatDateTime(announcement.sentAt),
-                        })}{' '}
-                        · {t('messaging.reach', { count: announcement.reach })}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </QueryState>
+      <AnnouncementList />
     </div>
   )
 }

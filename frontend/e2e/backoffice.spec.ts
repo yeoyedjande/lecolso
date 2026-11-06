@@ -301,3 +301,71 @@ test('bulletins : appréciation, mention, validation puis déverrouillage motiv�
   await reopen.getByRole('button', { name: 'Déverrouiller' }).click()
   await expect(page.getByText(/Déverrouillés le .* : Note mal reportée/)).toBeVisible()
 })
+
+test('annonce au primaire : publiée, lue par le parent, invisible pour la maternelle', async ({
+  page,
+}) => {
+  const mock = await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/messages')
+  await page.getByRole('tab', { name: 'Annonces' }).click()
+  await expect(page.getByText('Kermesse de fin de trimestre')).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: 'SMS' })).toBeDisabled()
+
+  await page.getByLabel('Titre').fill('Visite médicale')
+  await page
+    .getByLabel('Message', { exact: true })
+    .fill('Lundi 16 novembre, apportez le carnet de santé.')
+  await page.getByLabel('Destinataires').selectOption({ label: 'Primaire' })
+  await page.getByRole('button', { name: 'Publier l’annonce' }).click()
+  await expect(page.getByText(/Annonce publiée pour \d+ élève/).first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Visite médicale' })).toBeVisible()
+  for (const title of ['Cantine', 'Photos de classe']) {
+    await page.getByLabel('Titre').fill(title)
+    await page.getByLabel('Message', { exact: true }).fill('Information pour les familles.')
+    await page.getByLabel('Destinataires').selectOption({ label: 'Toute l’école' })
+    await page.getByRole('button', { name: 'Publier l’annonce' }).click()
+    await expect(page.getByRole('heading', { name: title })).toBeVisible()
+  }
+
+  mock.switchSession(ACCOUNTS.guardian)
+  await page.goto('/les-lauriers/parent')
+  await expect(page.getByRole('heading', { name: 'Visite médicale' })).toBeVisible()
+  // Accueil : les 3 plus récentes, la plus ancienne sur demande
+  await expect(page.getByRole('heading', { name: 'Kermesse de fin de trimestre' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Voir les 1 autre(s) annonce(s)' }).click()
+  await expect(page.getByRole('heading', { name: 'Kermesse de fin de trimestre' })).toBeVisible()
+
+  await expect(page.getByText('Réunion parents-enseignants')).toBeVisible()
+
+  mock.switchSession(ACCOUNTS.kindergartenDirector)
+  await page.goto('/les-lauriers/messages')
+  await page.getByRole('tab', { name: 'Annonces' }).click()
+  await expect(page.getByText('Kermesse de fin de trimestre')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Visite médicale' })).toHaveCount(0)
+})
+
+test('calendrier : la direction ajoute, modifie et supprime un événement', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/calendrier')
+  // Liste « À venir » (la grille du mois est masquée sur téléphone)
+  await expect(page.getByText('Réunion parents-enseignants').last()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Ajouter un événement' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Intitulé').fill('Journée sportive')
+  await dialog.getByLabel('Début').fill('2026-11-20')
+  await dialog.getByLabel('Fin', { exact: true }).fill('2026-11-20')
+  await dialog.getByLabel('Cycle concerné').selectOption({ label: 'Primaire' })
+  await dialog.getByRole('button', { name: 'Ajouter' }).click()
+  await expect(page.getByText('Événement enregistré').first()).toBeVisible()
+  await expect(page.getByText('Journée sportive').last()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Modifier « Journée sportive »' }).click()
+  await dialog.getByLabel('Intitulé').fill('Journée sportive et culturelle')
+  await dialog.getByRole('button', { name: 'Enregistrer' }).click()
+  await expect(page.getByText('Journée sportive et culturelle').last()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Supprimer « Journée sportive et culturelle »' }).click()
+  await expect(page.getByText('Événement supprimé').first()).toBeVisible()
+  await expect(page.getByText('Journée sportive et culturelle')).toHaveCount(0)
+})

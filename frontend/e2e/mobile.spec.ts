@@ -176,6 +176,20 @@ test('enseignante : réponse à un parent dans le fil de sa classe', async ({ pa
   await expect(page.getByRole('button', { name: /Retard du matin/ })).toHaveCount(0)
 })
 
+test('enseignante : annonce à sa classe depuis les messages', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.teacher })
+  await page.goto('/les-lauriers/enseignant/messages')
+  await page.getByRole('button', { name: 'Annonce à la classe' }).click()
+  await page.getByLabel('Titre').fill('Sortie au musée')
+  await page.getByLabel('Message', { exact: true }).first().fill('Jeudi : prévoir un goûter.')
+  await expect(page.getByLabel('Destinataires')).toContainText('Classe CE1 A')
+  await page.getByRole('button', { name: 'Publier l’annonce' }).click()
+  await expect(page.getByText(/Annonce publiée pour \d+ élève/).first()).toBeVisible()
+
+  await page.goto('/les-lauriers/enseignant')
+  await expect(page.getByRole('heading', { name: 'Sortie au musée' })).toBeVisible()
+})
+
 test('enseignante : appel hors connexion, envoyé au retour du réseau', async ({
   page,
   context,

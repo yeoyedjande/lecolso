@@ -228,6 +228,158 @@
                 }
             }
         },
+        "/announcements": {
+            "get": {
+                "operationId": "announcements.index",
+                "description": "Celles que l'utilisateur lit (toute l'\u00e9cole, ses cycles, ses classes ; parent : celles de ses enfants), la plus\nr\u00e9cente d'abord (100 au plus).",
+                "summary": "Annonces",
+                "tags": [
+                    "Announcement"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `AnnouncementResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AnnouncementResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "announcements.store",
+                "description": "Direction et secr\u00e9tariat (messaging.announce) pour l'\u00e9cole, leur cycle ou une classe de leur cycle ; le titulaire\npour sa classe. Dans l'appli seulement (SMS au lot 10).",
+                "summary": "Publier une annonce",
+                "tags": [
+                    "Announcement"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PublishAnnouncementRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AnnouncementResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AnnouncementResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/announcements/targets": {
+            "get": {
+                "operationId": "announcements.targets",
+                "description": "Toute l'\u00e9cole (affectation sans cycle), cycles et classes que l'utilisateur peut viser.",
+                "summary": "Publics d'annonce possibles",
+                "tags": [
+                    "Announcement"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`AnnouncementTargetsResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AnnouncementTargetsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/announcements/{announcement}": {
+            "delete": {
+                "operationId": "announcements.destroy",
+                "description": "M\u00eame droit que pour la publier. Annonce que l'utilisateur ne lit pas : 404.",
+                "summary": "Retirer une annonce",
+                "tags": [
+                    "Announcement"
+                ],
+                "parameters": [
+                    {
+                        "name": "announcement",
+                        "in": "path",
+                        "required": true,
+                        "description": "The announcement ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/attendance/classrooms": {
             "get": {
                 "operationId": "attendance.classrooms",
@@ -4741,6 +4893,205 @@
                 }
             }
         },
+        "/calendar/events": {
+            "get": {
+                "operationId": "calendar.events.index",
+                "description": "\u00c9v\u00e9nements qui recoupent `from` \u2192 `to` : toute l'\u00e9cole, et ceux des cycles de l'utilisateur (parent : ceux de ses\nenfants), par date de d\u00e9but.",
+                "summary": "Calendrier de l'\u00e9cole",
+                "tags": [
+                    "SchoolEvent"
+                ],
+                "parameters": [
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `SchoolEventResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SchoolEventResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "calendar.events.store",
+                "description": "school.settings.manage sur toute l'\u00e9cole (\u00e9v\u00e9nement de toute l'\u00e9cole) ou sur le cycle vis\u00e9.",
+                "summary": "Ajouter un \u00e9v\u00e9nement",
+                "tags": [
+                    "SchoolEvent"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveSchoolEventRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`SchoolEventResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolEventResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/calendar/events/{event}": {
+            "patch": {
+                "operationId": "calendar.events.update",
+                "summary": "Modifier un \u00e9v\u00e9nement (droit sur son cycle actuel et sur le nouveau)",
+                "tags": [
+                    "SchoolEvent"
+                ],
+                "parameters": [
+                    {
+                        "name": "event",
+                        "in": "path",
+                        "required": true,
+                        "description": "The event ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveSchoolEventRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`SchoolEventResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SchoolEventResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "calendar.events.destroy",
+                "summary": "Supprimer un \u00e9v\u00e9nement",
+                "tags": [
+                    "SchoolEvent"
+                ],
+                "parameters": [
+                    {
+                        "name": "event",
+                        "in": "path",
+                        "required": true,
+                        "description": "The event ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/files/school-logos/{file}": {
             "get": {
                 "operationId": "files.school-logo",
@@ -7005,6 +7356,161 @@
                     "fee_type_id"
                 ],
                 "title": "AddOptionRequest"
+            },
+            "AnnouncementAudience": {
+                "type": "string",
+                "description": "Public d'une annonce : toute l'\u00e9cole, un cycle, ou une classe.\n",
+                "enum": [
+                    "school",
+                    "cycle",
+                    "classroom"
+                ],
+                "title": "AnnouncementAudience"
+            },
+            "AnnouncementResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "audience": {
+                        "type": "string",
+                        "enum": [
+                            "school",
+                            "cycle",
+                            "classroom"
+                        ]
+                    },
+                    "cycle": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "code",
+                            "name"
+                        ]
+                    },
+                    "classroom": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name"
+                        ]
+                    },
+                    "author_name": {
+                        "type": "string"
+                    },
+                    "published_at": {
+                        "type": "string"
+                    },
+                    "reach": {
+                        "type": "integer"
+                    },
+                    "can_delete": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "body",
+                    "audience",
+                    "cycle",
+                    "classroom",
+                    "author_name",
+                    "published_at",
+                    "reach",
+                    "can_delete"
+                ],
+                "title": "AnnouncementResource"
+            },
+            "AnnouncementTargetsResource": {
+                "type": "object",
+                "properties": {
+                    "school": {
+                        "type": "boolean"
+                    },
+                    "cycles": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "code": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "code",
+                                "name"
+                            ]
+                        }
+                    },
+                    "classrooms": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "cycle_id": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "name",
+                                "cycle_id"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "school",
+                    "cycles",
+                    "classrooms"
+                ],
+                "title": "AnnouncementTargetsResource"
             },
             "AssessmentResource": {
                 "type": "object",
@@ -10884,6 +11390,44 @@
                 ],
                 "title": "PublicSchoolResource"
             },
+            "PublishAnnouncementRequest": {
+                "type": "object",
+                "description": "Publier une annonce : `title` (120 caract\u00e8res), `body` (2000), `audience` (school, cycle, classroom) et selon le\npublic `cycle_id` ou `classroom_id`. Les droits sont v\u00e9rifi\u00e9s par l'Action (publics de l'utilisateur).",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "body": {
+                        "type": "string",
+                        "maxLength": 2000
+                    },
+                    "audience": {
+                        "$ref": "#/components/schemas/AnnouncementAudience"
+                    },
+                    "cycle_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "classroom_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "title",
+                    "body",
+                    "audience"
+                ],
+                "title": "PublishAnnouncementRequest"
+            },
             "ReceiptResource": {
                 "type": "object",
                 "properties": {
@@ -11975,6 +12519,49 @@
                 ],
                 "title": "SaveRollCallRequest"
             },
+            "SaveSchoolEventRequest": {
+                "type": "object",
+                "description": "\u00c9v\u00e9nement du calendrier : `title` (120), `kind`, `starts_on`, `ends_on` (\u2265 d\u00e9but, 366 jours au plus), `cycle_id`\n(null : toute l'\u00e9cole), `location` (120). Droits v\u00e9rifi\u00e9s par le contr\u00f4leur (CalendarAccess).",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/SchoolEventKind"
+                    },
+                    "starts_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "ends_on": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "cycle_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "location": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    }
+                },
+                "required": [
+                    "title",
+                    "kind",
+                    "starts_on",
+                    "ends_on"
+                ],
+                "title": "SaveSchoolEventRequest"
+            },
             "SaveSkillEvaluationsRequest": {
                 "type": "object",
                 "description": "Comp\u00e9tences d'une classe pour une p\u00e9riode : `term_id`, `evaluations` (\u00e9l\u00e8ve, comp\u00e9tence, `level` A, EA, NA ou null\npour effacer), `recorded_at` (saisie hors connexion). Droit de saisie contr\u00f4l\u00e9 par l'Action.",
@@ -12190,6 +12777,87 @@
                     "invoices"
                 ],
                 "title": "ScheduleRowResource"
+            },
+            "SchoolEventKind": {
+                "type": "string",
+                "description": "Type d'un \u00e9v\u00e9nement du calendrier de l'\u00e9cole.\n",
+                "enum": [
+                    "holiday",
+                    "exam",
+                    "meeting",
+                    "event",
+                    "training"
+                ],
+                "title": "SchoolEventKind"
+            },
+            "SchoolEventResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "holiday",
+                            "exam",
+                            "meeting",
+                            "event",
+                            "training"
+                        ]
+                    },
+                    "starts_on": {
+                        "type": "string"
+                    },
+                    "ends_on": {
+                        "type": "string"
+                    },
+                    "cycle": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "code",
+                            "name"
+                        ]
+                    },
+                    "location": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "can_manage": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "kind",
+                    "starts_on",
+                    "ends_on",
+                    "cycle",
+                    "location",
+                    "can_manage"
+                ],
+                "title": "SchoolEventResource"
             },
             "SchoolMembershipResource": {
                 "type": "object",

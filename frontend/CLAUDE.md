@@ -83,7 +83,7 @@ src/
 ## Données de démonstration (modules sans backend)
 
 - Générateur déterministe dans `lib/demo/` (`dataset.ts` : élèves, tuteurs, frais, échéances, paiements, notes,
-  compétences, présences, garderie, messages, calendrier ; année 2026-2027) et magasin en mémoire par établissement
+  compétences, présences, garderie ; année 2026-2027) et magasin en mémoire par établissement
   (`store.ts`, perdu au rechargement). Calculs métier purs et testés dans `features/<domaine>/demo/`
   (soldes, impayés, moyennes pondérées, rangs, appel…).
 - Les écrans n'appellent que les hooks de `features/<domaine>/api.ts`, construits sur `useDemoQuery` / `useDemoMutation`
@@ -127,7 +127,12 @@ src/
   **Absences annoncées** : le parent prévient d'une absence à venir (`/{slug}/parent/prevenir`, `usePlanAbsence`),
   la fiche de l'enfant les liste (onglet Absences) ; l'appel affiche « Absence annoncée » (`planned` de la ligne) ;
   la direction décide dans Présences › Absents du jour (`usePlannedAbsences`, `useDecidePlannedAbsence`).
-  Les annonces restent en démonstration jusqu'au lot 9b (`features/messaging/demoApi.ts`).
+  **Annonces** (`useAnnouncements`, `useAnnouncementTargets` — publics permis —, `usePublishAnnouncement`,
+  `useDeleteAnnouncement`) : `AnnouncementForm` et `AnnouncementList` (`features/messaging/components/Announcements.tsx`)
+  dans l'onglet Annonces du back-office, les messages de l'enseignant (« Annonce à la classe ») et les accueils
+  parent et enseignant ; SMS affiché mais désactivé jusqu'au lot 10.
+  **Calendrier** (`features/calendar/api.ts` : `useEvents(from, to)`, `useSaveEvent`, `useDeleteEvent`) : écran
+  Calendrier (ajout, modification et suppression si `can_manage`), `UpcomingEvents` sur les accueils mobiles.
   **Notes et compétences** (`features/grades/api.ts` : `useGradingClassrooms`, `useGradeGrid`, `useCreateAssessment`,
   `useUpdateAssessment`, `useDeleteAssessment`, `useSaveGrades`, `useClassResults`, `useSkillGrid`, `useSaveSkills`,
   réglages `useGradingSettings`, `useSaveTerms`, `useSaveSubjects`, `useSaveSkillCatalog`) : écrans Notes

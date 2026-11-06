@@ -1206,11 +1206,10 @@
     "channels": "Canaux",
     "channelApp": "Application",
     "channelSms": "SMS",
-    "smsHint": "Un SMS coûte un crédit par famille. Message court conseillé (160 caractères).",
     "chars": "{{count}} caractère(s)",
     "publish": "Publier l’annonce",
-    "published": "Annonce envoyée à {{count}} famille(s)",
-    "reach": "{{count}} famille(s)",
+    "published": "Annonce publiée pour {{count}} élève(s)",
+    "reach": "{{count}} élève(s)",
     "by": "Par {{author}}, le {{date}}",
     "noAnnouncement": "Aucune annonce publiée.",
     "channel": {
@@ -1229,7 +1228,11 @@
         "accepted": "acceptée",
         "refused": "refusée"
       }
-    }
+    },
+    "smsSoon": "L’envoi par SMS sera disponible avec le fournisseur de SMS. Pour l’instant, l’annonce apparaît dans l’application.",
+    "remove": "Retirer l’annonce « {{title}} »",
+    "removed": "Annonce retirée",
+    "showAll": "Voir les {{count}} autre(s) annonce(s)"
   },
   "calendar": {
     "title": "Calendrier",
@@ -1255,8 +1258,13 @@
     "upcoming": "À venir ce mois-ci",
     "none": "Aucun événement ce mois-ci.",
     "more": "+{{count}}",
-    "added": "Événement ajouté",
-    "endBeforeStart": "La fin doit suivre le début."
+    "added": "Événement enregistré",
+    "endBeforeStart": "La fin doit suivre le début.",
+    "edit": "Modifier l’événement",
+    "editEvent": "Modifier « {{title}} »",
+    "deleteEvent": "Supprimer « {{title}} »",
+    "deleted": "Événement supprimé",
+    "upcomingShort": "À venir"
   },
   "settings": {
     "title": "Paramètres de l’école",
@@ -1404,7 +1412,9 @@
         "absent": "Absent(e)",
         "late": "En retard",
         "unknown": "Appel pas encore fait"
-      }
+      },
+      "announcements": "Annonces de l’école",
+      "noAnnouncement": "Aucune annonce pour l’instant."
     },
     "child": {
       "back": "Retour",
@@ -1517,7 +1527,8 @@
       "messages": "Écrire aux parents",
       "skills": "Compétences",
       "daycare": "Garderie",
-      "appreciations": "Appréciations"
+      "appreciations": "Appréciations",
+      "announcements": "Annonces de l’école"
     },
     "rollCall": {
       "title": "Appel",
@@ -1548,7 +1559,8 @@
       "sent": "Message envoyé à {{name}}",
       "empty": "Aucun échange avec les parents pour l’instant.",
       "to": "À {{name}}",
-      "guardian": "Parent"
+      "guardian": "Parent",
+      "announce": "Annonce à la classe"
     },
     "skills": {
       "title": "Compétences",
@@ -1712,7 +1724,8 @@
     "billing.discount": "Accorder des remises sur les factures",
     "billing.cancel": "Annuler un paiement encaissé (avec motif)",
     "billing.refund": "Rembourser ou reporter un trop-perçu",
-    "attendance.correct": "Corriger un appel après sa journée (avec motif)"
+    "attendance.correct": "Corriger un appel après sa journée (avec motif)",
+    "messaging.announce": "Publier des annonces"
   },
   "permissionGroups": {
     "school": "Établissement",
