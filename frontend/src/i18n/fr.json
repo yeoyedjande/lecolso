@@ -1712,7 +1712,8 @@
     "billing.discount": "Accorder des remises sur les factures",
     "billing.cancel": "Annuler un paiement encaissé (avec motif)",
     "billing.refund": "Rembourser ou reporter un trop-perçu",
-    "attendance.correct": "Corriger un appel après sa journée (avec motif)"
+    "attendance.correct": "Corriger un appel après sa journée (avec motif)",
+    "messaging.announce": "Publier des annonces"
   },
   "permissionGroups": {
     "school": "Établissement",

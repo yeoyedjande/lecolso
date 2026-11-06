@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domains\Messaging\Listeners\FollowStudentClass;
+use App\Domains\Messaging\Models\Announcement;
 use App\Domains\Messaging\Models\Conversation;
 use App\Domains\Students\Events\StudentChangedClass;
 use Illuminate\Support\Facades\Event;
@@ -17,6 +18,7 @@ final class MessagingServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Route::model('conversation', Conversation::class);
+        Route::model('announcement', Announcement::class);
         Event::listen(StudentChangedClass::class, FollowStudentClass::class);
     }
 }

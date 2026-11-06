@@ -68,6 +68,72 @@ export interface paths {
         patch: operations["academic-years.update"];
         trace?: never;
     };
+    "/announcements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Annonces
+         * @description Celles que l'utilisateur lit (toute l'école, ses cycles, ses classes ; parent : celles de ses enfants), la plus
+         *     récente d'abord (100 au plus).
+         */
+        get: operations["announcements.index"];
+        put?: never;
+        /**
+         * Publier une annonce
+         * @description Direction et secrétariat (messaging.announce) pour l'école, leur cycle ou une classe de leur cycle ; le titulaire
+         *     pour sa classe. Dans l'appli seulement (SMS au lot 10).
+         */
+        post: operations["announcements.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/announcements/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Publics d'annonce possibles
+         * @description Toute l'école (affectation sans cycle), cycles et classes que l'utilisateur peut viser.
+         */
+        get: operations["announcements.targets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/announcements/{announcement}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer une annonce
+         * @description Même droit que pour la publier. Annonce que l'utilisateur ne lit pas : 404.
+         */
+        delete: operations["announcements.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/attendance/classrooms": {
         parameters: {
             query?: never;
@@ -1519,6 +1585,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calendar/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calendrier de l'école
+         * @description Événements qui recoupent `from` → `to` : toute l'école, et ceux des cycles de l'utilisateur (parent : ceux de ses
+         *     enfants), par date de début.
+         */
+        get: operations["calendar.events.index"];
+        put?: never;
+        /**
+         * Ajouter un événement
+         * @description school.settings.manage sur toute l'école (événement de toute l'école) ou sur le cycle visé.
+         */
+        post: operations["calendar.events.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendar/events/{event}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Supprimer un événement */
+        delete: operations["calendar.events.destroy"];
+        options?: never;
+        head?: never;
+        /** Modifier un événement (droit sur son cycle actuel et sur le nouveau) */
+        patch: operations["calendar.events.update"];
+        trace?: never;
+    };
     "/files/school-logos/{file}": {
         parameters: {
             query?: never;
@@ -2069,6 +2178,47 @@ export interface components {
         AddOptionRequest: {
             /** Format: uuid */
             fee_type_id: string;
+        };
+        /**
+         * AnnouncementAudience
+         * @description Public d'une annonce : toute l'école, un cycle, ou une classe.
+         * @enum {string}
+         */
+        AnnouncementAudience: "school" | "cycle" | "classroom";
+        /** AnnouncementResource */
+        AnnouncementResource: {
+            id: string;
+            title: string;
+            body: string;
+            /** @enum {string} */
+            audience: "school" | "cycle" | "classroom";
+            cycle: {
+                id: string;
+                code: string;
+                name: string;
+            } | null;
+            classroom: {
+                id: string;
+                name: string;
+            } | null;
+            author_name: string;
+            published_at: string;
+            reach: number;
+            can_delete: boolean;
+        };
+        /** AnnouncementTargetsResource */
+        AnnouncementTargetsResource: {
+            school: boolean;
+            cycles: {
+                id: string;
+                code: string;
+                name: string;
+            }[];
+            classrooms: {
+                id: string;
+                name: string;
+                cycle_id: string;
+            }[];
         };
         /** AssessmentResource */
         AssessmentResource: {
@@ -3072,6 +3222,20 @@ export interface components {
                 levels: string[];
             }[];
         };
+        /**
+         * PublishAnnouncementRequest
+         * @description Publier une annonce : `title` (120 caractères), `body` (2000), `audience` (school, cycle, classroom) et selon le
+         *     public `cycle_id` ou `classroom_id`. Les droits sont vérifiés par l'Action (publics de l'utilisateur).
+         */
+        PublishAnnouncementRequest: {
+            title: string;
+            body: string;
+            audience: components["schemas"]["AnnouncementAudience"];
+            /** Format: uuid */
+            cycle_id?: string | null;
+            /** Format: uuid */
+            classroom_id?: string | null;
+        };
         /** ReceiptResource */
         ReceiptResource: {
             payment: components["schemas"]["PaymentResource"];
@@ -3374,6 +3538,22 @@ export interface components {
             recorded_at?: string | null;
         };
         /**
+         * SaveSchoolEventRequest
+         * @description Événement du calendrier : `title` (120), `kind`, `starts_on`, `ends_on` (≥ début, 366 jours au plus), `cycle_id`
+         *     (null : toute l'école), `location` (120). Droits vérifiés par le contrôleur (CalendarAccess).
+         */
+        SaveSchoolEventRequest: {
+            title: string;
+            kind: components["schemas"]["SchoolEventKind"];
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string;
+            /** Format: uuid */
+            cycle_id?: string | null;
+            location?: string | null;
+        };
+        /**
          * SaveSkillEvaluationsRequest
          * @description Compétences d'une classe pour une période : `term_id`, `evaluations` (élève, compétence, `level` A, EA, NA ou null
          *     pour effacer), `recorded_at` (saisie hors connexion). Droit de saisie contrôlé par l'Action.
@@ -3444,6 +3624,28 @@ export interface components {
             label: string;
             expected: number;
             invoices: number;
+        };
+        /**
+         * SchoolEventKind
+         * @description Type d'un événement du calendrier de l'école.
+         * @enum {string}
+         */
+        SchoolEventKind: "holiday" | "exam" | "meeting" | "event" | "training";
+        /** SchoolEventResource */
+        SchoolEventResource: {
+            id: string;
+            title: string;
+            /** @enum {string} */
+            kind: "holiday" | "exam" | "meeting" | "event" | "training";
+            starts_on: string;
+            ends_on: string;
+            cycle: {
+                id: string;
+                code: string;
+                name: string;
+            } | null;
+            location: string | null;
+            can_manage: boolean;
         };
         /** SchoolMembershipResource */
         SchoolMembershipResource: {
@@ -4116,6 +4318,105 @@ export interface operations {
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "announcements.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `AnnouncementResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AnnouncementResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "announcements.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishAnnouncementRequest"];
+            };
+        };
+        responses: {
+            /** @description `AnnouncementResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AnnouncementResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "announcements.targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `AnnouncementTargetsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AnnouncementTargetsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "announcements.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The announcement ID */
+                announcement: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
         };
     };
     "attendance.classrooms": {
@@ -6496,6 +6797,118 @@ export interface operations {
                     "application/json": {
                         /** @constant */
                         provisional_password: "";
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "calendar.events.index": {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `SchoolEventResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolEventResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "calendar.events.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSchoolEventRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolEventResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolEventResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "calendar.events.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The event ID */
+                event: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+        };
+    };
+    "calendar.events.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The event ID */
+                event: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSchoolEventRequest"];
+            };
+        };
+        responses: {
+            /** @description `SchoolEventResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SchoolEventResource"];
                     };
                 };
             };

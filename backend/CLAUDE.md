@@ -250,7 +250,19 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   transaction. `Support\PlannedAbsences` : l'appel propose l'enfant absent (`planned` sur la ligne) et `SaveRollCall`
   rattache la justification (`absence_justifications.planned_absence_id`, même statut) ; `DecidePlannedAbsence`
   (`POST attendance/planned-absences/{id}/decision`, `attendance.manage`) décide aussi les justifications en attente.
-  Classe d'un élève un jour donné : `Students\Support\CurrentClassroom`.
+  Classe d'un élève un jour donné : `Students\Support\CurrentClassroom`. Changement de classe :
+  `Students\Events\StudentChangedClass` → `Messaging\Listeners\FollowStudentClass` (les fils suivent la classe).
+- Annonces (lot 9b) : `announcements` (public `school`, `cycle` ou `classroom`, `cycle_id` renseigné aussi pour une
+  classe, `reach` : élèves concernés à la publication). Publier ou retirer (`Support\AnnouncementAccess`) :
+  `messaging.announce` (personnel, hors Parent et Enseignant) sur toute l'école, le cycle ou le cycle de la classe ;
+  le titulaire pour sa classe (`messaging.send`). Publics possibles : `GET announcements/targets`. Dans l'appli
+  seulement : le SMS viendra avec le fournisseur (lot 10).
+- Qui lit annonces et calendrier : `Support\AudienceScope` — personnel de toute l'école (tout), personnel d'un cycle
+  (son cycle et ses classes), enseignant (cycle de son affectation, classes dont il est titulaire), parent (cycle et
+  classe de chaque enfant). Hors de portée : 404.
+- Calendrier (domaine Academic) : `school_events` (type, dates, `cycle_id` nul = toute l'école, lieu) ;
+  `GET calendar/events?from&to` (400 jours au plus), écriture par `school.settings.manage` sur toute l'école ou le
+  cycle de l'événement (`Academic\Support\CalendarAccess`).
 
 ## Fichiers
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 // Routes du domaine Messaging, chargées sous /api/v1 par App\Support\Routing\DomainRoutes.
 
+use App\Domains\Messaging\Http\Controllers\AnnouncementController;
 use App\Domains\Messaging\Http\Controllers\ConversationController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,4 +16,9 @@ Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::get('conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
     Route::post('conversations/{conversation}/messages', [ConversationController::class, 'reply'])->name('conversations.reply');
     Route::post('conversations/{conversation}/read', [ConversationController::class, 'read'])->name('conversations.read');
+
+    Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('announcements/targets', [AnnouncementController::class, 'targets'])->name('announcements.targets');
+    Route::post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+    Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 });
