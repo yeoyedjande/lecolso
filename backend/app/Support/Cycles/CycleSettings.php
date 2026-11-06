@@ -8,6 +8,7 @@ use App\Support\Cycles\Enums\AssessmentMode;
 use App\Support\Cycles\Enums\AttendanceMode;
 use App\Support\Cycles\Enums\BillingPeriod;
 use App\Support\Cycles\Enums\DailyLogMode;
+use App\Support\Cycles\Enums\GradeScale;
 use App\Support\Cycles\Enums\ReportDocument;
 use App\Support\Cycles\Enums\TermType;
 use BackedEnum;
@@ -30,6 +31,7 @@ final readonly class CycleSettings implements Castable
         'billing_period',
         'report_document',
         'daily_log',
+        'grade_scale',
     ];
 
     public function __construct(
@@ -39,6 +41,7 @@ final readonly class CycleSettings implements Castable
         public BillingPeriod $billingPeriod,
         public ReportDocument $reportDocument,
         public DailyLogMode $dailyLog,
+        public GradeScale $gradeScale = GradeScale::Ten,
     ) {}
 
     /**
@@ -60,11 +63,13 @@ final readonly class CycleSettings implements Castable
             billingPeriod: self::enum($settings, 'billing_period', BillingPeriod::class),
             reportDocument: self::enum($settings, 'report_document', ReportDocument::class),
             dailyLog: self::enum($settings, 'daily_log', DailyLogMode::class),
+            // Ajouté au lot 7 : facultatif, sur 10 par défaut (cycles existants)
+            gradeScale: array_key_exists('grade_scale', $settings) ? self::enum($settings, 'grade_scale', GradeScale::class) : GradeScale::Ten,
         );
     }
 
     /**
-     * @return array{term_type: string, assessment_mode: string, attendance_mode: string, billing_period: string, report_document: string, daily_log: string}
+     * @return array{term_type: string, assessment_mode: string, attendance_mode: string, billing_period: string, report_document: string, daily_log: string, grade_scale: string}
      */
     public function toArray(): array
     {
@@ -75,6 +80,7 @@ final readonly class CycleSettings implements Castable
             'billing_period' => $this->billingPeriod->value,
             'report_document' => $this->reportDocument->value,
             'daily_log' => $this->dailyLog->value,
+            'grade_scale' => $this->gradeScale->value,
         ];
     }
 

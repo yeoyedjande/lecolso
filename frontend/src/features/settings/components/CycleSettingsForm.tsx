@@ -18,6 +18,7 @@ const OPTIONS: { [K in keyof CycleSettings]: readonly CycleSettings[K][] } = {
   billing_period: ['monthly', 'quarterly', 'yearly'],
   report_document: ['none', 'skills_booklet', 'report_card'],
   daily_log: ['none', 'optional', 'required'],
+  grade_scale: ['10', '20'],
 }
 
 /** Paramètres d'un cycle (vraie API PATCH /cycles/{cycle}) ; lecture seule sans le droit de gestion sur ce cycle. */
@@ -73,6 +74,13 @@ export function CycleSettingsForm({ cycle, editable }: { cycle: Cycle; editable:
         none: t('settings.cycles.dailyLogs.none'),
         optional: t('settings.cycles.dailyLogs.optional'),
         required: t('settings.cycles.dailyLogs.required'),
+      },
+    ],
+    grade_scale: [
+      t('settings.cycles.gradeScale'),
+      {
+        '10': t('settings.cycles.gradeScales.10'),
+        '20': t('settings.cycles.gradeScales.20'),
       },
     ],
   }
@@ -157,6 +165,7 @@ export function CycleSettingsForm({ cycle, editable }: { cycle: Cycle; editable:
           {select('billing_period', withValue('billing_period', OPTIONS.billing_period))}
           {select('report_document', withValue('report_document', OPTIONS.report_document))}
           {select('daily_log', withValue('daily_log', OPTIONS.daily_log))}
+          {select('grade_scale', withValue('grade_scale', OPTIONS.grade_scale))}
           <div className="flex items-end justify-end md:col-span-2 xl:col-span-3">
             {editable ? (
               <Button type="submit" disabled={update.isPending || name.trim() === ''}>

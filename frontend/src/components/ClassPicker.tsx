@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
 import { NativeSelect } from '@/components/ui/native-select'
-import type { DemoClassroom } from '@/lib/demo/types'
 
 /** Sélecteur de classe (et de période) commun aux écrans pédagogiques. */
 export function ClassPicker({
@@ -10,7 +9,7 @@ export function ClassPicker({
   onChange,
   label,
 }: {
-  classrooms: readonly DemoClassroom[]
+  classrooms: readonly { id: string; name: string }[]
   value: string
   onChange: (id: string) => void
   label?: string
@@ -56,6 +55,34 @@ export function TermPicker({
       {Array.from({ length: count }, (_, index) => (
         <option key={index} value={String(index + 1)}>
           {t('grades.termLabel', { type: t(`grades.termTypes.${type}`), number: index + 1 })}
+        </option>
+      ))}
+    </NativeSelect>
+  )
+}
+
+/** Période réelle d'une classe (trimestre, semestre ou période libre renvoyés par l'API). */
+export function TermSelect({
+  terms,
+  value,
+  onChange,
+}: {
+  terms: readonly { id: string; label: string }[]
+  value: string
+  onChange: (termId: string) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <NativeSelect
+      aria-label={t('grades.term')}
+      value={value}
+      onChange={(event) => {
+        onChange(event.target.value)
+      }}
+    >
+      {terms.map((term) => (
+        <option key={term.id} value={term.id}>
+          {term.label}
         </option>
       ))}
     </NativeSelect>

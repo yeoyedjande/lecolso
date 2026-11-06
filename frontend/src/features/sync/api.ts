@@ -11,7 +11,14 @@ import { toast } from '@/lib/toast'
 export type SyncResult = components['schemas']['SyncResultResource']
 type SyncType = components['schemas']['SyncRequest']['operations'][number]['type']
 
-const TYPES: readonly SyncType[] = ['attendance.roll_call', 'daycare.check', 'daycare.log']
+const TYPES: readonly SyncType[] = [
+  'attendance.roll_call',
+  'daycare.check',
+  'daycare.log',
+  'grades.assessment',
+  'grades.save',
+  'skills.save',
+]
 
 const BATCH = 100
 

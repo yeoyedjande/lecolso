@@ -116,6 +116,13 @@ src/
   `features/sync` (`flushOutbox`, `<OutboxSync>` dans le back-office), compteur dans `<OfflineBanner>`.
   L'espace enseignant garde l'appel et le journal de démonstration (`demoApi.ts`, `DemoRollCallPanel`,
   `DemoDaycarePage`) jusqu'au lot 8.
+  **Notes et compétences** (`features/grades/api.ts` : `useGradingClassrooms`, `useGradeGrid`, `useCreateAssessment`,
+  `useUpdateAssessment`, `useDeleteAssessment`, `useSaveGrades`, `useClassResults`, `useSkillGrid`, `useSaveSkills`,
+  réglages `useGradingSettings`, `useSaveTerms`, `useSaveSubjects`, `useSaveSkillCatalog`) : écrans Notes
+  (`GradeGridEditor` : « abs » pour une absence, moyenne ramenée sur l'échelle du cycle), Compétences et onglet « Notes »
+  des Paramètres (`GradingSettingsPanel`). Évaluations, notes et compétences se saisissent hors connexion (file locale,
+  grille mise à jour aussitôt). Les bulletins (lot 7b), l'espace enseignant et l'espace parent gardent les hooks de
+  démonstration de `features/grades/demoApi.ts`.
   Les paiements et reçus de l'espace parent restent en démonstration (`useDemoReceipt`).
   Espace enseignant et import Excel restent sur les élèves de démonstration (`useDemoStudents`,
   `useDemoStudent`, `useImportStudents`).

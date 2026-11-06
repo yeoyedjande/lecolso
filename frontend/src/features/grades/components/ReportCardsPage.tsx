@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table'
 import { termCount } from '@/features/cycles/useCycleSettings'
 
-import { useReportCard, useReportStatus } from '../api'
+import { useReportCard, useReportStatus } from '../demoApi'
 import { usePedagogyClasses } from '@/features/cycles/usePedagogyClasses'
 
 import { ClassPicker, TermPicker } from '@/components/ClassPicker'

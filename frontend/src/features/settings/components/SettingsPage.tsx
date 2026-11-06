@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AcademicYearsPanel } from '@/features/academic/components/AcademicYearsPanel'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { useCycles } from '@/features/cycles/api'
+import { GradingSettingsPanel } from '@/features/grades/components/GradingSettingsPanel'
 import { useSchoolProfile } from '@/features/school/api'
 import { SchoolIdentityForm } from '@/features/school/components/SchoolIdentityForm'
 
@@ -26,12 +27,13 @@ export function SettingsPage() {
         description={t('settings.description')}
         demo={false}
       />
-      <Tabs defaultValue="identity">
+      <Tabs defaultValue="identity" className="min-w-0">
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
           <TabsList className="w-max">
             <TabsTrigger value="identity">{t('settings.tabs.identity')}</TabsTrigger>
             <TabsTrigger value="years">{t('settings.tabs.years')}</TabsTrigger>
             <TabsTrigger value="cycles">{t('settings.tabs.cycles')}</TabsTrigger>
+            <TabsTrigger value="grading">{t('settings.tabs.grading')}</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="identity" className="mt-4 grid gap-3">
@@ -63,6 +65,9 @@ export function SettingsPage() {
               </div>
             )}
           </QueryState>
+        </TabsContent>
+        <TabsContent value="grading" className="mt-4">
+          <QueryState query={cycles}>{(list) => <GradingSettingsPanel cycles={list} />}</QueryState>
         </TabsContent>
       </Tabs>
     </div>

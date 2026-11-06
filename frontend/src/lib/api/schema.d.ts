@@ -657,6 +657,237 @@ export interface paths {
         patch: operations["enrollments.update"];
         trace?: never;
     };
+    "/grading/classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Classes pour les notes
+         * @description Classes de l'année en cours que l'utilisateur voit (titulaire, ou personnel du cycle), avec leur mode
+         *     d'évaluation (weighted_average, competency, observation), l'échelle des moyennes et le droit de saisie.
+         */
+        get: operations["grading.classrooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/grade-grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Grille de notes d'une classe
+         * @description Période (`term_id`, celle du jour par défaut) et matière (`subject_id`, la première par défaut). 409 `wrong_mode`
+         *     hors cycles en moyenne pondérée.
+         */
+        get: operations["grading.grid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Créer une évaluation
+         * @description Titulaire ou direction (grades.manage). 409 `wrong_mode`, `year_closed`.
+         */
+        post: operations["assessments.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assessments/{assessment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Supprimer une évaluation
+         * @description Ses notes sont supprimées avec elle. 409 `year_closed`.
+         */
+        delete: operations["assessments.destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Modifier une évaluation
+         * @description Le barème ne descend jamais sous une note déjà saisie. 409 `year_closed`.
+         */
+        patch: operations["assessments.update"];
+        trace?: never;
+    };
+    "/assessments/{assessment}/grades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Enregistrer les notes d'une évaluation
+         * @description Renvoie la grille de la matière et de la période de l'évaluation. 409 `year_closed`.
+         */
+        put: operations["assessments.grades"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Résultats d'une classe
+         * @description Moyennes, rangs, moyenne de classe (moyenne pondérée) ou bilan des compétences, pour une période (`term_id`).
+         */
+        get: operations["grading.results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classrooms/{classroom}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compétences d'une classe
+         * @description Niveau de chaque élève dans chaque compétence pour une période (`term_id`). 409 `wrong_mode`.
+         */
+        get: operations["grading.skills.show"];
+        /**
+         * Enregistrer les compétences d'une classe
+         * @description Titulaire ou direction. 409 `wrong_mode`, `year_closed`.
+         */
+        put: operations["grading.skills.save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grading/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Réglages des notes d'un cycle
+         * @description Périodes, matières par niveau (cycles en moyenne pondérée) et compétences (cycles en compétences) de l'année
+         *     (en cours par défaut), créées d'après les listes par défaut à la première lecture. 409 `no_current_year`.
+         */
+        get: operations["grading.settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grading/cycles/{cycle}/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Enregistrer les périodes d'un cycle
+         * @description school.settings.manage sur le cycle. 409 `year_closed`.
+         */
+        put: operations["grading.terms"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grading/levels/{level}/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Enregistrer les matières d'un niveau
+         * @description school.settings.manage sur le cycle. 409 `year_closed`, `wrong_mode`, `subject_used`.
+         */
+        put: operations["grading.subjects"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grading/cycles/{cycle}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Enregistrer le référentiel de compétences d'un cycle
+         * @description school.settings.manage sur le cycle. 409 `year_closed`, `wrong_mode`, `skill_used`.
+         */
+        put: operations["grading.skills"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1489,6 +1720,16 @@ export interface components {
             /** Format: uuid */
             fee_type_id: string;
         };
+        /** AssessmentResource */
+        AssessmentResource: {
+            id: string;
+            classroom_id: string;
+            subject_id: string;
+            term_id: string;
+            title: string;
+            date: string;
+            out_of: number;
+        };
         /** AssignUserRoleRequest */
         AssignUserRoleRequest: {
             role: string;
@@ -1618,6 +1859,36 @@ export interface components {
             password: string;
             password_confirmation: string;
         };
+        /** ClassResultRowResource */
+        ClassResultRowResource: {
+            student: components["schemas"]["GradingStudentResource"];
+            subjects: components["schemas"]["SubjectAverageResource"][];
+            average: number | null;
+            rank: number | null;
+            skills: {
+                A: number;
+                EA: number;
+                NA: number;
+            } | null;
+        };
+        /** ClassResultsResource */
+        ClassResultsResource: {
+            classroom: {
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            mode: "observation" | "competency" | "weighted_average";
+            grade_scale: number;
+            terms: components["schemas"]["TermResource"][];
+            term: components["schemas"]["TermResource"];
+            subjects: components["schemas"]["SubjectResource"][];
+            rows: components["schemas"]["ClassResultRowResource"][];
+            class_average: number | null;
+            highest: number | null;
+            lowest: number | null;
+            ranked_count: number;
+        };
         /** ClassroomResource */
         ClassroomResource: {
             id: string;
@@ -1705,6 +1976,8 @@ export interface components {
                 report_document: "none" | "skills_booklet" | "report_card";
                 /** @enum {string} */
                 daily_log: "none" | "optional" | "required";
+                /** @enum {string} */
+                grade_scale: "10" | "20";
             };
             levels: components["schemas"]["LevelResource"][];
         };
@@ -1923,6 +2196,77 @@ export interface components {
         GenerateInvoicesRequest: {
             /** Format: uuid */
             academic_year_id?: string | null;
+        };
+        /** GradeCellResource */
+        GradeCellResource: {
+            assessment_id: string;
+            value: number | null;
+            absent: boolean;
+        };
+        /** GradeGridResource */
+        GradeGridResource: {
+            classroom: {
+                id: string;
+                name: string;
+            };
+            grade_scale: number;
+            terms: components["schemas"]["TermResource"][];
+            term: components["schemas"]["TermResource"];
+            subjects: components["schemas"]["SubjectResource"][];
+            subject: components["schemas"]["SubjectResource"] | null;
+            assessments: components["schemas"]["AssessmentResource"][];
+            rows: components["schemas"]["GradeGridRowResource"][];
+            can_manage: boolean;
+        };
+        /** GradeGridRowResource */
+        GradeGridRowResource: {
+            student: components["schemas"]["GradingStudentResource"];
+            grades: components["schemas"]["GradeCellResource"][];
+            average: number | null;
+        };
+        /** GradingClassroomResource */
+        GradingClassroomResource: {
+            id: string;
+            name: string;
+            level_id: string;
+            cycle: {
+                id: string;
+                code: string;
+                name: string;
+            };
+            mode: string;
+            grade_scale: number;
+            can_manage: boolean;
+            is_homeroom: boolean;
+        };
+        /** GradingSettingsResource */
+        GradingSettingsResource: {
+            cycle: {
+                id: string;
+                name: string;
+                /** @enum {string} */
+                mode: "observation" | "competency" | "weighted_average";
+                /** @enum {string} */
+                term_type: "trimester" | "semester" | "free_period";
+                grade_scale: number;
+            };
+            academic_year: {
+                id: string;
+                label: string;
+                closed: boolean;
+            };
+            terms: components["schemas"]["SettingsTermResource"][];
+            levels: components["schemas"]["SettingsLevelResource"][];
+            skills: components["schemas"]["SettingsSkillResource"][];
+            can_manage: boolean;
+        };
+        /** GradingStudentResource */
+        GradingStudentResource: {
+            id: string;
+            full_name: string;
+            first_name: string;
+            matricule: string;
+            photo_url: string | null;
         };
         /** GuardianLinkResource */
         GuardianLinkResource: {
@@ -2294,6 +2638,21 @@ export interface components {
             departure: components["schemas"]["DeparturePolicy"];
         };
         /**
+         * SaveGradesRequest
+         * @description Notes d'une évaluation : `grades` (élève, `value` au barème avec 2 décimales au plus, ou `absent`; ni l'un ni
+         *     l'autre : note effacée), `recorded_at` (saisie hors connexion). Droit de saisie contrôlé par l'Action.
+         */
+        SaveGradesRequest: {
+            grades: {
+                /** Format: uuid */
+                student_id: string;
+                value?: number | null;
+                absent: boolean;
+            }[];
+            /** Format: date-time */
+            recorded_at?: string | null;
+        };
+        /**
          * SaveRollCallRequest
          * @description Appel d'une classe : `marks` (élève, statut present/absent/late, minutes de retard), `reason` (obligatoire pour
          *     corriger une journée passée), `roll_call_id` et `recorded_at` (saisie hors connexion). Droits contrôlés par l'Action.
@@ -2311,6 +2670,71 @@ export interface components {
             roll_call_id?: string | null;
             /** Format: date-time */
             recorded_at?: string | null;
+        };
+        /**
+         * SaveSkillEvaluationsRequest
+         * @description Compétences d'une classe pour une période : `term_id`, `evaluations` (élève, compétence, `level` A, EA, NA ou null
+         *     pour effacer), `recorded_at` (saisie hors connexion). Droit de saisie contrôlé par l'Action.
+         */
+        SaveSkillEvaluationsRequest: {
+            /** Format: uuid */
+            term_id: string;
+            evaluations: {
+                /** Format: uuid */
+                student_id: string;
+                /** Format: uuid */
+                skill_id: string;
+                /** @enum {string|null} */
+                level?: "A" | "EA" | "NA" | null;
+            }[];
+            /** Format: date-time */
+            recorded_at?: string | null;
+        };
+        /**
+         * SaveSkillsRequest
+         * @description Référentiel de compétences d'un cycle : `academic_year_id`, `skills` dans l'ordre (`id` d'une compétence
+         *     existante ou rien, `domain`, `label`). school.settings.manage sur le cycle, contrôlé par l'Action.
+         */
+        SaveSkillsRequest: {
+            /** Format: uuid */
+            academic_year_id: string;
+            skills: {
+                /** Format: uuid */
+                id?: string | null;
+                domain: string;
+                label: string;
+            }[];
+        };
+        /**
+         * SaveSubjectsRequest
+         * @description Matières d'un niveau : `academic_year_id`, `subjects` dans l'ordre (`id` d'une matière existante ou rien,
+         *     `name`, `coefficient` de 1 à 20). school.settings.manage sur le cycle, contrôlé par l'Action.
+         */
+        SaveSubjectsRequest: {
+            /** Format: uuid */
+            academic_year_id: string;
+            subjects: {
+                /** Format: uuid */
+                id?: string | null;
+                name: string;
+                coefficient: number;
+            }[];
+        };
+        /**
+         * SaveTermsRequest
+         * @description Périodes d'un cycle : `academic_year_id`, `terms` dans l'ordre (libellé, début, fin), autant que le veut le type
+         *     de période du cycle. school.settings.manage sur le cycle, contrôlé par l'Action.
+         */
+        SaveTermsRequest: {
+            /** Format: uuid */
+            academic_year_id: string;
+            terms: {
+                label: string;
+                /** Format: date */
+                starts_on: string;
+                /** Format: date */
+                ends_on: string;
+            }[];
         };
         /** ScheduleRowResource */
         ScheduleRowResource: {
@@ -2386,12 +2810,89 @@ export interface components {
             roles: components["schemas"]["UserAssignmentResource"][];
             can_manage: boolean;
         };
+        /** SettingsLevelResource */
+        SettingsLevelResource: {
+            id: string;
+            name: string;
+            subjects: components["schemas"]["SettingsSubjectResource"][];
+        };
+        /** SettingsSkillResource */
+        SettingsSkillResource: {
+            id: string;
+            domain: string;
+            label: string;
+            position: number;
+            used: boolean;
+        };
+        /** SettingsSubjectResource */
+        SettingsSubjectResource: {
+            id: string;
+            name: string;
+            coefficient: number;
+            position: number;
+            used: boolean;
+        };
+        /** SettingsTermResource */
+        SettingsTermResource: {
+            id: string;
+            position: number;
+            label: string;
+            starts_on: string;
+            ends_on: string;
+            used: boolean;
+        };
         /** SiblingResource */
         SiblingResource: {
             id: string;
             full_name: string;
             photo_url: string;
             classroom_name: string | null;
+        };
+        /** SkillCellResource */
+        SkillCellResource: {
+            skill_id: string;
+            level: string | null;
+        };
+        /** SkillGridResource */
+        SkillGridResource: {
+            classroom: {
+                id: string;
+                name: string;
+            };
+            terms: components["schemas"]["TermResource"][];
+            term: components["schemas"]["TermResource"];
+            skills: components["schemas"]["SkillResource"][];
+            rows: components["schemas"]["SkillGridRowResource"][];
+            can_manage: boolean;
+        };
+        /** SkillGridRowResource */
+        SkillGridRowResource: {
+            student: components["schemas"]["GradingStudentResource"];
+            levels: components["schemas"]["SkillCellResource"][];
+        };
+        /** SkillResource */
+        SkillResource: {
+            id: string;
+            domain: string;
+            label: string;
+            position: number;
+        };
+        /**
+         * StoreAssessmentRequest
+         * @description Nouvelle évaluation : `subject_id`, `term_id`, `title`, `date` (dans la période), `out_of` (barème, 1 à 100) ;
+         *     `id` facultatif (UUID de l'appareil). Droit de saisie contrôlé par l'Action.
+         */
+        StoreAssessmentRequest: {
+            /** Format: uuid */
+            subject_id: string;
+            /** Format: uuid */
+            term_id: string;
+            title: string;
+            /** Format: date */
+            date: string;
+            out_of: number;
+            /** Format: uuid */
+            id?: string | null;
         };
         /**
          * StoreGuardianRequest
@@ -2479,6 +2980,18 @@ export interface components {
                 phone: string;
             } | null;
         };
+        /** SubjectAverageResource */
+        SubjectAverageResource: {
+            subject_id: string;
+            average: number | null;
+        };
+        /** SubjectResource */
+        SubjectResource: {
+            id: string;
+            name: string;
+            coefficient: number;
+            position: number;
+        };
         /**
          * SyncRequest
          * @description File hors connexion : 1 à 100 opérations `{ id (UUID de l'appareil), type, payload }`. Chaque opération est
@@ -2489,7 +3002,7 @@ export interface components {
                 /** Format: uuid */
                 id: string;
                 /** @enum {string} */
-                type: "attendance.roll_call" | "daycare.check" | "daycare.log";
+                type: "attendance.roll_call" | "daycare.check" | "daycare.log" | "grades.assessment" | "grades.save" | "skills.save";
                 payload: string[];
             }[];
         };
@@ -2500,6 +3013,14 @@ export interface components {
             code: string | null;
             message: string | null;
             replayed: boolean;
+        };
+        /** TermResource */
+        TermResource: {
+            id: string;
+            position: number;
+            label: string;
+            starts_on: string;
+            ends_on: string;
         };
         /**
          * TransferCreditRequest
@@ -2542,6 +3063,20 @@ export interface components {
             } | null;
             can_remind: boolean;
         };
+        /**
+         * UpdateAssessmentRequest
+         * @description Modifier une évaluation : mêmes champs qu'à la création ; barème jamais sous une note déjà saisie.
+         */
+        UpdateAssessmentRequest: {
+            /** Format: uuid */
+            subject_id: string;
+            /** Format: uuid */
+            term_id: string;
+            title: string;
+            /** Format: date */
+            date: string;
+            out_of: number;
+        };
         /** UpdateCycleRequest */
         UpdateCycleRequest: {
             name?: string;
@@ -2552,6 +3087,7 @@ export interface components {
                 billing_period?: string;
                 report_document?: string;
                 daily_log?: string;
+                grade_scale?: string;
             };
         };
         /**
@@ -3864,6 +4400,401 @@ export interface operations {
                 content: {
                     "application/json": {
                         data: components["schemas"]["StudentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `GradingClassroomResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradingClassroomResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "grading.grid": {
+        parameters: {
+            query?: {
+                term_id?: string | null;
+                subject_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `GradeGridResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradeGridResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "assessments.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreAssessmentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "assessments.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The assessment ID */
+                assessment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "assessments.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The assessment ID */
+                assessment: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAssessmentRequest"];
+            };
+        };
+        responses: {
+            /** @description `AssessmentResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AssessmentResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "assessments.grades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The assessment ID */
+                assessment: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveGradesRequest"];
+            };
+        };
+        responses: {
+            /** @description `GradeGridResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradeGridResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.results": {
+        parameters: {
+            query?: {
+                term_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `ClassResultsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClassResultsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.skills.show": {
+        parameters: {
+            query?: {
+                term_id?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `SkillGridResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SkillGridResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.skills.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The classroom ID */
+                classroom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSkillEvaluationsRequest"];
+            };
+        };
+        responses: {
+            /** @description `SkillGridResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SkillGridResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.settings": {
+        parameters: {
+            query: {
+                cycle_id: string;
+                academic_year_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `GradingSettingsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradingSettingsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The cycle ID */
+                cycle: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTermsRequest"];
+            };
+        };
+        responses: {
+            /** @description `GradingSettingsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradingSettingsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The level ID */
+                level: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSubjectsRequest"];
+            };
+        };
+        responses: {
+            /** @description `GradingSettingsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradingSettingsResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "grading.skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The cycle ID */
+                cycle: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSkillsRequest"];
+            };
+        };
+        responses: {
+            /** @description `GradingSettingsResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GradingSettingsResource"];
                     };
                 };
             };
