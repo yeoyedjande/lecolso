@@ -30,6 +30,10 @@ it('gère le calendrier par cycle et le montre à chacun selon ses cycles', func
         ->assertSuccessful()->assertJsonPath('data.cycle', null)->assertJsonPath('data.can_manage', true));
     spa('POST', '/api/v1/calendar/events', ['title' => 'Fin', 'kind' => 'event', 'starts_on' => '2026-11-05', 'ends_on' => '2026-11-01'], $school)
         ->assertUnprocessable()->assertJsonValidationErrors('ends_on');
+    spa('POST', '/api/v1/calendar/events', ['title' => 'Sans type', 'starts_on' => '2026-11-05', 'ends_on' => '2026-11-05'], $school)
+        ->assertUnprocessable()->assertJsonValidationErrors('kind');
+    spa('POST', '/api/v1/calendar/events', ['title' => 'Type inconnu', 'kind' => 'party', 'starts_on' => '2026-11-05', 'ends_on' => '2026-11-05'], $school)
+        ->assertUnprocessable()->assertJsonValidationErrors('kind');
 
     actingAsRole(Role::Director, $school, $kindergarten);
     spa('POST', '/api/v1/calendar/events', ['title' => 'Examens', 'kind' => 'exam', 'starts_on' => '2026-11-10', 'ends_on' => '2026-11-12', 'cycle_id' => $primary->id], $school)->assertForbidden();

@@ -1231,7 +1231,8 @@
     },
     "smsSoon": "L’envoi par SMS sera disponible avec le fournisseur de SMS. Pour l’instant, l’annonce apparaît dans l’application.",
     "remove": "Retirer l’annonce « {{title}} »",
-    "removed": "Annonce retirée"
+    "removed": "Annonce retirée",
+    "showAll": "Voir les {{count}} autre(s) annonce(s)"
   },
   "calendar": {
     "title": "Calendrier",

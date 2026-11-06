@@ -319,10 +319,22 @@ test('annonce au primaire : publiée, lue par le parent, invisible pour la mater
   await page.getByRole('button', { name: 'Publier l’annonce' }).click()
   await expect(page.getByText(/Annonce publiée pour \d+ élève/).first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Visite médicale' })).toBeVisible()
+  for (const title of ['Cantine', 'Photos de classe']) {
+    await page.getByLabel('Titre').fill(title)
+    await page.getByLabel('Message', { exact: true }).fill('Information pour les familles.')
+    await page.getByLabel('Destinataires').selectOption({ label: 'Toute l’école' })
+    await page.getByRole('button', { name: 'Publier l’annonce' }).click()
+    await expect(page.getByRole('heading', { name: title })).toBeVisible()
+  }
 
   mock.switchSession(ACCOUNTS.guardian)
   await page.goto('/les-lauriers/parent')
   await expect(page.getByRole('heading', { name: 'Visite médicale' })).toBeVisible()
+  // Accueil : les 3 plus récentes, la plus ancienne sur demande
+  await expect(page.getByRole('heading', { name: 'Kermesse de fin de trimestre' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Voir les 1 autre(s) annonce(s)' }).click()
+  await expect(page.getByRole('heading', { name: 'Kermesse de fin de trimestre' })).toBeVisible()
+
   await expect(page.getByText('Réunion parents-enseignants')).toBeVisible()
 
   mock.switchSession(ACCOUNTS.kindergartenDirector)

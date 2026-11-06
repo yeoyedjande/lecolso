@@ -45,7 +45,7 @@ final class SaveSchoolEventRequest extends FormRequest
     /**
      * @return array{title: string, kind: SchoolEventKind, starts_on: string, ends_on: string, cycle_id: string|null, location: string|null}
      */
-    public function attributes(): array
+    public function payload(): array
     {
         $location = trim($this->string('location')->toString());
 

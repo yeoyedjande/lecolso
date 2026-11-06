@@ -52,7 +52,7 @@ final readonly class SchoolEventController
     public function store(SaveSchoolEventRequest $request): SchoolEventResource
     {
         $user = $this->user($request);
-        $attributes = $request->attributes();
+        $attributes = $request->payload();
         if (! $this->access->canManage($user, $attributes['cycle_id'])) {
             throw new AuthorizationException;
         }
@@ -66,7 +66,7 @@ final readonly class SchoolEventController
     {
         $user = $this->user($request);
         $this->guard($user, $event);
-        $attributes = $request->attributes();
+        $attributes = $request->payload();
         if (! $this->access->canManage($user, $attributes['cycle_id'])) {
             throw new AuthorizationException;
         }

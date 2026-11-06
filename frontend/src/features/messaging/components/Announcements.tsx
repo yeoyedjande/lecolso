@@ -161,16 +161,21 @@ function AudienceBadge({ announcement }: { announcement: Announcement }) {
   )
 }
 
-/** Annonces lues par l'utilisateur, la plus récente d'abord ; `limit` : les premières seulement (accueils). */
+/**
+ * Annonces lues par l'utilisateur, la plus récente d'abord ; `limit` : les premières seulement (accueils), avec un
+ * bouton pour afficher toutes les autres.
+ */
 export function AnnouncementList({ limit, emptyLabel }: { limit?: number; emptyLabel?: string }) {
   const { t } = useTranslation()
   const query = useAnnouncements()
   const remove = useDeleteAnnouncement()
+  const [all, setAll] = useState(false)
 
   return (
     <QueryState query={query}>
       {(announcements) => {
-        const shown = limit === undefined ? announcements : announcements.slice(0, limit)
+        const shown = limit === undefined || all ? announcements : announcements.slice(0, limit)
+        const hidden = announcements.length - shown.length
         return shown.length === 0 ? (
           <EmptyState title={emptyLabel ?? t('messaging.noAnnouncement')} />
         ) : (
@@ -218,6 +223,19 @@ export function AnnouncementList({ limit, emptyLabel }: { limit?: number; emptyL
                 </Card>
               </li>
             ))}
+            {hidden > 0 && (
+              <li>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setAll(true)
+                  }}
+                >
+                  {t('messaging.showAll', { count: hidden })}
+                </Button>
+              </li>
+            )}
           </ul>
         )
       }}
