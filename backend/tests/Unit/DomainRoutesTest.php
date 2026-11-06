@@ -14,6 +14,7 @@ it('charge un fichier de routes par domaine, dans un ordre stable', function ():
         'Academic',
         'Attendance',
         'Billing',
+        'Family',
         'Grading',
         'Identity',
         'Messaging',
