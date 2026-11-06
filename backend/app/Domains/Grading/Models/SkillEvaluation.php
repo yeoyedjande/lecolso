@@ -12,14 +12,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Niveau d'un élève dans une compétence pour une période (A, EA, NA). Pas de ligne : non évaluée.
+ * Niveau d'un élève dans une compétence pour une période (A, EA, NA). Pas de ligne, ou niveau nul (évaluation effacée,
+ * dont la date protège l'effacement d'une saisie hors connexion plus ancienne) : non évaluée.
  *
  * @property string $id
  * @property string $school_id
  * @property string $skill_id
  * @property string $student_id
  * @property string $term_id
- * @property SkillLevel $level
+ * @property SkillLevel|null $level
  * @property string $entered_by
  * @property Carbon|null $updated_at
  */

@@ -60,14 +60,13 @@ final readonly class SaveGrades
                 if ($grade instanceof Grade && $recordedAt !== null && $grade->updated_at !== null && $grade->updated_at->gt($recordedAt)) {
                     continue;
                 }
-                if ($data['value'] === null && ! $data['absent']) {
-                    $grade?->delete();
-
+                if ($grade === null && $data['value'] === null && ! $data['absent']) {
                     continue;
                 }
+                // Une note effacée garde sa ligne (valeur et absence vides) : sa date protège l'effacement
                 $grade ??= new Grade(['assessment_id' => $assessment->id, 'student_id' => $data['student_id']]);
                 $grade->fill([
-                    'value' => $data['absent'] ? null : number_format((float) $data['value'], 2, '.', ''),
+                    'value' => $data['absent'] || $data['value'] === null ? null : number_format($data['value'], 2, '.', ''),
                     'absent' => $data['absent'],
                     'entered_by' => $user->id,
                 ]);

@@ -46,8 +46,8 @@ final readonly class ShowGradingSettings
         $ids = [
             ...Assessment::query()->whereIn('term_id', $termIds)->distinct()->pluck('term_id')->all(),
             ...Assessment::query()->whereIn('subject_id', $subjectIds)->distinct()->pluck('subject_id')->all(),
-            ...SkillEvaluation::query()->whereIn('term_id', $termIds)->distinct()->pluck('term_id')->all(),
-            ...SkillEvaluation::query()->whereIn('skill_id', $skills->modelKeys())->distinct()->pluck('skill_id')->all(),
+            ...SkillEvaluation::query()->whereIn('term_id', $termIds)->whereNotNull('level')->distinct()->pluck('term_id')->all(),
+            ...SkillEvaluation::query()->whereIn('skill_id', $skills->modelKeys())->whereNotNull('level')->distinct()->pluck('skill_id')->all(),
         ];
         foreach ($ids as $id) {
             if (is_string($id)) {

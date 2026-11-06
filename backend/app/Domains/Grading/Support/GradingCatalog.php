@@ -49,6 +49,8 @@ final class GradingCatalog
             if ($terms->isNotEmpty() && $this->termsUsed(array_values(array_map(strval(...), $terms->modelKeys())))) {
                 return $terms;
             }
+            // Évaluations de compétences effacées : seules leurs dates restaient
+            SkillEvaluation::query()->whereIn('term_id', $terms->modelKeys())->whereNull('level')->delete();
             Term::query()->whereKey($terms->modelKeys())->delete();
             foreach (DefaultTerms::for($type, CarbonImmutable::parse($year->starts_on), CarbonImmutable::parse($year->ends_on)) as $term) {
                 Term::query()->create([...$term, 'academic_year_id' => $year->id, 'cycle_id' => $cycle->id]);
@@ -122,7 +124,7 @@ final class GradingCatalog
     public function termsUsed(array $termIds): bool
     {
         return Assessment::query()->whereIn('term_id', $termIds)->exists()
-            || SkillEvaluation::query()->whereIn('term_id', $termIds)->exists();
+            || SkillEvaluation::query()->whereIn('term_id', $termIds)->whereNotNull('level')->exists();
     }
 
     /**

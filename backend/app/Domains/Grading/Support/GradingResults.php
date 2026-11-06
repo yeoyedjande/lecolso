@@ -33,8 +33,14 @@ final class GradingResults
 
         $assessments = Assessment::query()->where('classroom_id', $classroom->id)->where('term_id', $term->id)->get();
         $grades = Grade::query()->whereIn('assessment_id', $assessments->modelKeys())->whereIn('student_id', $studentIds)->get();
-        $levels = SkillEvaluation::query()->where('term_id', $term->id)->whereIn('student_id', $studentIds)->get();
+        $levels = SkillEvaluation::query()->where('term_id', $term->id)->whereIn('student_id', $studentIds)->whereNotNull('level')->get();
 
+        $skillLevels = [];
+        foreach ($levels as $evaluation) {
+            if ($evaluation->level !== null) {
+                $skillLevels[] = ['student_id' => $evaluation->student_id, 'level' => $evaluation->level];
+            }
+        }
         $subjectMap = [];
         foreach ($subjects as $subject) {
             $subjectMap[$subject->id] = $subject->coefficient;
@@ -50,7 +56,7 @@ final class GradingResults
             $subjectMap,
             $assessmentMap,
             array_values($grades->map(static fn (Grade $grade): array => ['assessment_id' => $grade->assessment_id, 'student_id' => $grade->student_id, 'score' => $grade->score()])->all()),
-            array_values($levels->map(static fn (SkillEvaluation $evaluation): array => ['student_id' => $evaluation->student_id, 'level' => $evaluation->level])->all()),
+            $skillLevels,
         ));
     }
 }

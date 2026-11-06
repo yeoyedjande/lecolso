@@ -11,13 +11,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Note d'un élève à une évaluation (sur le barème de l'évaluation), ou absence. Pas de ligne : non saisie.
+ * Note d'un élève à une évaluation (sur le barème de l'évaluation), ou absence. Pas de ligne, ou ligne sans valeur ni
+ * absence (note effacée, dont la date protège l'effacement d'une saisie hors connexion plus ancienne) : non saisie.
  *
  * @property string $id
  * @property string $school_id
  * @property string $assessment_id
  * @property string $student_id
- * @property string|null $value décimal (2 chiffres), chaîne lue en base
+ * @property string|null $value décimal (2 chiffres), chaîne lue en base ; null : absent ou effacée
  * @property bool $absent
  * @property string $entered_by
  * @property Carbon|null $updated_at

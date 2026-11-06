@@ -80,7 +80,7 @@ return new class extends Migration
             $table->foreignUuid('school_id')->constrained()->cascadeOnDelete();
             $table->uuid('assessment_id');
             $table->uuid('student_id');
-            $table->decimal('value', 5, 2)->nullable(); // note sur le barème du devoir ; null si absent
+            $table->decimal('value', 5, 2)->nullable(); // note sur le barème du devoir ; null si absent ou effacée
             $table->boolean('absent')->default(false);
             $table->uuid('entered_by');
             $table->timestamps();
@@ -89,7 +89,8 @@ return new class extends Migration
             $table->foreign(['student_id', 'school_id'])->references(['id', 'school_id'])->on('students')->cascadeOnDelete();
             $table->unique(['assessment_id', 'student_id']);
         });
-        DB::statement('ALTER TABLE grades ADD CONSTRAINT grades_value CHECK ((absent AND value IS NULL) OR (NOT absent AND value IS NOT NULL AND value >= 0))');
+        // Note effacée : value nulle et absent faux ; la ligne garde la date de l'effacement (saisie hors connexion)
+        DB::statement('ALTER TABLE grades ADD CONSTRAINT grades_value CHECK ((absent AND value IS NULL) OR (NOT absent AND (value IS NULL OR value >= 0)))');
         Rls::enable('grades');
 
         Schema::create('skills', function (Blueprint $table): void {
@@ -115,7 +116,7 @@ return new class extends Migration
             $table->uuid('skill_id');
             $table->uuid('student_id');
             $table->uuid('term_id');
-            $table->string('level', 2); // App\Domains\Grading\Enums\SkillLevel : A, EA, NA
+            $table->string('level', 2)->nullable(); // App\Domains\Grading\Enums\SkillLevel : A, EA, NA ; null : effacée
             $table->uuid('entered_by');
             $table->timestamps();
 
@@ -124,7 +125,7 @@ return new class extends Migration
             $table->foreign(['term_id', 'school_id'])->references(['id', 'school_id'])->on('terms')->restrictOnDelete();
             $table->unique(['skill_id', 'student_id', 'term_id']);
         });
-        DB::statement("ALTER TABLE skill_evaluations ADD CONSTRAINT skill_evaluations_level CHECK (level IN ('A', 'EA', 'NA'))");
+        DB::statement("ALTER TABLE skill_evaluations ADD CONSTRAINT skill_evaluations_level CHECK (level IS NULL OR level IN ('A', 'EA', 'NA'))");
         Rls::enable('skill_evaluations');
     }
 
