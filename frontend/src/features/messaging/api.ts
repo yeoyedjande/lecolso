@@ -136,3 +136,83 @@ export function useMarkRead() {
     onSuccess: refresh,
   })
 }
+
+export type Announcement = components['schemas']['AnnouncementResource']
+export type AnnouncementTargets = components['schemas']['AnnouncementTargetsResource']
+export type AnnouncementAudience = Announcement['audience']
+
+/** Annonces que l'utilisateur lit (toute l'école, ses cycles, ses classes ; parent : celles de ses enfants). */
+export function useAnnouncements() {
+  const { school, key } = useMessagingKey()
+  return useQuery({
+    queryKey: [...key, 'announcements'],
+    enabled: school !== null,
+    refetchInterval: REFRESH_MS,
+    queryFn: async ({ signal }): Promise<Announcement[]> => {
+      const { data, error } = await api.GET('/announcements', { signal })
+      if (data === undefined) throw new Error('Annonces indisponibles', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Publics que l'utilisateur peut viser (toute l'école, ses cycles, ses classes). */
+export function useAnnouncementTargets(enabled = true) {
+  const { school, key } = useMessagingKey()
+  return useQuery({
+    queryKey: [...key, 'announcement-targets'],
+    enabled: enabled && school !== null,
+    queryFn: async ({ signal }): Promise<AnnouncementTargets> => {
+      const { data, error } = await api.GET('/announcements/targets', { signal })
+      if (data === undefined) throw new Error('Publics indisponibles', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Publier une annonce (dans l'appli ; le SMS viendra avec le fournisseur). */
+export function usePublishAnnouncement() {
+  const { key } = useMessagingKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      title: string
+      body: string
+      audience: AnnouncementAudience
+      cycleId: string | null
+      classroomId: string | null
+    }): Promise<Announcement> => {
+      const { data, response } = await api.POST('/announcements', {
+        body: {
+          title: input.title,
+          body: input.body,
+          audience: input.audience,
+          cycle_id: input.audience === 'cycle' ? input.cycleId : null,
+          classroom_id: input.audience === 'classroom' ? input.classroomId : null,
+        },
+      })
+      if (data === undefined) throw new Error(`Publication impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [...key, 'announcements'] })
+    },
+  })
+}
+
+/** Retirer une annonce. */
+export function useDeleteAnnouncement() {
+  const { key } = useMessagingKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { response } = await api.DELETE('/announcements/{announcement}', {
+        params: { path: { announcement: id } },
+      })
+      if (!response.ok) throw new Error(`Retrait impossible (${String(response.status)})`)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [...key, 'announcements'] })
+    },
+  })
+}

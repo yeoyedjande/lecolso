@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button'
 import { useRollCall } from '@/features/attendance/api'
 import { schoolToday } from '@/features/attendance/status'
 import { useMe } from '@/features/auth/api'
+import { UpcomingEvents } from '@/features/calendar/components/UpcomingEvents'
+import { AnnouncementList } from '@/features/messaging/components/Announcements'
 import { CYCLE_CLASSES, cycleTone } from '@/lib/cycles'
 import { cn } from '@/lib/utils'
 
@@ -142,6 +144,13 @@ export function TeacherHome() {
           {t('teacher.home.messages')}
         </Link>
       </Button>
+      <UpcomingEvents />
+      <section aria-labelledby="announcements-title" className="grid gap-3">
+        <h2 id="announcements-title" className="font-display text-lg font-semibold">
+          {t('teacher.home.announcements')}
+        </h2>
+        <AnnouncementList limit={3} emptyLabel={t('parent.home.noAnnouncement')} />
+      </section>
     </div>
   )
 }

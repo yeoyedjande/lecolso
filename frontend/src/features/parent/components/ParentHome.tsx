@@ -10,6 +10,8 @@ import { CardsSkeleton, QueryState } from '@/components/states/QueryState'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useMe } from '@/features/auth/api'
+import { UpcomingEvents } from '@/features/calendar/components/UpcomingEvents'
+import { AnnouncementList } from '@/features/messaging/components/Announcements'
 import { CYCLE_CLASSES, cycleTone } from '@/lib/cycles'
 import { formatMoney } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -149,6 +151,15 @@ export function ParentHome() {
             )
           }
         </QueryState>
+      </section>
+
+      <UpcomingEvents />
+
+      <section aria-labelledby="announcements-title" className="grid gap-3">
+        <h2 id="announcements-title" className="font-display text-lg font-semibold">
+          {t('parent.home.announcements')}
+        </h2>
+        <AnnouncementList limit={3} emptyLabel={t('parent.home.noAnnouncement')} />
       </section>
 
       <section aria-labelledby="quick-title" className="grid gap-3">

@@ -113,6 +113,7 @@ const PERMISSIONS: Record<string, Role[]> = {
   'attendance.manage': ['director', 'secretary', 'teacher'],
   'attendance.justify': ['guardian'],
   'messaging.send': ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],
+  'messaging.announce': ['promoter', 'director', 'secretary'],
   'subscription.view': ['promoter', 'director'],
   'subscription.pay': ['promoter'],
   'users.reset_password': ['director', 'secretary'],
@@ -2599,6 +2600,204 @@ export async function mockApi(
       can_decide: staffHolds(schoolId, 'attendance.manage', classroom.cycle.id),
     }
   }
+  // Annonces et calendrier (lot 9b) : comme AudienceScope, AnnouncementAccess et CalendarAccess
+  interface MockAnnouncement {
+    id: string
+    title: string
+    body: string
+    audience: 'school' | 'cycle' | 'classroom'
+    cycleId: string | null
+    classroomId: string | null
+    reach: number
+    authorName: string
+    publishedAt: string
+  }
+  interface MockEvent {
+    id: string
+    title: string
+    kind: 'holiday' | 'exam' | 'meeting' | 'event' | 'training'
+    starts_on: string
+    ends_on: string
+    cycleId: string | null
+    location: string | null
+  }
+  const announcementsBySchool = new Map<string, MockAnnouncement[]>()
+  const eventsBySchool = new Map<string, MockEvent[]>()
+  const announcementsOf = (schoolId: string): MockAnnouncement[] => {
+    const existing = announcementsBySchool.get(schoolId)
+    if (existing !== undefined) return existing
+    const list: MockAnnouncement[] =
+      schoolKeyOf(schoolId) === 'lauriers'
+        ? [
+            {
+              id: nextBillingId(),
+              title: 'Kermesse de fin de trimestre',
+              body: 'Rendez-vous samedi 19 décembre à 9 h dans la cour. Stands, jeux et spectacle des enfants.',
+              audience: 'school',
+              cycleId: null,
+              classroomId: null,
+              reach: studentsOf(schoolId).length,
+              authorName: ACCOUNTS.director.name,
+              publishedAt: '2026-11-02T10:00:00+00:00',
+            },
+          ]
+        : []
+    announcementsBySchool.set(schoolId, list)
+    return list
+  }
+  const eventsOf = (schoolId: string): MockEvent[] => {
+    const existing = eventsBySchool.get(schoolId)
+    if (existing !== undefined) return existing
+    const list: MockEvent[] =
+      schoolKeyOf(schoolId) === 'lauriers'
+        ? [
+            {
+              id: nextBillingId(),
+              title: 'Réunion parents-enseignants',
+              kind: 'meeting',
+              starts_on: '2026-11-12',
+              ends_on: '2026-11-12',
+              cycleId: CYCLE_PRIMARY,
+              location: 'Salle polyvalente',
+            },
+            {
+              id: nextBillingId(),
+              title: 'Congés de Noël',
+              kind: 'holiday',
+              starts_on: '2026-12-19',
+              ends_on: '2027-01-04',
+              cycleId: null,
+              location: null,
+            },
+          ]
+        : []
+    eventsBySchool.set(schoolId, list)
+    return list
+  }
+  /** Portée de lecture du compte courant (AudienceScope). */
+  const audienceScope = (schoolId: string) => {
+    const schoolKey = schoolKeyOf(schoolId)
+    const scope = {
+      staffAll: false,
+      staffCycles: new Set<string>(),
+      cycles: new Set<string>(),
+      classrooms: new Set<string>(),
+    }
+    for (const assignment of current?.roles ?? []) {
+      if (assignment.school !== schoolKey) continue
+      if (assignment.role === 'guardian') continue
+      if (assignment.role === 'teacher') {
+        if (assignment.cycle !== undefined) scope.cycles.add(assignment.cycle)
+        continue
+      }
+      if (assignment.cycle === undefined) scope.staffAll = true
+      else {
+        scope.staffCycles.add(assignment.cycle)
+        scope.cycles.add(assignment.cycle)
+      }
+    }
+    for (const classroom of classroomsOf(schoolId)) {
+      if (classroom.homeroom_teacher_id === userId(current?.phone ?? '-')) {
+        scope.classrooms.add(classroom.id)
+        const cycle = cycleOfClassroom(schoolId, classroom.id)
+        if (cycle !== null) scope.cycles.add(cycle)
+      }
+    }
+    for (const child of guardianChildren(schoolId)) {
+      const classroomId = latestEnrollment(child)?.classroom_id
+      if (classroomId === undefined) continue
+      scope.classrooms.add(classroomId)
+      const cycle = cycleOfClassroom(schoolId, classroomId)
+      if (cycle !== null) scope.cycles.add(cycle)
+    }
+    return scope
+  }
+  const canPublish = (
+    schoolId: string,
+    audience: 'school' | 'cycle' | 'classroom',
+    cycleId: string | null,
+    classroomId: string | null,
+  ) => {
+    if (audience === 'school')
+      return (
+        staffHolds(schoolId, 'messaging.announce', null) &&
+        current?.roles.some(
+          (assignment) =>
+            assignment.school === schoolKeyOf(schoolId) &&
+            assignment.cycle === undefined &&
+            PERMISSIONS['messaging.announce']?.includes(assignment.role) === true,
+        ) === true
+      )
+    if (audience === 'cycle')
+      return cycleId !== null && staffHolds(schoolId, 'messaging.announce', cycleId)
+    const classroom = classroomsOf(schoolId).find((candidate) => candidate.id === classroomId)
+    if (classroom === undefined) return false
+    return (
+      staffHolds(schoolId, 'messaging.announce', cycleOfClassroom(schoolId, classroom.id)) ||
+      isHomeroom(classroom)
+    )
+  }
+  const announcementVisible = (schoolId: string, announcement: MockAnnouncement) => {
+    const scope = audienceScope(schoolId)
+    if (announcement.audience === 'school' || scope.staffAll) return true
+    if (announcement.audience === 'cycle') return scope.cycles.has(announcement.cycleId ?? '')
+    return (
+      scope.staffCycles.has(announcement.cycleId ?? '') ||
+      scope.classrooms.has(announcement.classroomId ?? '')
+    )
+  }
+  const announcementResource = (schoolId: string, announcement: MockAnnouncement) => {
+    const cycle = cyclesOf(schoolId).find((candidate) => candidate.id === announcement.cycleId)
+    const classroom = classroomsOf(schoolId).find(
+      (candidate) => candidate.id === announcement.classroomId,
+    )
+    return {
+      id: announcement.id,
+      title: announcement.title,
+      body: announcement.body,
+      audience: announcement.audience,
+      cycle: cycle === undefined ? null : { id: cycle.id, code: cycle.code, name: cycle.name },
+      classroom:
+        classroom === undefined
+          ? null
+          : { id: classroom.id, name: classroomResource(schoolId, classroom).name },
+      author_name: announcement.authorName,
+      published_at: announcement.publishedAt,
+      reach: announcement.reach,
+      can_delete: canPublish(
+        schoolId,
+        announcement.audience,
+        announcement.cycleId,
+        announcement.classroomId,
+      ),
+    }
+  }
+  const canManageEvent = (schoolId: string, cycleId: string | null) =>
+    current?.roles.some(
+      (assignment) =>
+        assignment.school === schoolKeyOf(schoolId) &&
+        assignment.role !== 'teacher' &&
+        assignment.role !== 'guardian' &&
+        (assignment.cycle === undefined || (cycleId !== null && assignment.cycle === cycleId)) &&
+        PERMISSIONS['school.settings.manage']?.includes(assignment.role) === true,
+    ) === true
+  const eventResource = (schoolId: string, event: MockEvent) => {
+    const cycle = cyclesOf(schoolId).find((candidate) => candidate.id === event.cycleId)
+    return {
+      id: event.id,
+      title: event.title,
+      kind: event.kind,
+      starts_on: event.starts_on,
+      ends_on: event.ends_on,
+      cycle: cycle === undefined ? null : { id: cycle.id, code: cycle.code, name: cycle.name },
+      location: event.location,
+      can_manage: canManageEvent(schoolId, event.cycleId),
+    }
+  }
+  const eventVisible = (schoolId: string, event: MockEvent) => {
+    const scope = audienceScope(schoolId)
+    return event.cycleId === null || scope.staffAll || scope.cycles.has(event.cycleId)
+  }
   const childResource = (schoolId: string, student: MockStudent, termId: string | null) => {
     seedAbsence(student)
     const found = levelOfStudent(schoolId, student)
@@ -4373,6 +4572,163 @@ export async function mockApi(
             )
             return route.fulfill({ json: { data: row } })
           }
+        }
+        if (path === '/announcements' || path.startsWith('/announcements/')) {
+          const schoolId = schoolHeader ?? ''
+          if (request.method() === 'GET' && path === '/announcements')
+            return route.fulfill({
+              json: {
+                data: announcementsOf(schoolId)
+                  .filter((announcement) => announcementVisible(schoolId, announcement))
+                  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+                  .map((announcement) => announcementResource(schoolId, announcement)),
+              },
+            })
+          if (request.method() === 'GET' && path === '/announcements/targets')
+            return route.fulfill({
+              json: {
+                data: {
+                  school: canPublish(schoolId, 'school', null, null),
+                  cycles: cyclesOf(schoolId)
+                    .filter((cycle) => canPublish(schoolId, 'cycle', cycle.id, null))
+                    .map((cycle) => ({ id: cycle.id, code: cycle.code, name: cycle.name })),
+                  classrooms: classroomsOf(schoolId)
+                    .filter((classroom) => canPublish(schoolId, 'classroom', null, classroom.id))
+                    .map((classroom) => ({
+                      id: classroom.id,
+                      name: classroomResource(schoolId, classroom).name,
+                      cycle_id: cycleOfClassroom(schoolId, classroom.id) ?? '',
+                    })),
+                },
+              },
+            })
+          if (request.method() === 'POST' && path === '/announcements') {
+            const body = z
+              .object({
+                title: z.string(),
+                body: z.string(),
+                audience: z.enum(['school', 'cycle', 'classroom']),
+                cycle_id: z.optional(z.nullable(z.string())),
+                classroom_id: z.optional(z.nullable(z.string())),
+              })
+              .parse(request.postDataJSON())
+            const classroomId = body.audience === 'classroom' ? (body.classroom_id ?? null) : null
+            const cycleId =
+              body.audience === 'classroom'
+                ? cycleOfClassroom(schoolId, classroomId ?? '')
+                : body.audience === 'cycle'
+                  ? (body.cycle_id ?? null)
+                  : null
+            if (!canPublish(schoolId, body.audience, cycleId, classroomId))
+              return route.fulfill(forbidden)
+            const reach = studentsOf(schoolId).filter((student) => {
+              const enrolled = latestEnrollment(student)?.classroom_id ?? ''
+              return (
+                body.audience === 'school' ||
+                (body.audience === 'cycle'
+                  ? cycleOfClassroom(schoolId, enrolled) === cycleId
+                  : enrolled === classroomId)
+              )
+            }).length
+            const announcement: MockAnnouncement = {
+              id: nextBillingId(),
+              title: body.title,
+              body: body.body,
+              audience: body.audience,
+              cycleId,
+              classroomId,
+              reach,
+              authorName: current?.name ?? '',
+              publishedAt: sentNow(),
+            }
+            announcementsOf(schoolId).push(announcement)
+            return route.fulfill({ json: { data: announcementResource(schoolId, announcement) } })
+          }
+          if (request.method() === 'DELETE') {
+            const list = announcementsOf(schoolId)
+            const index = list.findIndex((candidate) => path === `/announcements/${candidate.id}`)
+            const announcement = list[index]
+            if (announcement === undefined || !announcementVisible(schoolId, announcement))
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (
+              !canPublish(
+                schoolId,
+                announcement.audience,
+                announcement.cycleId,
+                announcement.classroomId,
+              )
+            )
+              return route.fulfill(forbidden)
+            list.splice(index, 1)
+            return route.fulfill({ status: 204, body: '' })
+          }
+        }
+        if (path === '/calendar/events' || path.startsWith('/calendar/events/')) {
+          const schoolId = schoolHeader ?? ''
+          const list = eventsOf(schoolId)
+          if (request.method() === 'GET' && path === '/calendar/events') {
+            const url = new URL(request.url())
+            const from = url.searchParams.get('from') ?? '0000-01-01'
+            const to = url.searchParams.get('to') ?? '9999-12-31'
+            return route.fulfill({
+              json: {
+                data: list
+                  .filter(
+                    (event) =>
+                      eventVisible(schoolId, event) &&
+                      event.ends_on >= from &&
+                      event.starts_on <= to,
+                  )
+                  .sort((a, b) => a.starts_on.localeCompare(b.starts_on))
+                  .map((event) => eventResource(schoolId, event)),
+              },
+            })
+          }
+          const existing = list.find((candidate) => path === `/calendar/events/${candidate.id}`)
+          if (path !== '/calendar/events') {
+            if (existing === undefined || !eventVisible(schoolId, existing))
+              return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+            if (!canManageEvent(schoolId, existing.cycleId)) return route.fulfill(forbidden)
+            if (request.method() === 'DELETE') {
+              list.splice(list.indexOf(existing), 1)
+              return route.fulfill({ status: 204, body: '' })
+            }
+          }
+          const body = z
+            .object({
+              title: z.string(),
+              kind: z.enum(['holiday', 'exam', 'meeting', 'event', 'training']),
+              starts_on: z.string(),
+              ends_on: z.string(),
+              cycle_id: z.optional(z.nullable(z.string())),
+              location: z.optional(z.nullable(z.string())),
+            })
+            .parse(request.postDataJSON())
+          if (body.ends_on < body.starts_on)
+            return route.fulfill({
+              status: 422,
+              json: { message: 'Dates.', errors: { ends_on: ['La fin doit suivre le début.'] } },
+            })
+          if (!canManageEvent(schoolId, body.cycle_id ?? null)) return route.fulfill(forbidden)
+          const event: MockEvent = existing ?? {
+            id: nextBillingId(),
+            title: '',
+            kind: 'event',
+            starts_on: '',
+            ends_on: '',
+            cycleId: null,
+            location: null,
+          }
+          Object.assign(event, {
+            title: body.title,
+            kind: body.kind,
+            starts_on: body.starts_on,
+            ends_on: body.ends_on,
+            cycleId: body.cycle_id ?? null,
+            location: body.location ?? null,
+          })
+          if (existing === undefined) list.push(event)
+          return route.fulfill({ json: { data: eventResource(schoolId, event) } })
         }
         if (path === '/conversations' || path.startsWith('/conversations/')) {
           const schoolId = schoolHeader ?? ''

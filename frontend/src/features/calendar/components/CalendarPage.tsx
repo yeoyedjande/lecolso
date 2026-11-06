@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -18,21 +18,33 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Can } from '@/features/auth/RequirePermission'
-import { addDays, demoToday } from '@/lib/demo/dates'
-import type { CycleCode, DemoEvent, EventKind } from '@/lib/demo/types'
+import { schoolToday } from '@/features/attendance/status'
+import { useCycles } from '@/features/cycles/api'
 import { formatDay, formatDayMonth, formatMonth } from '@/lib/format'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
-import { useAddEvent, useEvents } from '../api'
+import {
+  useDeleteEvent,
+  useEvents,
+  useSaveEvent,
+  type SchoolEvent,
+  type SchoolEventInput,
+  type SchoolEventKind,
+} from '../api'
 
-const KINDS: EventKind[] = ['holiday', 'exam', 'meeting', 'event', 'training']
-const KIND_TONE: Record<EventKind, string> = {
+const KINDS: SchoolEventKind[] = ['holiday', 'exam', 'meeting', 'event', 'training']
+const KIND_TONE: Record<SchoolEventKind, string> = {
   holiday: 'bg-success-soft text-success-ink',
   exam: 'bg-destructive-soft text-destructive-ink',
   meeting: 'bg-navy-100 text-navy dark:bg-white/10 dark:text-foreground',
   event: 'bg-orange-100 text-accent-ink dark:bg-orange/15',
   training: 'bg-muted text-foreground',
+}
+function addDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00Z`)
+  value.setUTCDate(value.getUTCDate() + days)
+  return value.toISOString().slice(0, 10)
 }
 const weekday = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: 'UTC' })
 
@@ -52,24 +64,42 @@ function monthGrid(month: string): string[] {
   return days.slice(0, days[35]?.startsWith(month) === true ? 42 : 35)
 }
 
-/** Calendrier de l'école : vue mensuelle (liste sur téléphone) et ajout d'événements. */
+/** Calendrier de l'école (vraie API) : vue mensuelle (liste sur téléphone), événements gérés par la direction. */
 export function CalendarPage() {
   const { t } = useTranslation()
-  const today = demoToday()
+  const today = schoolToday()
   const [month, setMonth] = useState(today.slice(0, 7))
   const days = monthGrid(month)
   const query = useEvents(days[0] ?? `${month}-01`, days[days.length - 1] ?? `${month}-28`)
-  const addEvent = useAddEvent()
-  const [adding, setAdding] = useState(false)
-  const [draft, setDraft] = useState<Omit<DemoEvent, 'id'>>({
+  const cycles = useCycles()
+  const save = useSaveEvent()
+  const remove = useDeleteEvent()
+  const empty: SchoolEventInput = {
     title: '',
     kind: 'event',
-    start: today,
-    end: today,
-    cycle: null,
+    startsOn: today,
+    endsOn: today,
+    cycleId: null,
     location: null,
-  })
-  const invalid = draft.end < draft.start
+  }
+  const [editing, setEditing] = useState<string | null | undefined>(undefined)
+  const [draft, setDraft] = useState<SchoolEventInput>(empty)
+  const invalid = draft.endsOn < draft.startsOn
+  const open = (event: SchoolEvent | null) => {
+    setEditing(event?.id ?? null)
+    setDraft(
+      event === null
+        ? empty
+        : {
+            title: event.title,
+            kind: event.kind,
+            startsOn: event.starts_on,
+            endsOn: event.ends_on,
+            cycleId: event.cycle?.id ?? null,
+            location: event.location,
+          },
+    )
+  }
 
   return (
     <div className="grid gap-6">
@@ -77,11 +107,11 @@ export function CalendarPage() {
         title={t('calendar.title')}
         description={t('calendar.description')}
         actions={
-          <Can permission="school.settings.view">
+          <Can permission="school.settings.manage">
             <Button
               variant="accent"
               onClick={() => {
-                setAdding(true)
+                open(null)
               }}
             >
               <Plus aria-hidden />
@@ -131,7 +161,7 @@ export function CalendarPage() {
       <QueryState query={query}>
         {(events) => {
           const inMonth = events.filter(
-            (event) => event.end >= `${month}-01` && event.start <= `${month}-31`,
+            (event) => event.ends_on >= `${month}-01` && event.starts_on <= `${month}-31`,
           )
           return (
             <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
@@ -149,7 +179,7 @@ export function CalendarPage() {
                 <ol className="grid grid-cols-7">
                   {days.map((day) => {
                     const dayEvents = events.filter(
-                      (event) => event.start <= day && event.end >= day,
+                      (event) => event.starts_on <= day && event.ends_on >= day,
                     )
                     const outside = !day.startsWith(month)
                     return (
@@ -213,18 +243,18 @@ export function CalendarPage() {
                               KIND_TONE[event.kind],
                             )}
                           >
-                            {formatDayMonth(event.start)}
+                            {formatDayMonth(event.starts_on)}
                           </span>
-                          <span className="grid gap-1">
+                          <span className="grid min-w-0 flex-1 gap-1">
                             <span className="font-semibold">{event.title}</span>
                             <span className="text-xs text-muted-foreground">
                               {t(`calendar.kinds.${event.kind}`)}
-                              {event.end !== event.start &&
-                                ` · ${formatDay(event.start)} → ${formatDay(event.end)}`}
+                              {event.ends_on !== event.starts_on &&
+                                ` · ${formatDay(event.starts_on)} → ${formatDay(event.ends_on)}`}
                             </span>
                             <span className="flex flex-wrap items-center gap-2">
                               {event.cycle !== null && (
-                                <CycleBadge code={event.cycle} label={t(`cycles.${event.cycle}`)} />
+                                <CycleBadge code={event.cycle.code} label={event.cycle.name} />
                               )}
                               {event.location !== null && (
                                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -234,6 +264,38 @@ export function CalendarPage() {
                               )}
                             </span>
                           </span>
+                          {event.can_manage && (
+                            <span className="flex shrink-0 gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('calendar.editEvent', { title: event.title })}
+                                onClick={() => {
+                                  open(event)
+                                }}
+                              >
+                                <Pencil aria-hidden />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('calendar.deleteEvent', { title: event.title })}
+                                disabled={remove.isPending}
+                                onClick={() => {
+                                  remove
+                                    .mutateAsync(event.id)
+                                    .then(() => {
+                                      toast(t('calendar.deleted'), { tone: 'success' })
+                                    })
+                                    .catch(() => {
+                                      toast(t('common.error'), { tone: 'error' })
+                                    })
+                                }}
+                              >
+                                <Trash2 aria-hidden />
+                              </Button>
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -244,19 +306,29 @@ export function CalendarPage() {
           )
         }}
       </QueryState>
-      <Dialog open={adding} onOpenChange={setAdding}>
+      <Dialog
+        open={editing !== undefined}
+        onOpenChange={(value) => {
+          if (!value) setEditing(undefined)
+        }}
+      >
         <DialogContent closeLabel={t('common.close')}>
-          <DialogTitle>{t('calendar.add')}</DialogTitle>
+          <DialogTitle>{editing === null ? t('calendar.add') : t('calendar.edit')}</DialogTitle>
           <form
             className="grid gap-4"
             onSubmit={(event) => {
               event.preventDefault()
-              if (draft.title.trim() === '' || invalid) return
-              void addEvent.mutateAsync({ ...draft, title: draft.title.trim() }).then(() => {
-                setAdding(false)
-                setMonth(draft.start.slice(0, 7))
-                toast(t('calendar.added'), { tone: 'success' })
-              })
+              if (draft.title.trim().length < 2 || invalid) return
+              save
+                .mutateAsync({ ...draft, id: editing ?? null, title: draft.title.trim() })
+                .then(() => {
+                  setEditing(undefined)
+                  setMonth(draft.startsOn.slice(0, 7))
+                  toast(t('calendar.added'), { tone: 'success' })
+                })
+                .catch(() => {
+                  toast(t('common.error'), { tone: 'error' })
+                })
             }}
           >
             <Field label={t('calendar.eventTitle')}>
@@ -277,12 +349,13 @@ export function CalendarPage() {
                   <Input
                     {...control}
                     type="date"
-                    value={draft.start}
+                    value={draft.startsOn}
                     onChange={(event) => {
                       setDraft({
                         ...draft,
-                        start: event.target.value,
-                        end: draft.end < event.target.value ? event.target.value : draft.end,
+                        startsOn: event.target.value,
+                        endsOn:
+                          draft.endsOn < event.target.value ? event.target.value : draft.endsOn,
                       })
                     }}
                   />
@@ -296,9 +369,9 @@ export function CalendarPage() {
                   <Input
                     {...control}
                     type="date"
-                    value={draft.end}
+                    value={draft.endsOn}
                     onChange={(event) => {
-                      setDraft({ ...draft, end: event.target.value })
+                      setDraft({ ...draft, endsOn: event.target.value })
                     }}
                   />
                 )}
@@ -325,20 +398,20 @@ export function CalendarPage() {
                 {(control) => (
                   <NativeSelect
                     {...control}
-                    value={draft.cycle ?? ''}
+                    value={draft.cycleId ?? ''}
                     onChange={(event) => {
-                      const value = event.target.value
-                      const cycle: CycleCode | null =
-                        value === 'daycare' || value === 'kindergarten' || value === 'primary'
-                          ? value
-                          : null
-                      setDraft({ ...draft, cycle })
+                      setDraft({
+                        ...draft,
+                        cycleId: event.target.value === '' ? null : event.target.value,
+                      })
                     }}
                   >
                     <option value="">{t('calendar.allCycles')}</option>
-                    <option value="daycare">{t('cycles.daycare')}</option>
-                    <option value="kindergarten">{t('cycles.kindergarten')}</option>
-                    <option value="primary">{t('cycles.primary')}</option>
+                    {(cycles.data ?? []).map((cycle) => (
+                      <option key={cycle.id} value={cycle.id}>
+                        {cycle.name}
+                      </option>
+                    ))}
                   </NativeSelect>
                 )}
               </Field>
@@ -365,9 +438,9 @@ export function CalendarPage() {
               </DialogClose>
               <Button
                 type="submit"
-                disabled={draft.title.trim() === '' || invalid || addEvent.isPending}
+                disabled={draft.title.trim().length < 2 || invalid || save.isPending}
               >
-                {t('common.add')}
+                {editing === null ? t('common.add') : t('common.save')}
               </Button>
             </DialogFooter>
           </form>
