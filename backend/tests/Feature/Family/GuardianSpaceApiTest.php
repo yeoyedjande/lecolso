@@ -6,6 +6,8 @@ use App\Domains\Academic\Models\Classroom;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\User;
+use App\Domains\Students\Enums\EnrollmentStatus;
+use App\Domains\Students\Models\Enrollment;
 use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Models\School;
 use Illuminate\Support\Carbon;
@@ -77,6 +79,12 @@ it('montre au parent ses seuls enfants : présence du jour, frais et absences à
         ->assertJsonPath('data.absences.0.status', 'absent')
         ->assertJsonPath('data.absences.0.justification', null)
         ->assertJsonPath('data.absences.0.can_justify', true);
+
+    // Parti depuis hier : l'appel du jour ne dit plus rien de sa présence
+    inSchool($school, static fn () => Enrollment::query()->where('student_id', $awa->id)->update(['status' => EnrollmentStatus::Left, 'left_on' => '2026-10-04']));
+    spa('GET', '/api/v1/guardian/children', [], $school)->assertOk()
+        ->assertJsonPath('data.0.presence', null);
+    inSchool($school, static fn () => Enrollment::query()->where('student_id', $awa->id)->update(['status' => EnrollmentStatus::Active, 'left_on' => null]));
 
     // Un autre enfant de la classe, d'une autre famille : introuvable
     spa('GET', '/api/v1/guardian/children/'.$yao->id, [], $school)->assertNotFound();
