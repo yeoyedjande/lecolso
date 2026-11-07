@@ -96,7 +96,9 @@ test.describe('page publique de l’école (sans connexion)', () => {
     await mockApi(page, { session: ACCOUNTS.director })
     await page.goto('/les-lauriers/parametres')
     await page.getByLabel('Afficher les tarifs sur la page publique').click()
-    await expect(page.getByText('Les tarifs sont affichés sur la page publique')).toBeVisible()
+    await expect(
+      page.getByText('Les tarifs sont affichés sur la page publique', { exact: true }),
+    ).toBeVisible()
 
     await page.goto('/les-lauriers')
     await expect(page.getByRole('heading', { name: 'Tarifs 2026-2027', level: 2 })).toBeVisible()
