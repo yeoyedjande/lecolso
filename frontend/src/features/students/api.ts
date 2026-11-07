@@ -3,15 +3,9 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
-import { useDemoMutation, useDemoQuery } from '@/lib/demo/hooks'
+import { useDemoQuery } from '@/lib/demo/hooks'
 
-import {
-  enroll,
-  listStudents,
-  studentDetail,
-  type EnrollmentInput,
-  type StudentFilters,
-} from './demo'
+import { listStudents, studentDetail, type EnrollmentInput, type StudentFilters } from './demo'
 
 export type StudentRow = components['schemas']['StudentRowResource']
 export type StudentFile = components['schemas']['StudentResource']
@@ -282,12 +276,53 @@ export function useDemoStudent(id: string) {
   )
 }
 
-/** Import Excel : inscrit chaque ligne valide ; renvoie le nombre d'élèves créés. */
+export type ImportResult = components['schemas']['ImportResultResource']
+export type ImportRowResult = components['schemas']['ImportRowResource']
+type ImportRowBody = components['schemas']['ImportStudentsRequest']['rows'][number]
+
+/** Taille des lots envoyés à l'inscription (chaque ligne crée un dossier, un matricule et une facture). */
+export const IMPORT_BATCH = 50
+
+async function postImport(rows: ImportRowBody[], dryRun: boolean): Promise<ImportResult> {
+  const { data, response } = await api.POST('/students/import', { body: { dry_run: dryRun, rows } })
+  if (data === undefined) throw new Error(`Import impossible (${String(response.status)})`)
+  return data.data
+}
+
+/** Vérification d'un fichier par l'API (vraie API), sans rien écrire : état et erreurs de chaque ligne. */
+export function useCheckImport() {
+  return useMutation({ mutationFn: (rows: ImportRowBody[]) => postImport(rows, true) })
+}
+
+/**
+ * Inscription des lignes vérifiées (vraie API), par lots de 50 ; `onProgress` reçoit le nombre de lignes traitées.
+ * Un élève déjà inscrit est ignoré par l'API : relancer le même fichier ne crée aucun doublon.
+ */
 export function useImportStudents() {
-  return useDemoMutation(
-    (school, rows: EnrollmentInput[], today) =>
-      rows.map((row) => enroll(school, row, today)).length,
-  )
+  const { school, key } = useStudentsKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      rows,
+      onProgress,
+    }: {
+      rows: ImportRowBody[]
+      onProgress: (done: number) => void
+    }): Promise<ImportRowResult[]> => {
+      const results: ImportRowResult[] = []
+      for (let start = 0; start < rows.length; start += IMPORT_BATCH) {
+        const batch = await postImport(rows.slice(start, start + IMPORT_BATCH), false)
+        results.push(...batch.rows)
+        onProgress(Math.min(rows.length, start + IMPORT_BATCH))
+      }
+      return results
+    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...key, 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['school', school?.id ?? null, 'classrooms'] }),
+      ]),
+  })
 }
 
 export type { EnrollmentInput, StudentFilters }

@@ -155,7 +155,10 @@ src/
   validation, reçu ou nouvel essai) depuis Paiements et l'onglet Frais ; « bientôt disponible » si
   `mobile_money.available` est faux (aucun prestataire configuré). Réglage des frais par la direction dans l'écran Frais
   (`useSaveFinancialPolicy({ mobile_money })`).
-  L'import Excel reste sur les élèves de démonstration (`useDemoStudents`, `useDemoStudent`, `useImportStudents`).
+  Import Excel (`ImportPage`, `features/students/import.ts`) : fichier lu dans le navigateur (`read-excel-file`, chargé
+  à la demande), lignes normalisées puis vérifiées par l'API (`useCheckImport`, `dry_run`) ; inscription des lignes
+  prêtes par lots de 50 (`useImportStudents`, progression affichée). Erreurs par ligne : codes de l'API
+  (`IMPORT_ERRORS`, libellés `import.errors.*`).
   Rôles attribuables : `features/users/grants.ts` (mêmes règles que `UserPolicy`).
   `can(membership, ['a', 'b'])` : l'une des permissions suffit (menus, `RequirePermission`).
   **Identité de l'école** (`features/school` : `useSchoolProfile`, formulaire et logo dans Paramètres) ; logo dans

@@ -7389,6 +7389,55 @@
                 }
             }
         },
+        "/students/import": {
+            "post": {
+                "operationId": "students.import",
+                "description": "Lignes lues par le navigateur, 500 au plus. `dry_run: true` : v\u00e9rification seule (`ready` ou `error` par ligne,\nplaces compt\u00e9es sur tout le lot). `dry_run: false` : inscription des lignes valides, chacune comme une\ninscription manuelle (matricule, facture) ; un \u00e9l\u00e8ve d\u00e9j\u00e0 inscrit est ignor\u00e9 (`skipped`). Envoyer de petits lots\n(50 lignes) pour l'inscription.",
+                "summary": "Importer des \u00e9l\u00e8ves (fichier Excel)",
+                "tags": [
+                    "StudentImport"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ImportStudentsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ImportResultResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ImportResultResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/students/{student}/photo": {
             "post": {
                 "operationId": "students.photo.store",
@@ -11171,6 +11220,184 @@
                     "redis"
                 ],
                 "title": "HealthResource"
+            },
+            "ImportResultResource": {
+                "type": "object",
+                "properties": {
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ImportRowResource"
+                        }
+                    },
+                    "counts": {
+                        "type": "object",
+                        "properties": {
+                            "ready": {
+                                "type": "integer"
+                            },
+                            "created": {
+                                "type": "integer"
+                            },
+                            "skipped": {
+                                "type": "integer"
+                            },
+                            "error": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": [
+                            "ready",
+                            "created",
+                            "skipped",
+                            "error"
+                        ]
+                    }
+                },
+                "required": [
+                    "rows",
+                    "counts"
+                ],
+                "title": "ImportResultResource"
+            },
+            "ImportRowResource": {
+                "type": "object",
+                "properties": {
+                    "line": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "errors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "student_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "matricule": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "line",
+                    "status",
+                    "errors",
+                    "student_id",
+                    "matricule"
+                ],
+                "title": "ImportRowResource"
+            },
+            "ImportStudentsRequest": {
+                "type": "object",
+                "description": "Import Excel : `dry_run` (v\u00e9rifier sans rien \u00e9crire) et `rows` (500 au plus), lignes lues par le navigateur. Les\nvaleurs sont v\u00e9rifi\u00e9es ligne par ligne par l'import (erreurs renvoy\u00e9es par ligne, pas en 422) ; seule la forme est\ncontr\u00f4l\u00e9e ici. Droit : students.manage sur au moins un cycle (chaque ligne : sur le cycle de sa classe).",
+                "properties": {
+                    "dry_run": {
+                        "type": "boolean"
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "line": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 100000
+                                },
+                                "last_name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 80
+                                },
+                                "first_name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 80
+                                },
+                                "gender": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 20
+                                },
+                                "birth_date": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 20
+                                },
+                                "classroom": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 40
+                                },
+                                "address": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 255
+                                },
+                                "guardian_name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 120
+                                },
+                                "guardian_relation": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 20
+                                },
+                                "guardian_phone": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 30
+                                }
+                            },
+                            "required": [
+                                "line",
+                                "last_name",
+                                "first_name",
+                                "gender",
+                                "birth_date",
+                                "classroom",
+                                "guardian_name",
+                                "guardian_phone"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 500
+                    }
+                },
+                "required": [
+                    "dry_run",
+                    "rows"
+                ],
+                "title": "ImportStudentsRequest"
             },
             "InvoiceLineResource": {
                 "type": "object",

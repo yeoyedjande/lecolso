@@ -10,6 +10,7 @@ use App\Domains\Students\Http\Controllers\PreRegistrationController;
 use App\Domains\Students\Http\Controllers\PublicPreRegistrationController;
 use App\Domains\Students\Http\Controllers\StudentController;
 use App\Domains\Students\Http\Controllers\StudentGuardianController;
+use App\Domains\Students\Http\Controllers\StudentImportController;
 use App\Domains\Students\Http\Controllers\StudentPhotoController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +29,7 @@ Route::post('public/schools/{slug}/pre-registrations', PublicPreRegistrationCont
 // Routes d'un établissement (en-tête X-School-Id)
 Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::get('students', [StudentController::class, 'index'])->name('students.index');
+    Route::post('students/import', StudentImportController::class)->name('students.import');
     Route::get('students/{student}', [StudentController::class, 'show'])->name('students.show');
     Route::patch('students/{student}', [StudentController::class, 'update'])->name('students.update');
     Route::delete('students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
