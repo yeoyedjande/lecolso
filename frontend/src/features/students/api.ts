@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
+import { session } from '@/lib/api/session'
 import type { components } from '@/lib/api/schema'
 import { useDemoQuery } from '@/lib/demo/hooks'
 
@@ -294,29 +295,61 @@ export function useCheckImport() {
   return useMutation({ mutationFn: (rows: ImportRowBody[]) => postImport(rows, true) })
 }
 
+/** L'établissement actif a changé pendant un import : les lots restants ne sont pas envoyés. */
+export class ImportSchoolChanged extends Error {
+  override readonly name = 'ImportSchoolChanged'
+}
+
+/**
+ * Envoi des lignes par lots de IMPORT_BATCH, en s'arrêtant si l'établissement actif n'est plus celui du début
+ * (les lots déjà envoyés restent inscrits ; relancer le même fichier les ignore).
+ */
+export async function runImportBatches(
+  rows: ImportRowBody[],
+  {
+    currentSchool,
+    send,
+    onProgress,
+  }: {
+    currentSchool: () => string | null
+    send: (batch: ImportRowBody[]) => Promise<ImportResult>
+    onProgress: (done: number) => void
+  },
+): Promise<ImportRowResult[]> {
+  const origin = currentSchool()
+  const results: ImportRowResult[] = []
+  for (let start = 0; start < rows.length; start += IMPORT_BATCH) {
+    if (origin === null || currentSchool() !== origin)
+      throw new ImportSchoolChanged('Établissement changé pendant l’import')
+    const batch = await send(rows.slice(start, start + IMPORT_BATCH))
+    results.push(...batch.rows)
+    onProgress(Math.min(rows.length, start + IMPORT_BATCH))
+  }
+  return results
+}
+
 /**
  * Inscription des lignes vérifiées (vraie API), par lots de 50 ; `onProgress` reçoit le nombre de lignes traitées.
- * Un élève déjà inscrit est ignoré par l'API : relancer le même fichier ne crée aucun doublon.
+ * Un élève déjà inscrit est ignoré par l'API : relancer le même fichier ne crée aucun doublon. L'import reste lié à
+ * l'école où il a commencé : si l'établissement actif change entre deux lots (X-School-Id suit la session), il
+ * s'arrête au lieu d'inscrire la suite dans une autre école.
  */
 export function useImportStudents() {
   const { school, key } = useStudentsKey()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       rows,
       onProgress,
     }: {
       rows: ImportRowBody[]
       onProgress: (done: number) => void
-    }): Promise<ImportRowResult[]> => {
-      const results: ImportRowResult[] = []
-      for (let start = 0; start < rows.length; start += IMPORT_BATCH) {
-        const batch = await postImport(rows.slice(start, start + IMPORT_BATCH), false)
-        results.push(...batch.rows)
-        onProgress(Math.min(rows.length, start + IMPORT_BATCH))
-      }
-      return results
-    },
+    }): Promise<ImportRowResult[]> =>
+      runImportBatches(rows, {
+        currentSchool: () => session.getSchoolId(),
+        send: (batch) => postImport(batch, false),
+        onProgress,
+      }),
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: [...key, 'list'] }),

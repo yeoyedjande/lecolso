@@ -28,7 +28,8 @@ use Illuminate\Support\Str;
  * Import d'élèves depuis un fichier Excel lu par le navigateur. Chaque ligne est vérifiée (champs, classe de l'année en
  * cours et droit d'y inscrire, places comptées sur tout le lot, doublon dans le lot) ; un élève déjà inscrit dans
  * l'école (même nom, prénom et date de naissance) est ignoré (`skipped`), si bien que relancer le même fichier ne crée
- * aucun doublon. En vérification (`$dryRun`), rien n'est écrit ; sinon chaque ligne valide est inscrite comme une
+ * aucun doublon, même pour deux imports simultanés (verrou par école et identité, vérification refaite dans la
+ * transaction). En vérification (`$dryRun`), rien n'est écrit ; sinon chaque ligne valide est inscrite comme une
  * inscription manuelle (EnrollStudent puis CreateInvoice, dans sa propre transaction) : une ligne refusée n'empêche
  * pas les autres. Aucune donnée d'élève n'est journalisée.
  */
@@ -146,13 +147,22 @@ final readonly class ImportStudents
                 )],
             );
             try {
-                $student = DB::transaction(function () use ($school, $enrollment): Student {
+                $student = DB::transaction(function () use ($school, $enrollment, $identity): ?Student {
+                    // Deux imports simultanés du même élève (deux personnes, ou un nouvel essai pendant que la
+                    // première requête tourne encore) : verrou consultatif par école et identité, puis nouvelle
+                    // vérification « déjà inscrit » sous ce verrou. SQL brut justifié : aucune table lue.
+                    DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['student_identity:'.$school->id.':'.$identity]);
+                    if (self::alreadyEnrolled($enrollment->lastName, $enrollment->firstName, $enrollment->birthDate)) {
+                        return null;
+                    }
                     $student = $this->enroll->handle($school, $enrollment);
                     $this->createInvoice->handle($student->enrollments()->firstOrFail(), []);
 
                     return $student;
                 });
-                $results[] = new ImportRowResult($row->line, 'created', [], $student->id, $student->matricule);
+                $results[] = $student === null
+                    ? new ImportRowResult($row->line, 'skipped')
+                    : new ImportRowResult($row->line, 'created', [], $student->id, $student->matricule);
             } catch (BusinessConflict $conflict) {
                 $results[] = new ImportRowResult($row->line, 'error', [$conflict->errorCode]);
             }

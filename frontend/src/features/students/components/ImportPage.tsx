@@ -21,7 +21,12 @@ import {
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
-import { useCheckImport, useImportStudents, type ImportRowResult } from '../api'
+import {
+  ImportSchoolChanged,
+  useCheckImport,
+  useImportStudents,
+  type ImportRowResult,
+} from '../api'
 import { IMPORT_COLUMNS, IMPORT_ERRORS, parseImport, type ImportResult } from '../import'
 
 /** Lignes envoyées au plus par fichier (limite de l'API). */
@@ -278,8 +283,12 @@ export function ImportPage() {
                   const count = results.filter((row) => row.status === 'created').length
                   toast(t('import.success', { count }), { tone: 'success' })
                 })
-                .catch(() => {
-                  setFailure(t('import.interrupted'))
+                .catch((error: unknown) => {
+                  setFailure(
+                    error instanceof ImportSchoolChanged
+                      ? t('import.schoolChanged')
+                      : t('import.interrupted'),
+                  )
                 })
                 .finally(() => {
                   setProgress(null)

@@ -622,6 +622,7 @@
     "tooMany": "Ce fichier contient {{count}} lignes : {{max}} au plus par import. Découpez-le en plusieurs fichiers.",
     "progress": "Import en cours… {{done}} / {{total}}",
     "interrupted": "L’import a été interrompu (connexion perdue ?). Les élèves déjà inscrits sont conservés : relancez le même fichier, ils seront ignorés.",
+    "schoolChanged": "L’import s’est arrêté : vous avez changé d’établissement. Les élèves déjà inscrits sont conservés ; revenez dans l’école d’origine et relancez le même fichier pour inscrire la suite.",
     "failedAfter": "{{count}} ligne(s) n’ont pas pu être inscrites (classe complète entre-temps…) : corrigez-les puis relancez le fichier.",
     "failedList": "Lignes non inscrites",
     "lineNumber": "Ligne {{line}}",

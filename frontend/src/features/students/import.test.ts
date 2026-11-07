@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { ImportSchoolChanged, runImportBatches } from './api'
 import { IMPORT_COLUMNS, parseBirthDate, parseImport } from './import'
 
 const header = [...IMPORT_COLUMNS]
@@ -78,5 +79,55 @@ describe('import Excel des élèves (lecture du fichier)', () => {
     ['31/02/2018', null],
   ])('date %s → %s', (input, expected) => {
     expect(parseBirthDate(input)).toBe(expected)
+  })
+})
+
+describe('import Excel des élèves (envoi par lots)', () => {
+  const first = parseImport([header, valid]).rows[0]
+  if (first === undefined) throw new Error('Ligne de test attendue')
+  const rows = Array.from({ length: 120 }, (_, index) => ({ ...first.body, line: index + 2 }))
+  const reply = (batch: typeof rows) =>
+    Promise.resolve({
+      rows: batch.map((row) => ({
+        line: row.line,
+        status: 'created',
+        errors: [],
+        student_id: null,
+        matricule: null,
+      })),
+      counts: { ready: 0, created: batch.length, skipped: 0, error: 0 },
+    })
+
+  it('envoie les lignes par lots de 50 et suit la progression', async () => {
+    const sizes: number[] = []
+    const progress: number[] = []
+    const results = await runImportBatches(rows, {
+      currentSchool: () => 'school-a',
+      send: (batch) => {
+        sizes.push(batch.length)
+        return reply(batch)
+      },
+      onProgress: (done) => progress.push(done),
+    })
+    expect(sizes).toEqual([50, 50, 20])
+    expect(progress).toEqual([50, 100, 120])
+    expect(results).toHaveLength(120)
+  })
+
+  it('s’arrête avant le lot suivant si l’établissement actif change', async () => {
+    let school = 'school-a'
+    const sizes: number[] = []
+    await expect(
+      runImportBatches(rows, {
+        currentSchool: () => school,
+        send: (batch) => {
+          sizes.push(batch.length)
+          school = 'school-b'
+          return reply(batch)
+        },
+        onProgress: () => undefined,
+      }),
+    ).rejects.toBeInstanceOf(ImportSchoolChanged)
+    expect(sizes).toEqual([50])
   })
 })
