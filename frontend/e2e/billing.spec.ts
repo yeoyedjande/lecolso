@@ -136,7 +136,8 @@ test('impayés : relance SMS d’un parent, une seule fois par semaine', async (
     .check()
   await page.getByRole('button', { name: 'Relancer (1)' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Envoyer les SMS' }).click()
-  await expect(page.getByText(/déjà relancé\(s\) depuis moins de 7 jours/)).toBeVisible()
+  // Texte présent dans la notification et dans sa zone d'annonce pour les lecteurs d'écran
+  await expect(page.getByText(/déjà relancé\(s\) depuis moins de 7 jours/).first()).toBeVisible()
 })
 
 test('tableau de bord : effectifs et encaissements réels', async ({ page }) => {
