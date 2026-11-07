@@ -41,6 +41,7 @@ import { Route as SchoolGestionInscriptionsRouteImport } from './routes/$school/
 import { Route as SchoolGestionMessagesRouteImport } from './routes/$school/_gestion/messages'
 import { Route as SchoolGestionNotesRouteImport } from './routes/$school/_gestion/notes'
 import { Route as SchoolGestionParametresRouteImport } from './routes/$school/_gestion/parametres'
+import { Route as SchoolGestionPreInscriptionsRouteImport } from './routes/$school/_gestion/pre-inscriptions'
 import { Route as SchoolGestionPresencesRouteImport } from './routes/$school/_gestion/presences'
 import { Route as SchoolGestionProfilRouteImport } from './routes/$school/_gestion/profil'
 import { Route as SchoolGestionRolesRouteImport } from './routes/$school/_gestion/roles'
@@ -233,6 +234,12 @@ const SchoolGestionParametresRoute = SchoolGestionParametresRouteImport.update({
   path: '/parametres',
   getParentRoute: () => SchoolGestionRouteRoute,
 } as any)
+const SchoolGestionPreInscriptionsRoute =
+  SchoolGestionPreInscriptionsRouteImport.update({
+    id: '/pre-inscriptions',
+    path: '/pre-inscriptions',
+    getParentRoute: () => SchoolGestionRouteRoute,
+  } as any)
 const SchoolGestionPresencesRoute = SchoolGestionPresencesRouteImport.update({
   id: '/presences',
   path: '/presences',
@@ -413,6 +420,7 @@ export interface FileRoutesByFullPath {
   '/$school/messages': typeof SchoolGestionMessagesRoute
   '/$school/notes': typeof SchoolGestionNotesRoute
   '/$school/parametres': typeof SchoolGestionParametresRoute
+  '/$school/pre-inscriptions': typeof SchoolGestionPreInscriptionsRoute
   '/$school/presences': typeof SchoolGestionPresencesRoute
   '/$school/profil': typeof SchoolGestionProfilRoute
   '/$school/roles': typeof SchoolGestionRolesRoute
@@ -470,6 +478,7 @@ export interface FileRoutesByTo {
   '/$school/messages': typeof SchoolGestionMessagesRoute
   '/$school/notes': typeof SchoolGestionNotesRoute
   '/$school/parametres': typeof SchoolGestionParametresRoute
+  '/$school/pre-inscriptions': typeof SchoolGestionPreInscriptionsRoute
   '/$school/presences': typeof SchoolGestionPresencesRoute
   '/$school/profil': typeof SchoolGestionProfilRoute
   '/$school/roles': typeof SchoolGestionRolesRoute
@@ -532,6 +541,7 @@ export interface FileRoutesById {
   '/$school/_gestion/messages': typeof SchoolGestionMessagesRoute
   '/$school/_gestion/notes': typeof SchoolGestionNotesRoute
   '/$school/_gestion/parametres': typeof SchoolGestionParametresRoute
+  '/$school/_gestion/pre-inscriptions': typeof SchoolGestionPreInscriptionsRoute
   '/$school/_gestion/presences': typeof SchoolGestionPresencesRoute
   '/$school/_gestion/profil': typeof SchoolGestionProfilRoute
   '/$school/_gestion/roles': typeof SchoolGestionRolesRoute
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/$school/messages'
     | '/$school/notes'
     | '/$school/parametres'
+    | '/$school/pre-inscriptions'
     | '/$school/presences'
     | '/$school/profil'
     | '/$school/roles'
@@ -652,6 +663,7 @@ export interface FileRouteTypes {
     | '/$school/messages'
     | '/$school/notes'
     | '/$school/parametres'
+    | '/$school/pre-inscriptions'
     | '/$school/presences'
     | '/$school/profil'
     | '/$school/roles'
@@ -713,6 +725,7 @@ export interface FileRouteTypes {
     | '/$school/_gestion/messages'
     | '/$school/_gestion/notes'
     | '/$school/_gestion/parametres'
+    | '/$school/_gestion/pre-inscriptions'
     | '/$school/_gestion/presences'
     | '/$school/_gestion/profil'
     | '/$school/_gestion/roles'
@@ -984,6 +997,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SchoolGestionParametresRouteImport
       parentRoute: typeof SchoolGestionRouteRoute
     }
+    '/$school/_gestion/pre-inscriptions': {
+      id: '/$school/_gestion/pre-inscriptions'
+      path: '/pre-inscriptions'
+      fullPath: '/$school/pre-inscriptions'
+      preLoaderRoute: typeof SchoolGestionPreInscriptionsRouteImport
+      parentRoute: typeof SchoolGestionRouteRoute
+    }
     '/$school/_gestion/presences': {
       id: '/$school/_gestion/presences'
       path: '/presences'
@@ -1209,6 +1229,7 @@ interface SchoolGestionRouteRouteChildren {
   SchoolGestionMessagesRoute: typeof SchoolGestionMessagesRoute
   SchoolGestionNotesRoute: typeof SchoolGestionNotesRoute
   SchoolGestionParametresRoute: typeof SchoolGestionParametresRoute
+  SchoolGestionPreInscriptionsRoute: typeof SchoolGestionPreInscriptionsRoute
   SchoolGestionPresencesRoute: typeof SchoolGestionPresencesRoute
   SchoolGestionProfilRoute: typeof SchoolGestionProfilRoute
   SchoolGestionRolesRoute: typeof SchoolGestionRolesRoute
@@ -1236,6 +1257,7 @@ const SchoolGestionRouteRouteChildren: SchoolGestionRouteRouteChildren = {
   SchoolGestionMessagesRoute: SchoolGestionMessagesRoute,
   SchoolGestionNotesRoute: SchoolGestionNotesRoute,
   SchoolGestionParametresRoute: SchoolGestionParametresRoute,
+  SchoolGestionPreInscriptionsRoute: SchoolGestionPreInscriptionsRoute,
   SchoolGestionPresencesRoute: SchoolGestionPresencesRoute,
   SchoolGestionProfilRoute: SchoolGestionProfilRoute,
   SchoolGestionRolesRoute: SchoolGestionRolesRoute,

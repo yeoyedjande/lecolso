@@ -10,6 +10,7 @@ use App\Domains\Billing\Http\Controllers\DashboardController;
 use App\Domains\Billing\Http\Controllers\InvoiceController;
 use App\Domains\Billing\Http\Controllers\PaymentController;
 use App\Domains\Billing\Http\Controllers\PaymentWebhookController;
+use App\Domains\Billing\Http\Controllers\PublicFeesController;
 use App\Domains\Billing\Http\Controllers\ReceiptFileController;
 use App\Domains\Billing\Http\Controllers\UnpaidController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,12 @@ Route::post('webhooks/payments/{provider}', PaymentWebhookController::class)
     ->where('provider', '[a-z0-9_-]{2,30}')
     ->middleware('throttle:120,1')
     ->name('webhooks.payments');
+
+// Tarifs de la page publique (si l'école les publie) : sans authentification
+Route::get('public/schools/{slug}/fees', PublicFeesController::class)
+    ->where('slug', '[a-z0-9-]{1,50}')
+    ->middleware('throttle:60,1')
+    ->name('public.schools.fees');
 
 // Reçu PDF : URL signée (relative, 10 minutes)
 Route::get('files/receipts/{file}', ReceiptFileController::class)

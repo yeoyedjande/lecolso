@@ -308,6 +308,58 @@ export async function mockApi(
     created_at: `2026-0${String(index + 7)}-01T08:00:00+00:00`,
   }))
   const origin = new URL(E2E_API_URL).origin
+  // Pré-inscriptions reçues en ligne (comme PreRegistrationResource), par école ; une demande de démonstration
+  interface MockPreRegistration {
+    id: string
+    reference: string
+    status: 'pending' | 'refused' | 'enrolled'
+    created_at: string
+    child: { last_name: string; first_name: string; gender: 'F' | 'M'; birth_date: string }
+    level: { id: string; name: string; cycle_id: string; cycle_name: string }
+    guardian: { name: string; phone: string; email: string | null }
+    message: string | null
+    decided_by_name: string | null
+    decided_at: string | null
+    decision_note: string | null
+    student_id: string | null
+    notification_status: string | null
+    notification_failure: string | null
+  }
+  const preRegistrations = new Map<string, MockPreRegistration[]>()
+  const preRegistrationsOf = (schoolId: string): MockPreRegistration[] => {
+    const existing = preRegistrations.get(schoolId)
+    if (existing !== undefined) return existing
+    const primary = CYCLES.find((cycle) => cycle.code === 'primary')
+    const ce1 = primary?.levels.find((level) => level.code === 'CE1')
+    const list: MockPreRegistration[] =
+      schoolKeyOf(schoolId) === 'lauriers' && primary !== undefined && ce1 !== undefined
+        ? [
+            {
+              id: '0195f000-0000-7000-8000-00000000e001',
+              reference: 'PRE-2026-000001',
+              status: 'pending',
+              created_at: '2026-11-06T16:20:00+00:00',
+              child: {
+                last_name: 'Touré',
+                first_name: 'Mariam',
+                gender: 'F',
+                birth_date: '2019-02-11',
+              },
+              level: { id: ce1.id, name: ce1.name, cycle_id: primary.id, cycle_name: primary.name },
+              guardian: { name: 'Salimata Touré', phone: '+2250707070701', email: null },
+              message: 'Nous arrivons de Yamoussoukro en janvier.',
+              decided_by_name: null,
+              decided_at: null,
+              decision_note: null,
+              student_id: null,
+              notification_status: null,
+              notification_failure: null,
+            },
+          ]
+        : []
+    preRegistrations.set(schoolId, list)
+    return list
+  }
   // Lectures du reçu PDF par version (paiement, annulé ou non)
   const receiptPdfReads = new Map<string, number>()
   // Rôles personnalisés et ajustements des rôles système, par école (comme la table school_roles)
@@ -455,6 +507,7 @@ export async function mockApi(
     email: string | null
     motto: string | null
     logo_url: string | null
+    public_fees: boolean
   }
   const profiles = new Map<string, MockSchoolProfile>()
   const schoolProfileOf = (schoolId: string): MockSchoolProfile => {
@@ -470,6 +523,7 @@ export async function mockApi(
       email: schoolKey === 'lauriers' ? 'contact@leslauriers.ci' : null,
       motto: schoolKey === 'lauriers' ? 'Grandir, apprendre, s’épanouir' : null,
       logo_url: null,
+      public_fees: false,
     }
     profiles.set(schoolId, profile)
     return profile
@@ -3454,8 +3508,24 @@ export async function mockApi(
             options: z.optional(z.array(z.string())),
             student: studentBody,
             guardians: z.array(guardianBody),
+            pre_registration_id: z.optional(z.nullable(z.string())),
           })
           .parse(request.postDataJSON())
+        const preRegistration =
+          body.pre_registration_id == null
+            ? undefined
+            : preRegistrationsOf(schoolId).find(
+                (candidate) => candidate.id === body.pre_registration_id,
+              )
+        if (body.pre_registration_id != null && preRegistration?.status !== 'pending') {
+          return route.fulfill({
+            status: 422,
+            json: {
+              message: 'Pré-inscription introuvable.',
+              errors: { pre_registration_id: ['Pré-inscription introuvable.'] },
+            },
+          })
+        }
         const classroom = classroomsOf(schoolId).find(
           (candidate) => candidate.id === body.classroom_id,
         )
@@ -3533,6 +3603,15 @@ export async function mockApi(
         studentsOf(schoolId).push(student)
         invoicesOf(schoolId)
         createInvoice(schoolId, student, body.options ?? [], '2026-11-04')
+        if (preRegistration !== undefined)
+          Object.assign(preRegistration, {
+            status: 'enrolled',
+            decided_by_name: current?.name ?? '',
+            decided_at: '2026-11-07T10:00:00+00:00',
+            student_id: student.id,
+            notification_status: 'failed',
+            notification_failure: 'Aucun fournisseur SMS n’est configuré.',
+          })
         return route.fulfill({ status: 201, json: { data: studentFile(schoolId, student) } })
       }
       case 'GET /billing/grid': {
@@ -3616,8 +3695,12 @@ export async function mockApi(
         if (!canEditSchool(schoolId)) {
           return route.fulfill({ status: 403, json: { message: 'This action is unauthorized.' } })
         }
-        const body = z.record(z.string(), z.nullable(z.string())).parse(request.postDataJSON())
+        const raw = z.record(z.string(), z.unknown()).parse(request.postDataJSON())
         const profile = schoolProfileOf(schoolId)
+        if (typeof raw.public_fees === 'boolean') profile.public_fees = raw.public_fees
+        const body = z
+          .record(z.string(), z.nullable(z.string()))
+          .parse(Object.fromEntries(Object.entries(raw).filter(([key]) => key !== 'public_fees')))
         if (body.phone !== undefined && body.phone !== null && body.phone !== '') {
           // Comme Support\Phone\Phone : tout numéro ivoirien à 10 chiffres (fixe ou mobile)
           const digits = body.phone.replace(/[\s.-]/g, '')
@@ -3889,15 +3972,123 @@ export async function mockApi(
           }
           return route.fulfill({ json: { data: updated } })
         }
-        if (request.method() === 'GET' && path.startsWith('/public/schools/')) {
-          const slug = path.slice('/public/schools/'.length)
+        if (path.startsWith('/public/schools/')) {
+          const [, , , slug = '', sub] = path.split('/')
           const school = Object.values(SCHOOLS).find((candidate) => candidate.slug === slug)
           if (school === undefined)
             return route.fulfill({ status: 404, json: { message: 'Not Found' } })
-          const cycles = (slug === 'petits-genies' ? CYCLES.slice(0, 2) : CYCLES).map((cycle) => ({
+          const publicCycles = slug === 'petits-genies' ? CYCLES.slice(0, 2) : CYCLES
+          if (sub === 'fees' && request.method() === 'GET') {
+            // Comme ShowPublicFees : la grille de l'année en cours si l'école la publie
+            if (!schoolProfileOf(school.id).public_fees)
+              return route.fulfill({ json: { data: null } })
+            const used = FEE_TYPES.filter((type) =>
+              publicCycles.some((cycle) =>
+                cycle.levels.some(
+                  (level) => (gridOf(school.id).get(`${level.id}:${type.id}`) ?? 0) > 0,
+                ),
+              ),
+            )
+            return route.fulfill({
+              json: {
+                data: {
+                  year_label: '2026-2027',
+                  fee_types: used.map((type) => ({
+                    code: type.code,
+                    name: type.name,
+                    optional: type.is_optional,
+                  })),
+                  levels: publicCycles.flatMap((cycle) =>
+                    cycle.levels.map((level) => ({
+                      cycle_name: cycle.name,
+                      level_code: level.code,
+                      level_name: level.name,
+                      amounts: Object.fromEntries(
+                        used.flatMap((type) => {
+                          const amount = gridOf(school.id).get(`${level.id}:${type.id}`) ?? 0
+                          return amount > 0 ? [[type.code, amount]] : []
+                        }),
+                      ),
+                    })),
+                  ),
+                },
+              },
+            })
+          }
+          if (sub === 'pre-registrations' && request.method() === 'POST') {
+            const body = z
+              .object({
+                cycle_code: z.string(),
+                level_code: z.string(),
+                child_last_name: z.string(),
+                child_first_name: z.string(),
+                child_gender: z.enum(['F', 'M']),
+                child_birth_date: z.string(),
+                guardian_name: z.string(),
+                guardian_phone: z.string(),
+                guardian_email: z.optional(z.nullable(z.string())),
+                message: z.optional(z.nullable(z.string())),
+                consent: z.optional(z.unknown()),
+                website: z.optional(z.string()),
+              })
+              .parse(request.postDataJSON())
+            const level = publicCycles
+              .find((cycle) => cycle.code === body.cycle_code)
+              ?.levels.find((candidate) => candidate.code === body.level_code)
+            const phone = phoneOf(body.guardian_phone)
+            const errors: Record<string, string[]> = {}
+            if (level === undefined)
+              errors.level_code = ['Ce niveau n’est pas proposé par l’école.']
+            if (phone === null) errors.guardian_phone = ['Saisissez un numéro de téléphone valide.']
+            if (body.website !== undefined) errors.website = ['Le champ website est interdit.']
+            if (level === undefined || phone === null || Object.keys(errors).length > 0)
+              return route.fulfill({ status: 422, json: { message: 'Données invalides.', errors } })
+            const list = preRegistrationsOf(school.id)
+            const same = list.find(
+              (candidate) =>
+                candidate.status === 'pending' &&
+                candidate.guardian.phone === phone &&
+                candidate.child.birth_date === body.child_birth_date &&
+                candidate.child.first_name.toLowerCase() === body.child_first_name.toLowerCase(),
+            )
+            if (same !== undefined)
+              return route.fulfill({ status: 201, json: { data: { reference: same.reference } } })
+            const cycle = publicCycles.find((candidate) => candidate.code === body.cycle_code)
+            const created: MockPreRegistration = {
+              id: `0195f000-0000-7000-8000-00000000f${String(list.length + 1).padStart(3, '0')}`,
+              reference: `PRE-2026-${String(list.length + 1).padStart(6, '0')}`,
+              status: 'pending',
+              created_at: '2026-11-07T09:00:00+00:00',
+              child: {
+                last_name: body.child_last_name,
+                first_name: body.child_first_name,
+                gender: body.child_gender,
+                birth_date: body.child_birth_date,
+              },
+              level: {
+                id: level.id,
+                name: level.name,
+                cycle_id: cycle?.id ?? '',
+                cycle_name: cycle?.name ?? '',
+              },
+              guardian: { name: body.guardian_name, phone, email: body.guardian_email ?? null },
+              message: body.message ?? null,
+              decided_by_name: null,
+              decided_at: null,
+              decision_note: null,
+              student_id: null,
+              notification_status: null,
+              notification_failure: null,
+            }
+            list.unshift(created)
+            return route.fulfill({ status: 201, json: { data: { reference: created.reference } } })
+          }
+          if (request.method() !== 'GET' || sub !== undefined)
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          const cycles = publicCycles.map((cycle) => ({
             code: cycle.code,
             name: cycle.name,
-            levels: cycle.levels.map((level) => level.name),
+            levels: cycle.levels.map((level) => ({ code: level.code, name: level.name })),
           }))
           return route.fulfill({
             json: {
@@ -3917,6 +4108,48 @@ export async function mockApi(
               },
             },
           })
+        }
+        if (path === '/pre-registrations' || path.startsWith('/pre-registrations/')) {
+          const schoolId = schoolHeader ?? ''
+          // Comme PreRegistrationAccess : students.manage au titre du personnel, sur le cycle du niveau
+          const sees = (candidate: MockPreRegistration) =>
+            holds(schoolId, 'students.manage', candidate.level.cycle_id)
+          if (path === '/pre-registrations' && request.method() === 'GET') {
+            if (!cyclesOf(schoolId).some((cycle) => holds(schoolId, 'students.manage', cycle.id)))
+              return route.fulfill(forbidden)
+            const status = new URL(request.url()).searchParams.get('status')
+            return route.fulfill({
+              json: {
+                data: preRegistrationsOf(schoolId).filter(
+                  (candidate) =>
+                    sees(candidate) && (status === null || candidate.status === status),
+                ),
+              },
+            })
+          }
+          const [, , preId, sub] = path.split('/')
+          const found = preRegistrationsOf(schoolId).find((candidate) => candidate.id === preId)
+          if (found === undefined || !sees(found))
+            return route.fulfill({ status: 404, json: { message: 'Not Found' } })
+          if (sub === undefined && request.method() === 'GET')
+            return route.fulfill({ json: { data: found } })
+          if (sub === 'refuse' && request.method() === 'POST') {
+            const body = z.object({ reason: z.string() }).parse(request.postDataJSON())
+            if (found.status !== 'pending')
+              return route.fulfill({
+                status: 409,
+                json: { message: 'Déjà traitée.', code: 'already_decided' },
+              })
+            Object.assign(found, {
+              status: 'refused',
+              decided_by_name: current?.name ?? '',
+              decided_at: '2026-11-07T10:00:00+00:00',
+              decision_note: body.reason,
+              notification_status: 'failed',
+              notification_failure: 'Aucun fournisseur SMS n’est configuré.',
+            })
+            return route.fulfill({ json: { data: found } })
+          }
         }
         // Factures d'un élève : route de la facturation, plus bas
         if (path.startsWith('/students/') && !path.endsWith('/invoices')) {

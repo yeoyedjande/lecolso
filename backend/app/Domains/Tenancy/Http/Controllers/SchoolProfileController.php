@@ -7,6 +7,7 @@ namespace App\Domains\Tenancy\Http\Controllers;
 use App\Domains\Tenancy\Actions\RemoveSchoolLogo;
 use App\Domains\Tenancy\Actions\StoreSchoolLogo;
 use App\Domains\Tenancy\Actions\UpdateSchoolProfile;
+use App\Domains\Tenancy\Actions\UpdateSchoolSettings;
 use App\Domains\Tenancy\Http\Requests\ManageSchoolRequest;
 use App\Domains\Tenancy\Http\Requests\ShowSchoolProfileRequest;
 use App\Domains\Tenancy\Http\Requests\UpdateSchoolProfileRequest;
@@ -31,9 +32,14 @@ final class SchoolProfileController
      * Champs envoyés seulement ; chaîne vide = effacer. Permission school.settings.manage sur toute l'école.
      * Ces coordonnées sont affichées sur la page publique de l'école.
      */
-    public function update(UpdateSchoolProfileRequest $request, UpdateSchoolProfile $update): SchoolProfileResource
+    public function update(UpdateSchoolProfileRequest $request, UpdateSchoolProfile $update, UpdateSchoolSettings $settings): SchoolProfileResource
     {
-        return new SchoolProfileResource($update->handle($request->school(), $request->profileAttributes()));
+        $school = $update->handle($request->school(), $request->profileAttributes());
+        if ($request->settings() !== []) {
+            $school = $settings->handle($school, $request->settings());
+        }
+
+        return new SchoolProfileResource($school);
     }
 
     /**

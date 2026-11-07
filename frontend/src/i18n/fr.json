@@ -180,6 +180,7 @@
     "dashboard": "Tableau de bord",
     "students": "Élèves",
     "enrollment": "Inscriptions",
+    "preRegistrations": "Pré-inscriptions",
     "import": "Import Excel",
     "classes": "Classes et niveaux",
     "payments": "Encaissements",
@@ -586,8 +587,13 @@
     "conflicts": {
       "classroom_full": "Cette classe est complète : choisissez-en une autre.",
       "year_closed": "Cette année scolaire est clôturée.",
-      "other_year": "La nouvelle classe doit appartenir à la même année scolaire."
+      "other_year": "La nouvelle classe doit appartenir à la même année scolaire.",
+      "already_decided": "Cette pré-inscription a déjà été traitée par un autre membre de l’équipe."
     },
+    "fromPreRegistration": "Pré-inscription {{reference}} reçue en ligne : niveau demandé {{level}} ({{cycle}}). Vérifiez les informations avec la famille, puis choisissez la classe.",
+    "preRegistrationNotFound": "Cette pré-inscription est introuvable.",
+    "preRegistrationDecided": "Cette pré-inscription a déjà été traitée.",
+    "backToPreRegistrations": "Retour aux pré-inscriptions",
     "services": "Services optionnels (facturés avec l’inscription)",
     "perYear": "par an"
   },
@@ -1290,6 +1296,13 @@
       "years": "Années scolaires",
       "grading": "Notes"
     },
+    "publicPage": {
+      "title": "Page publique",
+      "fees": "Afficher les tarifs sur la page publique",
+      "feesHint": "Montants annuels de la grille de l’année en cours, par niveau. Désactivé : la page publique ne montre aucun tarif.",
+      "feesOn": "Les tarifs sont affichés sur la page publique",
+      "feesOff": "Les tarifs ne sont plus affichés sur la page publique"
+    },
     "identity": {
       "name": "Nom de l’établissement",
       "code": "Préfixe des matricules",
@@ -1697,8 +1710,9 @@
     "preRegister": "Pré-inscrire mon enfant",
     "cycles": "Nos cycles",
     "levels": "Niveaux : {{levels}}",
-    "fees": "Tarifs indicatifs {{year}}",
-    "feesHint": "Montants annuels. Cantine, transport et garderie du soir en option.",
+    "fees": "Tarifs {{year}}",
+    "feesHint": "Montants annuels en FCFA.",
+    "feesOptional": "Montants annuels en FCFA. Au choix : {{services}}.",
     "tuition": "Scolarité",
     "registration": "Inscription",
     "why": "Pourquoi nous choisir",
@@ -1716,6 +1730,9 @@
       "firstName": "Prénom(s)",
       "lastName": "Nom",
       "birthDate": "Date de naissance",
+      "gender": "Sexe",
+      "girl": "Fille",
+      "boy": "Garçon",
       "level": "Niveau souhaité",
       "chooseLevel": "Choisir un niveau",
       "guardian": "Le parent",
@@ -1726,7 +1743,10 @@
       "consent": "J’accepte que l’école me contacte au sujet de cette demande.",
       "submit": "Envoyer la demande",
       "doneTitle": "Demande envoyée !",
-      "doneDescription": "Référence {{reference}}. L’école vous appellera au {{phone}} dans les prochains jours.",
+      "doneDescription": "Numéro de dossier {{reference}}. Notez-le : l’école vous recontactera au {{phone}} et vous informera de sa décision par SMS.",
+      "website": "Ne pas remplir ce champ",
+      "failed": "La demande n’a pas pu être envoyée. Vérifiez votre connexion et réessayez.",
+      "tooMany": "Trop de demandes envoyées depuis ce téléphone ou ce numéro. Réessayez plus tard ou contactez l’école.",
       "back": "Retour à la page de l’école",
       "errors": {
         "required": "Ce champ est obligatoire.",
@@ -1740,6 +1760,48 @@
     "address": "Adresse",
     "phone": "Téléphone",
     "email": "E-mail"
+  },
+  "preRegistrations": {
+    "title": "Pré-inscriptions",
+    "description": "Demandes envoyées en ligne par les familles depuis la page publique de l’école. Appelez la famille, puis inscrivez l’enfant ou refusez la demande : le parent est prévenu par SMS.",
+    "filter": "Afficher",
+    "filters": {
+      "pending": "En attente",
+      "enrolled": "Inscrites",
+      "refused": "Refusées",
+      "all": "Toutes"
+    },
+    "status": {
+      "pending": "En attente",
+      "enrolled": "Inscrite",
+      "refused": "Refusée"
+    },
+    "gender": {
+      "F": "fille",
+      "M": "garçon"
+    },
+    "received": "{{reference}} · reçue le {{date}}",
+    "level": "Niveau demandé",
+    "birth": "Naissance",
+    "birthValue": "{{date}} ({{age}} ans, {{gender}})",
+    "guardian": "Parent",
+    "message": "Message de la famille",
+    "enroll": "Inscrire",
+    "refuse": "Refuser",
+    "refuseTitle": "Refuser la pré-inscription",
+    "refuseDescription": "Le motif est envoyé par SMS au {{phone}} avec le numéro {{reference}}. N’y mettez aucune information sur l’enfant.",
+    "refuseReason": "Motif du refus",
+    "refuseHint": "Par exemple : « Plus de place en CE1 cette année ».",
+    "refuseConfirm": "Refuser la demande",
+    "refused": "Pré-inscription refusée",
+    "alreadyDecided": "Cette pré-inscription a déjà été traitée.",
+    "enrolledBy": "Inscrite le {{date}} par {{name}}.",
+    "refusedBy": "Refusée le {{date}} par {{name}} : {{reason}}",
+    "smsSent": "Parent prévenu par SMS.",
+    "smsFailed": "SMS non envoyé : {{reason}}",
+    "openFile": "Ouvrir le dossier de l’élève",
+    "empty": "Aucune pré-inscription",
+    "emptyDescription": "Les demandes envoyées depuis la page publique de l’école apparaîtront ici."
   },
   "permissions": {
     "school.settings.view": "Voir les paramètres de l’école",

@@ -135,6 +135,16 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Données médicales (`blood_type`, `allergies`, `medical_notes`) : `students.medical.view` dans le même périmètre ;
   `medical: null` dans la réponse sinon, et champs `prohibited` dans les requêtes. Jamais dans la liste.
 - Places : `ClassroomSeats::reserve()` (verrou sur la classe, année ouverte, capacité) avant toute inscription active.
+- Pré-inscriptions (lot 11a) : `pre_registrations` (enfant, niveau, famille, message jamais journalisé, statut
+  pending/refused/enrolled, numéro `PRE-AAAA-NNNNNN` par `Sequence`). Envoi public sans connexion
+  `POST public/schools/{slug}/pre-registrations` (`SubmitPreRegistration` : école par `public_school_id()` SECURITY
+  DEFINER puis `TenantContext::run` ; niveau par codes de cycle et de niveau ; demande renvoyée = même numéro ; 5 en
+  attente au plus par téléphone, 409 `too_many_pending` ; champ piège `website` ; limiteur `pre-registration` : 5/h
+  par IP et 3/h par téléphone). Secrétariat (`Support\PreRegistrationAccess` : `students.manage` au titre du
+  personnel, cycle du niveau ; sinon 404) : `GET pre-registrations[?status]`, `GET pre-registrations/{id}`,
+  `POST …/refuse` (motif) ; inscription pré-remplie par `POST enrollments` avec `pre_registration_id`
+  (`CompletePreRegistration` dans la transaction de l'inscription). SMS au parent après la décision
+  (`Jobs\SendPreRegistrationSms` : école, numéro, motif ; jamais le prénom de l'enfant ; `notification_status`).
 
 ## Facturation (domaine Billing)
 
@@ -177,6 +187,9 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   `SettleMobilePayment` → `RecordPayment::online()` : paiement sans caisse (`cash_session_id` nul), reçu `REC-…`,
   enregistré même si la facture a été réglée entre-temps (trop-perçu). Frais : `FinancialPolicy::mobileMoney()`
   (`schools.settings.billing_mobile_money`, `GET/PUT billing/policy`).
+- Tarifs publics (lot 11a) : `GET public/schools/{slug}/fees` (`ShowPublicFees`, sans connexion, sous la RLS de l'école
+  du slug) : grille de l'année en cours par niveau des cycles actifs, seulement si `schools.settings.public_fees`
+  (réglage `public_fees` de `PATCH school`, désactivé par défaut) ; sinon `data: null`.
 - Reçus PDF et confirmation SMS (lot 10b) : `Events\PaymentReceived` (guichet et Mobile Money, après la transaction)
   et `Events\PaymentCancelled` (`CancelPayment`, après la transaction) → `Listeners\PrepareReceipt` (synchrone, école
   courante). `receipt_files` : une fiche par paiement et par version (`cancelled` : reçu « ANNULÉ »), état

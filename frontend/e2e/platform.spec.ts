@@ -76,6 +76,8 @@ test.describe('page publique de l’école (sans connexion)', () => {
     await page.getByLabel('Nom', { exact: true }).fill('Kouassi')
     await page.getByLabel('Prénom(s)').fill('Aya')
     await page.getByLabel('Date de naissance').fill('2020-03-14')
+    await expect(page.getByRole('heading', { name: /Tarifs/ })).toHaveCount(0)
+    await page.getByLabel('Sexe').selectOption('Fille')
     await page.getByLabel('Niveau souhaité').selectOption('Moyenne section')
     await page.getByLabel('Nom complet').fill('Adjoua Kouassi')
     await page.getByLabel('Téléphone').fill('1234')
@@ -87,7 +89,21 @@ test.describe('page publique de l’école (sans connexion)', () => {
     await page.getByLabel('J’accepte que l’école me contacte au sujet de cette demande.').check()
     await page.getByRole('button', { name: 'Envoyer la demande' }).click()
     await expect(page.getByRole('heading', { name: /Demande envoyée/, level: 1 })).toBeVisible()
-    await expect(page.getByText(/Référence PRE-2026-0001/)).toBeVisible()
+    await expect(page.getByText(/Numéro de dossier PRE-2026-000002/)).toBeVisible()
+  })
+
+  test('tarifs publiés par l’école : grille de l’année en cours', async ({ page }) => {
+    await mockApi(page, { session: ACCOUNTS.director })
+    await page.goto('/les-lauriers/parametres')
+    await page.getByLabel('Afficher les tarifs sur la page publique').click()
+    await expect(
+      page.getByText('Les tarifs sont affichés sur la page publique', { exact: true }),
+    ).toBeVisible()
+
+    await page.goto('/les-lauriers')
+    await expect(page.getByRole('heading', { name: 'Tarifs 2026-2027', level: 2 })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: 'Scolarité' })).toBeVisible()
+    await expect(page.getByRole('rowheader', { name: /CE1/ })).toBeVisible()
   })
 
   test('école inconnue : message clair', async ({ page }) => {

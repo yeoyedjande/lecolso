@@ -20,6 +20,7 @@ final class UpdateSchoolProfileRequest extends FormRequest
 
     /**
      * Champs envoyés seulement ; chaîne vide = effacer (sauf le nom, obligatoire). `code` : 2 à 5 lettres majuscules.
+     * `public_fees` : publier les tarifs de l'année en cours sur la page publique.
      *
      * @return array<string, list<mixed>>
      */
@@ -37,6 +38,7 @@ final class UpdateSchoolProfileRequest extends FormRequest
             }],
             'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'motto' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'public_fees' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -68,5 +70,15 @@ final class UpdateSchoolProfileRequest extends FormRequest
         }
 
         return $attributes;
+    }
+
+    /**
+     * Réglages envoyés (fusionnés dans schools.settings).
+     *
+     * @return array{public_fees?: bool}
+     */
+    public function settings(): array
+    {
+        return $this->has('public_fees') ? ['public_fees' => $this->boolean('public_fees')] : [];
     }
 }

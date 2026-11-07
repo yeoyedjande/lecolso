@@ -9,8 +9,11 @@ use App\Domains\Identity\Models\User;
 use App\Domains\Students\Data\NewEnrollment;
 use App\Domains\Students\Enums\BloodType;
 use App\Domains\Students\Enums\Gender;
+use App\Domains\Students\Enums\PreRegistrationStatus;
+use App\Domains\Students\Models\PreRegistration;
 use App\Domains\Students\Models\Student;
 use App\Domains\Students\Policies\StudentPolicy;
+use App\Domains\Students\Support\PreRegistrationAccess;
 use App\Support\Phone\Phone;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -21,7 +24,8 @@ use LogicException;
 
 /**
  * Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
- * contact principal, le premier tuteur par défaut), `classroom_id` et `options` (codes des services optionnels). Droits : students.manage sur le cycle de la
+ * contact principal, le premier tuteur par défaut), `classroom_id`, `options` (codes des services optionnels) et
+ * `pre_registration_id` (pré-inscription en attente menée à son terme : elle passe « inscrite », SMS au parent). Droits : students.manage sur le cycle de la
  * classe ; champs médicaux de `student` refusés sans students.medical.view sur ce cycle.
  */
 final class EnrollStudentRequest extends FormRequest
@@ -57,6 +61,7 @@ final class EnrollStudentRequest extends FormRequest
             'options' => ['sometimes', 'array', 'max:10'],
             'options.*' => ['string', 'distinct', 'exists:fee_types,code,is_optional,1'],
             'guardians' => ['required', 'array', 'min:1', 'max:4'],
+            'pre_registration_id' => ['sometimes', 'nullable', 'uuid'],
             ...self::guardianRules('guardians.*.', true),
         ];
     }
@@ -67,6 +72,20 @@ final class EnrollStudentRequest extends FormRequest
     public function after(): array
     {
         return [
+            function (Validator $validator): void {
+                // Pré-inscription menée à son terme : visible par l'utilisateur et encore en attente
+                $id = $validator->getData()['pre_registration_id'] ?? null;
+                $user = $this->user();
+                if (! is_string($id) || $id === '' || ! $user instanceof User) {
+                    return;
+                }
+                $preRegistration = Str::isUuid($id) ? PreRegistration::query()->find($id) : null;
+                if ($preRegistration === null || ! app(PreRegistrationAccess::class)->sees($user, $preRegistration)) {
+                    $validator->errors()->add('pre_registration_id', 'Pré-inscription introuvable.');
+                } elseif ($preRegistration->status !== PreRegistrationStatus::Pending) {
+                    $validator->errors()->add('pre_registration_id', 'Cette pré-inscription a déjà été traitée.');
+                }
+            },
             static function (Validator $validator): void {
                 $guardians = $validator->getData()['guardians'] ?? null;
                 if (! is_array($guardians)) {
@@ -141,6 +160,14 @@ final class EnrollStudentRequest extends FormRequest
                 $guardians,
             ),
         );
+    }
+
+    /** Pré-inscription menée à son terme par cette inscription (validée dans after()), sinon null. */
+    public function preRegistration(): ?PreRegistration
+    {
+        $id = $this->validated('pre_registration_id');
+
+        return is_string($id) && $id !== '' ? PreRegistration::query()->find($id) : null;
     }
 
     /**

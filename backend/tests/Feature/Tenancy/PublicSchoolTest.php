@@ -23,8 +23,8 @@ it('renvoie la page publique d’une école sans authentification', function ():
                 'motto' => null,
                 'logo_url' => null,
                 'cycles' => [
-                    ['code' => 'kindergarten', 'name' => 'Maternelle', 'levels' => ['Petite section', 'Moyenne section', 'Grande section']],
-                    ['code' => 'primary', 'name' => 'Primaire', 'levels' => ['CP1', 'CP2', 'CE1', 'CE2', 'CM1', 'CM2']],
+                    ['code' => 'kindergarten', 'name' => 'Maternelle', 'levels' => [['code' => 'PS', 'name' => 'Petite section'], ['code' => 'MS', 'name' => 'Moyenne section'], ['code' => 'GS', 'name' => 'Grande section']]],
+                    ['code' => 'primary', 'name' => 'Primaire', 'levels' => array_map(static fn (string $code): array => ['code' => $code, 'name' => $code], ['CP1', 'CP2', 'CE1', 'CE2', 'CM1', 'CM2'])],
                 ],
             ],
         ]);

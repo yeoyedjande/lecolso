@@ -101,6 +101,59 @@ test('inscription : classe, élève, parents, vérification, matricule attribué
   await expect(page.getByRole('link', { name: /KOUADIO Ange/ })).toBeVisible()
 })
 
+test('pré-inscription reçue en ligne : inscription pré-remplie, SMS noté', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/pre-inscriptions')
+
+  const list = page.getByRole('list', { name: 'Pré-inscriptions' })
+  await expect(list.getByRole('heading', { name: 'TOURÉ Mariam' })).toBeVisible()
+  await expect(list.getByText('Nous arrivons de Yamoussoukro en janvier.')).toBeVisible()
+  await expect(list.getByRole('link', { name: '+225 07 07 07 07 01' })).toHaveAttribute(
+    'href',
+    'tel:+2250707070701',
+  )
+
+  await list.getByRole('link', { name: 'Inscrire' }).click()
+  await expect(
+    page.getByText(/Pré-inscription PRE-2026-000001 reçue en ligne : niveau demandé CE1/),
+  ).toBeVisible()
+  await page.getByLabel('Classe').selectOption({ label: 'CE1 B — 32 place(s) libre(s)' })
+  await page.getByRole('button', { name: 'Suivant' }).click()
+  await expect(page.getByLabel('Prénom(s)')).toHaveValue('Mariam')
+  await expect(page.getByLabel('Date de naissance')).toHaveValue('2019-02-11')
+  await page.getByRole('button', { name: 'Suivant' }).click()
+  await expect(page.getByLabel('Nom complet')).toHaveValue('Salimata Touré')
+  await page.getByRole('button', { name: 'Suivant' }).click()
+  await page.getByRole('button', { name: 'Valider l’inscription' }).click()
+  await expect(page.getByText(/Matricule LAU-000036, classe CE1 B/)).toBeVisible()
+
+  await page.goto('/les-lauriers/pre-inscriptions')
+  await expect(page.getByText('Aucune pré-inscription')).toBeVisible()
+  await page.getByLabel('Afficher').selectOption('Inscrites')
+  await expect(page.getByText(/Inscrite le 07\/11\/2026/)).toBeVisible()
+  await expect(
+    page.getByText('SMS non envoyé : Aucun fournisseur SMS n’est configuré.'),
+  ).toBeVisible()
+})
+
+test('pré-inscription refusée avec un motif', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/pre-inscriptions')
+
+  await page.getByRole('button', { name: 'Refuser' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Refuser la pré-inscription' })
+  await expect(dialog.getByRole('button', { name: 'Refuser la demande' })).toBeDisabled()
+  await dialog.getByLabel('Motif du refus').fill('Plus de place en CE1 cette année')
+  await dialog.getByRole('button', { name: 'Refuser la demande' }).click()
+  await expect(page.getByText('Pré-inscription refusée', { exact: true })).toBeVisible()
+  await expect(page.getByText('Aucune pré-inscription')).toBeVisible()
+
+  await page.getByLabel('Afficher').selectOption('Refusées')
+  await expect(
+    page.getByText(/Refusée le 07\/11\/2026 .* : Plus de place en CE1 cette année/),
+  ).toBeVisible()
+})
+
 test('scolarité : changer de classe puis noter un départ', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.director })
   await page.goto(`/les-lauriers/eleves/${lauriersStudentId(20)}`)

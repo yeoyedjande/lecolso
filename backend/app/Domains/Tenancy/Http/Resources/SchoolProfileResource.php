@@ -12,14 +12,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Identité de l'école courante. `code` : préfixe des matricules (« LAU »), modifiable tant que `code_locked` est faux
- * (aucun matricule émis). `logo_url` : URL signée de lecture, valable 30 minutes (null sans logo).
+ * (aucun matricule émis). `logo_url` : URL signée de lecture, valable 30 minutes (null sans logo). `public_fees` :
+ * tarifs de l'année en cours publiés sur la page publique.
  *
  * @property-read School $resource
  */
 final class SchoolProfileResource extends JsonResource
 {
     /**
-     * @return array{id: string, name: string, slug: string, code: string, code_locked: bool, type: string, city: string|null, address: string|null, phone: string|null, email: string|null, motto: string|null, currency: string, logo_url: string|null}
+     * @return array{id: string, name: string, slug: string, code: string, code_locked: bool, type: string, city: string|null, address: string|null, phone: string|null, email: string|null, motto: string|null, currency: string, logo_url: string|null, public_fees: bool}
      */
     public function toArray(Request $request): array
     {
@@ -39,6 +40,7 @@ final class SchoolProfileResource extends JsonResource
             'motto' => $school->motto,
             'currency' => $school->currency,
             'logo_url' => $this->logoUrl($school->logo_path),
+            'public_fees' => ($school->settings['public_fees'] ?? false) === true,
         ];
     }
 

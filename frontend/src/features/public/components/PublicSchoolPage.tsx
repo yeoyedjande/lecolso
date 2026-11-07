@@ -13,75 +13,81 @@ import { useTranslation } from 'react-i18next'
 
 import { Logo, LogoMark } from '@/components/brand/Logo'
 import { HeroPattern } from '@/components/brand/Patterns'
-import { CycleBadge } from '@/components/CycleBadge'
 import { MoneyAmount } from '@/components/MoneyAmount'
 import { Reveal } from '@/components/motion/Reveal'
-import { DemoBanner } from '@/components/states/DemoBanner'
 import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { SchoolLogo } from '@/features/school/components/SchoolLogo'
 import { CYCLE_CLASSES, cycleTone } from '@/lib/cycles'
-import { YEAR_LABEL } from '@/lib/demo/dates'
 import { formatPhone } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { usePublicFees, usePublicSchool, type PublicSchool } from '../api'
+import { usePublicFees, usePublicSchool } from '../api'
 
-function Fees({ slug, school }: { slug: string; school: PublicSchool }) {
+/** Tarifs publiés par l'école (année en cours) ; rien si l'école ne les publie pas. */
+function Fees({ slug }: { slug: string }) {
   const { t } = useTranslation()
   const query = usePublicFees(slug)
-  const codes = new Set(school.cycles.flatMap((cycle) => cycle.levels))
+  const grid = query.data
+  if (grid === undefined || grid === null || grid.levels.length === 0) return null
+  const optional = grid.fee_types.filter((type) => type.optional)
   return (
-    <QueryState query={query}>
-      {({ levels, fees }) => (
-        <div className="grid gap-3">
-          <DemoBanner />
-          <div className="overflow-hidden rounded-3xl border bg-card shadow-soft">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/60 text-left text-xs text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">{t('billing.fees.level')}</th>
-                  <th className="px-4 py-3 text-right">{t('publicSchool.registration')}</th>
-                  <th className="px-4 py-3 text-right">{t('publicSchool.tuition')}</th>
+    <section aria-labelledby="fees-title" className="grid gap-5">
+      <h2 id="fees-title" className="font-display text-2xl font-bold">
+        {t('publicSchool.fees', { year: grid.year_label })}
+      </h2>
+      <div className="grid gap-3">
+        <div className="overflow-x-auto rounded-3xl border bg-card shadow-soft">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/60 text-left text-xs text-muted-foreground uppercase">
+              <tr>
+                <th scope="col" className="px-4 py-3">
+                  {t('billing.fees.level')}
+                </th>
+                {grid.fee_types.map((type) => (
+                  <th key={type.code} scope="col" className="px-4 py-3 text-right">
+                    {type.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {grid.levels.map((level) => (
+                <tr key={`${level.cycle_name}-${level.level_code}`} className="border-t">
+                  <th scope="row" className="px-4 py-3 text-left font-medium">
+                    {level.level_name}
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {level.cycle_name}
+                    </span>
+                  </th>
+                  {grid.fee_types.map((type) => {
+                    const amount = level.amounts[type.code]
+                    return (
+                      <td key={type.code} className="px-4 py-3 text-right whitespace-nowrap">
+                        {amount === undefined ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <MoneyAmount value={amount} />
+                        )}
+                      </td>
+                    )
+                  })}
                 </tr>
-              </thead>
-              <tbody>
-                {levels
-                  .filter((level) => codes.has(level.name) || codes.size === 0)
-                  .map((level) => (
-                    <tr key={level.code} className="border-t">
-                      <td className="px-4 py-3">
-                        <CycleBadge code={level.cycle} label={level.name} />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <MoneyAmount
-                          value={
-                            fees.find(
-                              (fee) => fee.levelCode === level.code && fee.kind === 'registration',
-                            )?.amount ?? 0
-                          }
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        <MoneyAmount
-                          value={
-                            fees.find(
-                              (fee) => fee.levelCode === level.code && fee.kind === 'tuition',
-                            )?.amount ?? 0
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-sm text-muted-foreground">{t('publicSchool.feesHint')}</p>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-    </QueryState>
+        <p className="text-sm text-muted-foreground">
+          {optional.length === 0
+            ? t('publicSchool.feesHint')
+            : t('publicSchool.feesOptional', {
+                services: optional.map((type) => type.name).join(', '),
+              })}
+        </p>
+      </div>
+    </section>
   )
 }
 
@@ -166,7 +172,9 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                           <CardContent className="grid gap-2 pt-6">
                             <h3 className="font-display text-xl font-bold">{cycle.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {t('publicSchool.levels', { levels: cycle.levels.join(', ') })}
+                              {t('publicSchool.levels', {
+                                levels: cycle.levels.map((level) => level.name).join(', '),
+                              })}
                             </p>
                           </CardContent>
                         </Card>
@@ -195,12 +203,7 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                 </ul>
               </section>
 
-              <section aria-labelledby="fees-title" className="grid gap-5">
-                <h2 id="fees-title" className="font-display text-2xl font-bold">
-                  {t('publicSchool.fees', { year: YEAR_LABEL })}
-                </h2>
-                <Fees slug={slug} school={school} />
-              </section>
+              <Fees slug={slug} />
 
               {(school.address !== null || school.phone !== null || school.email !== null) && (
                 <section aria-labelledby="contact-title" className="grid gap-5">

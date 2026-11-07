@@ -795,7 +795,8 @@ export interface paths {
          * Inscrire un nouvel élève
          * @description Dossier, tuteurs (réutilisés par téléphone : fratrie), classe et services optionnels en une fois ; matricule
          *     « LAU-000123 » attribué ; facture de l'année créée d'après la grille du niveau.
-         *     409 `classroom_full` (capacité atteinte) ou `year_closed` (année clôturée).
+         *     Avec `pre_registration_id`, la pré-inscription passe « inscrite » et le parent est prévenu par SMS.
+         *     409 `classroom_full` (capacité atteinte), `year_closed` (année clôturée) ou `already_decided`.
          */
         post: operations["enrollments.store"];
         delete?: never;
@@ -1503,6 +1504,109 @@ export interface paths {
          *     absences relevées et pour les appels à venir. 409 `already_decided`.
          */
         post: operations["attendance.planned-absences.decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pre-registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pré-inscriptions
+         * @description Personnel avec `students.manage` : demandes des niveaux de ses cycles (200 au plus), les plus récentes d'abord.
+         */
+        get: operations["pre-registrations.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pre-registrations/{preRegistration}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Une pré-inscription
+         * @description Pour pré-remplir l'inscription : l'inscrire par `POST enrollments` avec `pre_registration_id`.
+         */
+        get: operations["pre-registrations.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pre-registrations/{preRegistration}/refuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refuser une pré-inscription
+         * @description Motif obligatoire, envoyé au parent par SMS. 409 `already_decided`.
+         */
+        post: operations["pre-registrations.refuse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/schools/{slug}/fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tarifs publics d'une école
+         * @description Sans connexion. Grille de l'année en cours si l'école a choisi de la publier, sinon `data: null`.
+         *     404 : école inconnue.
+         */
+        get: operations["public.schools.fees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/schools/{slug}/pre-registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer une pré-inscription
+         * @description Sans connexion, depuis la page publique de l'école. Renvoie seulement le numéro du dossier (`reference`) ; une
+         *     même demande renvoyée rend le même numéro. Limité par adresse et par téléphone (429). 404 : école inconnue ;
+         *     422 : niveau inconnu, champ piège rempli ; 409 `too_many_pending`.
+         */
+        post: operations["public.schools.pre-registrations.store"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2918,7 +3022,8 @@ export interface components {
         /**
          * EnrollStudentRequest
          * @description Inscription complète d'un nouvel élève : `student` (dossier), `guardians` (1 à 4 ; un seul payeur et un seul
-         *     contact principal, le premier tuteur par défaut), `classroom_id` et `options` (codes des services optionnels). Droits : students.manage sur le cycle de la
+         *     contact principal, le premier tuteur par défaut), `classroom_id`, `options` (codes des services optionnels) et
+         *     `pre_registration_id` (pré-inscription en attente menée à son terme : elle passe « inscrite », SMS au parent). Droits : students.manage sur le cycle de la
          *     classe ; champs médicaux de `student` refusés sans students.medical.view sur ce cycle.
          */
         EnrollStudentRequest: {
@@ -2950,6 +3055,8 @@ export interface components {
                 is_payer?: boolean;
                 can_pick_up?: boolean;
             }[];
+            /** Format: uuid */
+            pre_registration_id?: string | null;
         };
         /** EnrollmentResource */
         EnrollmentResource: {
@@ -3351,6 +3458,45 @@ export interface components {
         PostMessageRequest: {
             body: string;
         };
+        /** PreRegistrationResource */
+        PreRegistrationResource: {
+            id: string;
+            reference: string;
+            /** @enum {string} */
+            status: "pending" | "refused" | "enrolled";
+            created_at: string;
+            child: {
+                last_name: string;
+                first_name: string;
+                /** @enum {string} */
+                gender: "F" | "M";
+                birth_date: string;
+            };
+            level: {
+                id: string;
+                name: string;
+                cycle_id: string;
+                cycle_name: string;
+            };
+            guardian: {
+                name: string;
+                phone: string;
+                email: string | null;
+            };
+            message: string | null;
+            decided_by_name: string | null;
+            decided_at: string | null;
+            decision_note: string | null;
+            student_id: string | null;
+            notification_status: string | null;
+            notification_failure: string | null;
+        };
+        /**
+         * PreRegistrationStatus
+         * @description Pré-inscription : en attente du secrétariat, refusée (motif), ou inscrite (élève créé par l'inscription pré-remplie).
+         * @enum {string}
+         */
+        PreRegistrationStatus: "pending" | "refused" | "enrolled";
         /** ProfileResource */
         ProfileResource: {
             id: string;
@@ -3362,6 +3508,23 @@ export interface components {
             /** @description « Se souvenir de moi » proposé (comptes sans rôle du personnel) */
             can_be_remembered: boolean;
             schools: components["schemas"]["SchoolMembershipResource"][];
+        };
+        /** PublicFeeGridResource */
+        PublicFeeGridResource: {
+            year_label: string;
+            fee_types: {
+                code: string;
+                name: string;
+                optional: boolean;
+            }[];
+            levels: {
+                cycle_name: string;
+                level_code: string;
+                level_name: string;
+                amounts: {
+                    [key: string]: number;
+                };
+            }[];
         };
         /** PublicSchoolResource */
         PublicSchoolResource: {
@@ -3377,7 +3540,10 @@ export interface components {
             cycles: {
                 code: string;
                 name: string;
-                levels: string[];
+                levels: {
+                    code: string;
+                    name: string;
+                }[];
             }[];
         };
         /**
@@ -3453,6 +3619,13 @@ export interface components {
             reference: string | null;
             reason: string;
             refunded_by_name: string;
+        };
+        /**
+         * RefusePreRegistrationRequest
+         * @description Refus d'une pré-inscription : motif obligatoire, envoyé au parent par SMS.
+         */
+        RefusePreRegistrationRequest: {
+            reason: string;
         };
         /**
          * RemindRequest
@@ -3843,6 +4016,7 @@ export interface components {
             motto: string | null;
             currency: string;
             logo_url: string | null;
+            public_fees: boolean;
         };
         /** SchoolResource */
         SchoolResource: {
@@ -4089,6 +4263,28 @@ export interface components {
             position: number;
         };
         /**
+         * SubmitPreRegistrationRequest
+         * @description Pré-inscription depuis la page publique (sans connexion). `website` : champ piège invisible, rempli par les seuls
+         *     robots (refusé). `consent` : accord de la famille pour que l'école traite la demande.
+         */
+        SubmitPreRegistrationRequest: {
+            cycle_code: string;
+            level_code: string;
+            child_last_name: string;
+            child_first_name: string;
+            child_gender: components["schemas"]["Gender"];
+            /** Format: date */
+            child_birth_date: string;
+            guardian_name: string;
+            guardian_phone: string;
+            /** Format: email */
+            guardian_email?: string | null;
+            message?: string | null;
+            /** @enum {unknown} */
+            consent?: "yes" | "on" | "1" | 1 | "true" | true;
+            website?: string;
+        };
+        /**
          * SyncRequest
          * @description File hors connexion : 1 à 100 opérations `{ id (UUID de l'appareil), type, payload }`. Chaque opération est
          *     contrôlée comme son équivalent en ligne ; une opération déjà traitée renvoie son premier résultat.
@@ -4235,6 +4431,7 @@ export interface components {
             /** Format: email */
             email?: string | null;
             motto?: string | null;
+            public_fees?: boolean;
         };
         /** UpdateSchoolRoleRequest */
         UpdateSchoolRoleRequest: {
@@ -6874,6 +7071,150 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "pre-registrations.index": {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PreRegistrationStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `PreRegistrationResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PreRegistrationResource"][];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "pre-registrations.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pre registration ID */
+                preRegistration: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `PreRegistrationResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PreRegistrationResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "pre-registrations.refuse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pre registration ID */
+                preRegistration: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefusePreRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description `PreRegistrationResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PreRegistrationResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "public.schools.fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PublicFeeGridResource"] | null;
+                    };
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
+        };
+    };
+    "public.schools.pre-registrations.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitPreRegistrationRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            reference: string;
+                        };
+                    };
+                };
+            };
+            404: components["responses"]["NotFoundHttpException"];
             422: components["responses"]["ValidationException"];
         };
     };
