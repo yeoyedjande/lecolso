@@ -102,8 +102,9 @@ La commande demande le nom affiché, le téléphone (identifiant de connexion), 
 passe **deux fois, sans l'afficher** : 12 caractères au moins, avec majuscules, minuscules et chiffres, sans le numéro
 de téléphone. Elle :
 
-- refuse de s'exécuter sans terminal interactif (aucun mot de passe en argument, en option ni en variable : il
-  resterait dans l'historique du shell et la liste des processus) ;
+- refuse de s'exécuter sans terminal interactif, y compris avec une entrée redirigée (`echo … |`, `< fichier`) :
+  aucun mot de passe en argument, en option, en variable ni dans un fichier (il resterait dans l'historique du shell,
+  la liste des processus ou sur le disque) ;
 - refuse s'il existe déjà un super-administrateur, ou si le téléphone ou l'e-mail appartient déjà à un compte ;
 - n'écrit dans le journal que `platform.super_admin_created` et l'identifiant du compte (ni mot de passe, ni
   téléphone, ni e-mail).

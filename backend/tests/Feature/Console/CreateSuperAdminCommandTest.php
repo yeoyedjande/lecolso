@@ -50,6 +50,10 @@ function superAdmins(): array
     return $rows;
 }
 
+beforeEach(function (): void {
+    attachTerminal();
+});
+
 it('crée le premier super-administrateur, mot de passe haché et jamais journalisé', function (): void {
     $logged = [];
     Event::listen(MessageLogged::class, static function (MessageLogged $entry) use (&$logged): void {
@@ -112,4 +116,16 @@ it('refuse de s’exécuter sans terminal interactif (aucun mot de passe en argu
     $command->expectsOutputToContain('Commande interactive')->assertFailed();
     expect(superAdmins())->toBe([]);
     expect(User::query()->getModel()->getFillable())->not->toContain('is_super_admin');
+});
+
+it('refuse une entrée redirigée (pipe ou fichier) même sans --no-interaction', function (): void {
+    attachTerminal(false);
+
+    $command = artisan('platform:create-super-admin', ['--name' => 'Yeo', '--phone' => '0701020304']);
+    if (! $command instanceof PendingCommand) {
+        throw new LogicException('Commande attendue.');
+    }
+    // Aucune question posée : la commande s'arrête avant toute saisie
+    $command->expectsOutputToContain('Commande interactive')->doesntExpectOutputToContain('Mot de passe')->assertFailed();
+    expect(superAdmins())->toBe([]);
 });

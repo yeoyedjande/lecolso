@@ -19,6 +19,7 @@ it('met en service une base vide : premier super-admin, première école, son di
         ->and($owner->table('schools')->count())->toBe(0);
 
     // 1. Premier super-administrateur, par la commande (mot de passe saisi masqué)
+    attachTerminal();
     $command = artisan('platform:create-super-admin', ['--name' => 'Yeo Admin', '--phone' => '0701020304', '--email' => 'admin@ekalewa.com']);
     if (! $command instanceof PendingCommand) {
         throw new LogicException('Commande attendue.');

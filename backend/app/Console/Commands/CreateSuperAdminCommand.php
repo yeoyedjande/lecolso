@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domains\Identity\Actions\CreateSuperAdmin;
+use App\Support\Console\Terminal;
 use App\Support\Http\BusinessConflict;
 use App\Support\Phone\Phone;
 use Illuminate\Console\Command;
@@ -15,8 +16,8 @@ use Illuminate\Support\Facades\Log;
  * `railway ssh --service api` puis `php artisan platform:create-super-admin` (docs/deploiement-railway.md).
  *
  * Le mot de passe n'est jamais un argument ni une option (il resterait dans l'historique du terminal et la liste
- * des processus) : il est saisi masqué, deux fois, et jamais affiché ni journalisé. Sans terminal interactif, la
- * commande refuse. Nom, téléphone et e-mail peuvent être passés en options ou saisis. Aucune donnée de démo.
+ * des processus) : il est saisi masqué, deux fois, et jamais affiché ni journalisé. Sans terminal interactif
+ * (`--no-interaction`, entrée redirigée depuis un pipe ou un fichier), la commande refuse. Nom, téléphone et e-mail peuvent être passés en options ou saisis. Aucune donnée de démo.
  */
 final class CreateSuperAdminCommand extends Command
 {
@@ -27,9 +28,9 @@ final class CreateSuperAdminCommand extends Command
 
     protected $description = 'Crée le premier super-administrateur (mot de passe saisi masqué, jamais en argument)';
 
-    public function handle(CreateSuperAdmin $create): int
+    public function handle(CreateSuperAdmin $create, Terminal $terminal): int
     {
-        if (! $this->input->isInteractive()) {
+        if (! $this->input->isInteractive() || ! $terminal->stdinIsTerminal()) {
             $this->error('Commande interactive : le mot de passe se saisit au clavier, jamais en argument. Relancez-la dans un terminal (railway ssh).');
 
             return self::FAILURE;
