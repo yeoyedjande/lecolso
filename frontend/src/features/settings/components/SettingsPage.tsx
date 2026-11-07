@@ -8,6 +8,7 @@ import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { useCycles } from '@/features/cycles/api'
 import { GradingSettingsPanel } from '@/features/grades/components/GradingSettingsPanel'
 import { useSchoolProfile } from '@/features/school/api'
+import { PublicPageSettings } from '@/features/school/components/PublicPageSettings'
 import { SchoolIdentityForm } from '@/features/school/components/SchoolIdentityForm'
 
 import { CycleSettingsForm } from './CycleSettingsForm'
@@ -39,11 +40,17 @@ export function SettingsPage() {
         <TabsContent value="identity" className="mt-4 grid gap-3">
           <QueryState query={profile}>
             {(data) => (
-              <SchoolIdentityForm
-                key={data.id}
-                profile={data}
-                editable={school?.permissions['school.settings.manage'] === null}
-              />
+              <>
+                <SchoolIdentityForm
+                  key={data.id}
+                  profile={data}
+                  editable={school?.permissions['school.settings.manage'] === null}
+                />
+                <PublicPageSettings
+                  profile={data}
+                  editable={school?.permissions['school.settings.manage'] === null}
+                />
+              </>
             )}
           </QueryState>
         </TabsContent>

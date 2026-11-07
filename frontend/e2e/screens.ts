@@ -46,6 +46,7 @@ export const SCREENS: Screen[] = [
       ['gestion-eleves', '/les-lauriers/eleves', /^25 élèves affichés/],
       ['gestion-fiche-eleve', `/les-lauriers/eleves/${lauriersStudentId(1)}`, 'Matricule'],
       ['gestion-inscription', '/les-lauriers/inscriptions', 'Étape 1 sur 4'],
+      ['gestion-pre-inscriptions', '/les-lauriers/pre-inscriptions', 'TOURÉ Mariam'],
       ['gestion-import', '/les-lauriers/import', 'Colonnes attendues (première ligne du fichier)'],
       ['gestion-classes', '/les-lauriers/classes', 'CM2 A'],
       [
@@ -135,7 +136,7 @@ export const SCREENS: Screen[] = [
     dark: true,
     ready: 'Directeur ou directrice',
   },
-  { name: 'ecole-publique', path: '/les-lauriers', ready: 'Scolarité' },
+  { name: 'ecole-publique', path: '/les-lauriers', ready: 'Pré-inscrire mon enfant' },
   {
     name: 'ecole-preinscription',
     path: '/les-lauriers/preinscription',

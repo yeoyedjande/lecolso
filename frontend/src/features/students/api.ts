@@ -291,3 +291,73 @@ export function useImportStudents() {
 }
 
 export type { EnrollmentInput, StudentFilters }
+
+// Pré-inscriptions reçues en ligne
+
+export type PreRegistration = components['schemas']['PreRegistrationResource']
+export type PreRegistrationStatus = PreRegistration['status']
+
+export const PRE_REGISTRATION_STATUSES = ['pending', 'enrolled', 'refused'] as const
+
+export function usePreRegistrationsKey() {
+  const school = useCurrentSchool()
+  return { school, key: ['school', school?.id ?? null, 'pre-registrations'] as const }
+}
+
+/** Pré-inscriptions reçues en ligne (vraie API) : celles des cycles où l'on inscrit, les plus récentes d'abord. */
+export function usePreRegistrations(status: PreRegistrationStatus | null) {
+  const { school, key } = usePreRegistrationsKey()
+  return useQuery({
+    queryKey: [...key, 'list', status],
+    enabled: school !== null,
+    queryFn: async ({ signal }): Promise<PreRegistration[]> => {
+      const { data, error } = await api.GET('/pre-registrations', {
+        params: { query: status === null ? {} : { status } },
+        signal,
+      })
+      if (data === undefined) throw new Error('Pré-inscriptions indisponibles', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Une pré-inscription, pour pré-remplir l'inscription ; null si introuvable (404). */
+export function usePreRegistration(id: string | null) {
+  const { school, key } = usePreRegistrationsKey()
+  return useQuery({
+    queryKey: [...key, 'one', id],
+    enabled: school !== null && id !== null,
+    queryFn: async ({ signal }): Promise<PreRegistration | null> => {
+      const { data, error, response } = await api.GET('/pre-registrations/{preRegistration}', {
+        params: { path: { preRegistration: id ?? '' } },
+        signal,
+      })
+      if (response.status === 404) return null
+      if (data === undefined) throw new Error('Pré-inscription indisponible', { cause: error })
+      return data.data
+    },
+  })
+}
+
+/** Refus motivé d'une pré-inscription (SMS au parent). */
+export function useRefusePreRegistration() {
+  const queryClient = useQueryClient()
+  const { key } = usePreRegistrationsKey()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      reason,
+    }: {
+      id: string
+      reason: string
+    }): Promise<PreRegistration> => {
+      const { data, response } = await api.POST('/pre-registrations/{preRegistration}/refuse', {
+        params: { path: { preRegistration: id } },
+        body: { reason },
+      })
+      if (data === undefined) throw new Error(`Refus impossible (${String(response.status)})`)
+      return data.data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+}

@@ -8,6 +8,7 @@ import {
   FileText,
   GraduationCap,
   Home,
+  Inbox,
   LayoutDashboard,
   MessageCircle,
   Receipt,
@@ -34,6 +35,7 @@ export type NavKey =
   | 'dashboard'
   | 'students'
   | 'enrollment'
+  | 'preRegistrations'
   | 'import'
   | 'classes'
   | 'payments'
@@ -79,6 +81,12 @@ export const BACK_OFFICE_NAV: NavSection[] = [
     items: [
       { key: 'students', path: 'eleves', icon: Users, permission: 'students.view' },
       { key: 'enrollment', path: 'inscriptions', icon: UserPlus, permission: 'students.manage' },
+      {
+        key: 'preRegistrations',
+        path: 'pre-inscriptions',
+        icon: Inbox,
+        permission: 'students.manage',
+      },
       { key: 'import', path: 'import', icon: FileSpreadsheet, permission: 'students.manage' },
       { key: 'classes', path: 'classes', icon: School, permission: 'school.settings.view' },
     ],

@@ -173,7 +173,11 @@ src/
   ne lit que ses enfants, un enseignant que ses classes (règle appliquée par l'API, parcours dans `e2e/mobile.spec.ts`).
 - Plateforme (`/plateforme`, super-admin, `features/platform`) et page publique (`/{slug}`, `features/public`) :
   vraie API (`/platform/schools`, `/public/schools/{slug}` : résolution publique par slug, sans `/me` ni affectation).
-  Tarifs publics et pré-inscription restent en démonstration.
+  Tarifs (`usePublicFees` : `/public/schools/{slug}/fees`, section masquée si l'école ne les publie pas ; réglage
+  `<PublicPageSettings>` dans Paramètres) et pré-inscription (`usePreRegister`, champ piège `website`, 429 géré) en
+  vraie API. Secrétariat : écran `/{slug}/pre-inscriptions` (`PreRegistrationsPage`, `usePreRegistrations`,
+  `useRefusePreRegistration`) ; « Inscrire » ouvre `/{slug}/inscriptions?preinscription=<id>`, où `EnrollmentWizard`
+  reprend l'enfant et le parent et envoie `pre_registration_id`.
 - Graphiques : Recharts, couleurs de `components/charts/chartTheme.ts` et `CYCLE_CHART` (palette validée), toujours avec
   un tableau équivalent pour les lecteurs d'écran.
 

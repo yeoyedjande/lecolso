@@ -1,6 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft, ArrowRight, Check, PartyPopper, Plus, Trash2, UserPlus } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from '@tanstack/react-router'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Inbox,
+  PartyPopper,
+  Plus,
+  Trash2,
+  UserPlus,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +19,7 @@ import { CycleBadge } from '@/components/CycleBadge'
 import { MoneyAmount } from '@/components/MoneyAmount'
 import { ScreenHeader } from '@/components/ScreenHeader'
 import { EmptyState } from '@/components/states/EmptyState'
+import { QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -26,7 +37,13 @@ import { formatDay, formatPhone } from '@/lib/format'
 import { normalizeCiPhone } from '@/lib/phone'
 import { cn } from '@/lib/utils'
 
-import { useEnrollStudent, type StudentFile } from '../api'
+import {
+  useEnrollStudent,
+  usePreRegistration,
+  usePreRegistrationsKey,
+  type PreRegistration,
+  type StudentFile,
+} from '../api'
 import {
   enrollmentPayload,
   enrollmentSchema,
@@ -43,7 +60,7 @@ const STEP_FIELDS: FieldPath<EnrollmentValues>[][] = [
   ['guardians'],
   [],
 ]
-const CONFLICTS = ['classroom_full', 'year_closed'] as const
+const CONFLICTS = ['classroom_full', 'year_closed', 'already_decided'] as const
 
 const EMPTY_GUARDIAN: GuardianValues = {
   name: '',
@@ -104,8 +121,72 @@ function formField(key: string): FieldPath<EnrollmentValues> | null {
   return key === 'guardians' ? 'guardians' : null
 }
 
-/** Assistant d'inscription (vraie API) : classe, élève, parents, vérification ; matricule attribué par l'école. */
-export function EnrollmentWizard() {
+/** Valeurs de départ : vides, ou reprises d'une pré-inscription (enfant et parent ; la classe reste à choisir). */
+function initialValues(preRegistration: PreRegistration | null): EnrollmentValues {
+  if (preRegistration === null) return DEFAULTS
+  return {
+    ...DEFAULTS,
+    student: {
+      ...DEFAULTS.student,
+      firstName: preRegistration.child.first_name,
+      lastName: preRegistration.child.last_name,
+      gender: preRegistration.child.gender,
+      birthDate: preRegistration.child.birth_date,
+    },
+    guardians: [
+      {
+        ...EMPTY_GUARDIAN,
+        name: preRegistration.guardian.name,
+        phone: preRegistration.guardian.phone,
+        email: preRegistration.guardian.email ?? '',
+      },
+    ],
+  }
+}
+
+/**
+ * Assistant d'inscription (vraie API) : classe, élève, parents, vérification ; matricule attribué par l'école.
+ * Avec `preRegistrationId`, il reprend une pré-inscription reçue en ligne, qui passe « inscrite » à l'envoi.
+ */
+export function EnrollmentWizard({
+  preRegistrationId = null,
+}: {
+  preRegistrationId?: string | null
+}) {
+  const { t } = useTranslation()
+  const query = usePreRegistration(preRegistrationId)
+  if (preRegistrationId === null) return <EnrollmentForm preRegistration={null} />
+  return (
+    <QueryState query={query}>
+      {(preRegistration) =>
+        preRegistration?.status !== 'pending' ? (
+          <div className="grid gap-6">
+            <ScreenHeader title={t('enrollment.title')} demo={false} />
+            <EmptyState
+              illustration="lost"
+              title={
+                preRegistration === null
+                  ? t('enrollment.preRegistrationNotFound')
+                  : t('enrollment.preRegistrationDecided')
+              }
+              action={
+                <Button asChild>
+                  <Link from="/$school" to="/$school/pre-inscriptions">
+                    {t('enrollment.backToPreRegistrations')}
+                  </Link>
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <EnrollmentForm key={preRegistration.id} preRegistration={preRegistration} />
+        )
+      }
+    </QueryState>
+  )
+}
+
+function EnrollmentForm({ preRegistration }: { preRegistration: PreRegistration | null }) {
   const { t } = useTranslation()
   const message = useFieldMessage()
   const school = useCurrentSchool()
@@ -113,6 +194,9 @@ export function EnrollmentWizard() {
   const classrooms = useClassroomList()
   const grid = useBillingGrid(can(school, 'billing.view'))
   const enroll = useEnrollStudent()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { key: preRegistrationsKey } = usePreRegistrationsKey()
   const [step, setStep] = useState(0)
   const [created, setCreated] = useState<StudentFile | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
@@ -122,7 +206,7 @@ export function EnrollmentWizard() {
     // Validation au clic sur « Suivant » seulement : revalider à la sortie d'un champ ferait disparaître le message
     // pendant le clic, le bouton remonterait sous le pointeur et le clic serait perdu
     mode: 'onSubmit',
-    defaultValues: DEFAULTS,
+    defaultValues: initialValues(preRegistration),
   })
   const { register, control, formState, setValue, setError, trigger, handleSubmit, reset } = form
   const guardians = useFieldArray({ control, name: 'guardians' })
@@ -161,7 +245,15 @@ export function EnrollmentWizard() {
   const submit = handleSubmit(async (data) => {
     setFailure(null)
     try {
-      setCreated(await enroll.mutateAsync(enrollmentPayload(data, medical)))
+      setCreated(
+        await enroll.mutateAsync({
+          ...enrollmentPayload(data, medical),
+          ...(preRegistration === null ? {} : { pre_registration_id: preRegistration.id }),
+        }),
+      )
+      // La liste seulement : relire cette pré-inscription (« inscrite ») remplacerait l'écran de réussite
+      if (preRegistration !== null)
+        await queryClient.invalidateQueries({ queryKey: [...preRegistrationsKey, 'list'] })
     } catch (error) {
       if (error instanceof ConflictError) {
         const code = CONFLICTS.find((candidate) => candidate === error.code)
@@ -217,6 +309,10 @@ export function EnrollmentWizard() {
               <Button
                 variant="ghost"
                 onClick={() => {
+                  if (preRegistration !== null) {
+                    void navigate({ to: '/$school/inscriptions', from: '/$school', search: {} })
+                    return
+                  }
                   reset(DEFAULTS)
                   setStep(0)
                   setCreated(null)
@@ -295,6 +391,23 @@ export function EnrollmentWizard() {
               </span>
             </h2>
             {failure !== null && <FormAlert>{failure}</FormAlert>}
+            {preRegistration !== null && step === 0 && (
+              <div className="flex items-start gap-3 rounded-xl bg-orange-100/60 p-3 text-sm dark:bg-orange/10">
+                <Inbox aria-hidden className="mt-0.5 size-4 shrink-0 text-accent-ink" />
+                <p>
+                  {t('enrollment.fromPreRegistration', {
+                    reference: preRegistration.reference,
+                    level: preRegistration.level.name,
+                    cycle: preRegistration.level.cycle_name,
+                  })}
+                  {preRegistration.message !== null && (
+                    <span className="mt-1 block text-muted-foreground">
+                      « {preRegistration.message} »
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
 
             {step === 0 && (
               <Field
