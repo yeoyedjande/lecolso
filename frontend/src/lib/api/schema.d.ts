@@ -2227,6 +2227,29 @@ export interface paths {
         patch: operations["students.guardians.update"];
         trace?: never;
     };
+    "/students/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer des élèves (fichier Excel)
+         * @description Lignes lues par le navigateur, 500 au plus. `dry_run: true` : vérification seule (`ready` ou `error` par ligne,
+         *     places comptées sur tout le lot). `dry_run: false` : inscription des lignes valides, chacune comme une
+         *     inscription manuelle (matricule, facture) ; un élève déjà inscrit est ignoré (`skipped`). Envoyer de petits lots
+         *     (50 lignes) pour l'inscription.
+         */
+        post: operations["students.import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/students/{student}/photo": {
         parameters: {
             query?: never;
@@ -3221,6 +3244,45 @@ export interface components {
             database: "ok" | "error";
             /** @enum {string} */
             redis: "ok" | "error";
+        };
+        /** ImportResultResource */
+        ImportResultResource: {
+            rows: components["schemas"]["ImportRowResource"][];
+            counts: {
+                ready: number;
+                created: number;
+                skipped: number;
+                error: number;
+            };
+        };
+        /** ImportRowResource */
+        ImportRowResource: {
+            line: number;
+            status: string;
+            errors: string[];
+            student_id: string | null;
+            matricule: string | null;
+        };
+        /**
+         * ImportStudentsRequest
+         * @description Import Excel : `dry_run` (vérifier sans rien écrire) et `rows` (500 au plus), lignes lues par le navigateur. Les
+         *     valeurs sont vérifiées ligne par ligne par l'import (erreurs renvoyées par ligne, pas en 422) ; seule la forme est
+         *     contrôlée ici. Droit : students.manage sur au moins un cycle (chaque ligne : sur le cycle de sa classe).
+         */
+        ImportStudentsRequest: {
+            dry_run: boolean;
+            rows: {
+                line: number;
+                last_name: string | null;
+                first_name: string | null;
+                gender: string | null;
+                birth_date: string | null;
+                classroom: string | null;
+                address?: string | null;
+                guardian_name: string | null;
+                guardian_relation?: string | null;
+                guardian_phone: string | null;
+            }[];
         };
         /** InvoiceLineResource */
         InvoiceLineResource: {
@@ -8428,6 +8490,35 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
             403: components["responses"]["AuthorizationException"];
             404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "students.import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportStudentsRequest"];
+            };
+        };
+        responses: {
+            /** @description `ImportResultResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ImportResultResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            403: components["responses"]["AuthorizationException"];
             422: components["responses"]["ValidationException"];
         };
     };

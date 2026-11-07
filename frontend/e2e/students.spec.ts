@@ -154,6 +154,31 @@ test('pré-inscription refusée avec un motif', async ({ page }) => {
   ).toBeVisible()
 })
 
+test('import Excel : vérification par l’école, puis inscription des lignes prêtes', async ({
+  page,
+}) => {
+  await mockApi(page, { session: ACCOUNTS.director })
+  await page.goto('/les-lauriers/import')
+
+  await page.getByLabel('Choisir un fichier Excel').setInputFiles('e2e/fixtures/eleves.xlsx')
+  await expect(
+    page.getByText(
+      /2 ligne\(s\) prête\(s\), 1 ligne\(s\) à corriger · 1 élève\(s\) déjà inscrit\(s\)/,
+    ),
+  ).toBeVisible()
+  const table = page.getByRole('table')
+  await expect(table.getByText('Classe inconnue')).toBeVisible()
+  await expect(table.getByText('Téléphone invalide')).toBeVisible()
+  await expect(table.getByText('Déjà inscrit(e)')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Inscrire 2 élève(s)' }).click()
+  await expect(page.getByText('2 élève(s) inscrit(s)', { exact: true }).first()).toBeVisible()
+
+  await page.getByRole('link', { name: 'Élèves', exact: true }).last().click()
+  await page.getByRole('searchbox', { name: /Rechercher un élève/ }).fill('fatou')
+  await expect(page.getByRole('link', { name: /BAMBA Fatou/ })).toBeVisible()
+})
+
 test('scolarité : changer de classe puis noter un départ', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.director })
   await page.goto(`/les-lauriers/eleves/${lauriersStudentId(20)}`)

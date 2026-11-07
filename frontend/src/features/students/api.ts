@@ -2,16 +2,11 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
+import { session } from '@/lib/api/session'
 import type { components } from '@/lib/api/schema'
-import { useDemoMutation, useDemoQuery } from '@/lib/demo/hooks'
+import { useDemoQuery } from '@/lib/demo/hooks'
 
-import {
-  enroll,
-  listStudents,
-  studentDetail,
-  type EnrollmentInput,
-  type StudentFilters,
-} from './demo'
+import { listStudents, studentDetail, type EnrollmentInput, type StudentFilters } from './demo'
 
 export type StudentRow = components['schemas']['StudentRowResource']
 export type StudentFile = components['schemas']['StudentResource']
@@ -282,12 +277,85 @@ export function useDemoStudent(id: string) {
   )
 }
 
-/** Import Excel : inscrit chaque ligne valide ; renvoie le nombre d'élèves créés. */
+export type ImportResult = components['schemas']['ImportResultResource']
+export type ImportRowResult = components['schemas']['ImportRowResource']
+type ImportRowBody = components['schemas']['ImportStudentsRequest']['rows'][number]
+
+/** Taille des lots envoyés à l'inscription (chaque ligne crée un dossier, un matricule et une facture). */
+export const IMPORT_BATCH = 50
+
+async function postImport(rows: ImportRowBody[], dryRun: boolean): Promise<ImportResult> {
+  const { data, response } = await api.POST('/students/import', { body: { dry_run: dryRun, rows } })
+  if (data === undefined) throw new Error(`Import impossible (${String(response.status)})`)
+  return data.data
+}
+
+/** Vérification d'un fichier par l'API (vraie API), sans rien écrire : état et erreurs de chaque ligne. */
+export function useCheckImport() {
+  return useMutation({ mutationFn: (rows: ImportRowBody[]) => postImport(rows, true) })
+}
+
+/** L'établissement actif a changé pendant un import : les lots restants ne sont pas envoyés. */
+export class ImportSchoolChanged extends Error {
+  override readonly name = 'ImportSchoolChanged'
+}
+
+/**
+ * Envoi des lignes par lots de IMPORT_BATCH, en s'arrêtant si l'établissement actif n'est plus celui du début
+ * (les lots déjà envoyés restent inscrits ; relancer le même fichier les ignore).
+ */
+export async function runImportBatches(
+  rows: ImportRowBody[],
+  {
+    currentSchool,
+    send,
+    onProgress,
+  }: {
+    currentSchool: () => string | null
+    send: (batch: ImportRowBody[]) => Promise<ImportResult>
+    onProgress: (done: number) => void
+  },
+): Promise<ImportRowResult[]> {
+  const origin = currentSchool()
+  const results: ImportRowResult[] = []
+  for (let start = 0; start < rows.length; start += IMPORT_BATCH) {
+    if (origin === null || currentSchool() !== origin)
+      throw new ImportSchoolChanged('Établissement changé pendant l’import')
+    const batch = await send(rows.slice(start, start + IMPORT_BATCH))
+    results.push(...batch.rows)
+    onProgress(Math.min(rows.length, start + IMPORT_BATCH))
+  }
+  return results
+}
+
+/**
+ * Inscription des lignes vérifiées (vraie API), par lots de 50 ; `onProgress` reçoit le nombre de lignes traitées.
+ * Un élève déjà inscrit est ignoré par l'API : relancer le même fichier ne crée aucun doublon. L'import reste lié à
+ * l'école où il a commencé : si l'établissement actif change entre deux lots (X-School-Id suit la session), il
+ * s'arrête au lieu d'inscrire la suite dans une autre école.
+ */
 export function useImportStudents() {
-  return useDemoMutation(
-    (school, rows: EnrollmentInput[], today) =>
-      rows.map((row) => enroll(school, row, today)).length,
-  )
+  const { school, key } = useStudentsKey()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      rows,
+      onProgress,
+    }: {
+      rows: ImportRowBody[]
+      onProgress: (done: number) => void
+    }): Promise<ImportRowResult[]> =>
+      runImportBatches(rows, {
+        currentSchool: () => session.getSchoolId(),
+        send: (batch) => postImport(batch, false),
+        onProgress,
+      }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...key, 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['school', school?.id ?? null, 'classrooms'] }),
+      ]),
+  })
 }
 
 export type { EnrollmentInput, StudentFilters }

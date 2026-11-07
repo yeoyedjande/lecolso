@@ -3500,6 +3500,143 @@ export async function mockApi(
           },
         })
       }
+      case 'POST /students/import': {
+        // Comme ImportStudents : vérification ligne par ligne (classe de l'année en cours et droit d'y inscrire,
+        // places, doublons), élève déjà inscrit ignoré, puis inscription des lignes valides
+        const schoolId = schoolHeader ?? ''
+        if (!cyclesOf(schoolId).some((cycle) => holds(schoolId, 'students.manage', cycle.id)))
+          return route.fulfill(forbidden)
+        const body = z
+          .object({
+            dry_run: z.boolean(),
+            rows: z.array(
+              z.object({
+                line: z.number(),
+                last_name: z.nullable(z.string()),
+                first_name: z.nullable(z.string()),
+                gender: z.nullable(z.string()),
+                birth_date: z.nullable(z.string()),
+                classroom: z.nullable(z.string()),
+                address: z.optional(z.nullable(z.string())),
+                guardian_name: z.nullable(z.string()),
+                guardian_relation: z.optional(z.nullable(z.string())),
+                guardian_phone: z.nullable(z.string()),
+              }),
+            ),
+          })
+          .parse(request.postDataJSON())
+        const nameKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ')
+        const planned = new Map<string, number>()
+        const seen = new Set<string>()
+        const rows = body.rows.map((row) => {
+          const errors: string[] = []
+          const lastName = (row.last_name ?? '').trim()
+          const firstName = (row.first_name ?? '').trim()
+          const birthDate = /^\d{4}-\d{2}-\d{2}$/.test(row.birth_date ?? '')
+            ? (row.birth_date ?? '')
+            : null
+          const phone = phoneOf(row.guardian_phone ?? '')
+          const classroom = classroomsOf(schoolId).find((candidate) => {
+            const found = levelOf(schoolId, candidate.level_id)
+            return (
+              nameKey(`${found?.level.code ?? ''} ${candidate.section}`) ===
+                nameKey(row.classroom ?? '') &&
+              holds(schoolId, 'students.manage', found?.cycle.id ?? null)
+            )
+          })
+          if (lastName === '') errors.push('last_name')
+          if (firstName === '') errors.push('first_name')
+          if (row.gender !== 'F' && row.gender !== 'M') errors.push('gender')
+          if (birthDate === null) errors.push('birth_date')
+          if (classroom === undefined) errors.push('classroom')
+          if ((row.guardian_name ?? '').trim().length < 2) errors.push('guardian')
+          if (phone === null) errors.push('phone')
+          const identity = nameKey(`${lastName}|${firstName}|${birthDate ?? ''}`)
+          if (seen.has(identity)) errors.push('duplicate')
+          seen.add(identity)
+          const base = { line: row.line, student_id: null, matricule: null }
+          if (
+            errors.length === 0 &&
+            studentsOf(schoolId).some(
+              (student) =>
+                nameKey(student.last_name) === nameKey(lastName) &&
+                nameKey(student.first_name) === nameKey(firstName) &&
+                student.birth_date === birthDate,
+            )
+          )
+            return { ...base, status: 'skipped', errors: [] }
+          if (errors.length === 0 && classroom !== undefined && classroom.capacity !== null) {
+            const used = takenSeats(schoolId, classroom.id) + (planned.get(classroom.id) ?? 0)
+            if (used >= classroom.capacity) errors.push('classroom_full')
+          }
+          if (errors.length > 0 || classroom === undefined || phone === null || birthDate === null)
+            return { ...base, status: 'error', errors }
+          if (body.dry_run) {
+            planned.set(classroom.id, (planned.get(classroom.id) ?? 0) + 1)
+            return { ...base, status: 'ready', errors: [] }
+          }
+          const guardian = guardianByPhone(schoolId, phone, (row.guardian_name ?? '').trim(), null)
+          const student: MockStudent = {
+            id: nextStudentId(),
+            matricule: nextMatricule(schoolId),
+            first_name: firstName,
+            last_name: lastName,
+            gender: row.gender === 'M' ? 'M' : 'F',
+            birth_date: birthDate,
+            birth_place: null,
+            address: row.address ?? null,
+            blood_type: null,
+            allergies: null,
+            medical_notes: null,
+            links: [
+              {
+                guardian_id: guardian.id,
+                relation:
+                  row.guardian_relation === 'mother' || row.guardian_relation === 'father'
+                    ? row.guardian_relation
+                    : 'guardian',
+                is_primary_contact: true,
+                is_payer: true,
+                can_pick_up: true,
+              },
+            ],
+            enrollments: [
+              {
+                id: nextStudentId(),
+                academic_year_id: classroom.academic_year_id,
+                classroom_id: classroom.id,
+                status: 'active',
+                enrolled_on: '2026-11-07',
+                left_on: null,
+                leave_reason: null,
+              },
+            ],
+          }
+          studentsOf(schoolId).push(student)
+          createInvoice(schoolId, student, [], '2026-11-07')
+          return {
+            ...base,
+            status: 'created',
+            errors: [],
+            student_id: student.id,
+            matricule: student.matricule,
+          }
+        })
+        const count = (status: string) => rows.filter((row) => row.status === status).length
+        return route.fulfill({
+          json: {
+            data: {
+              rows,
+              counts: {
+                ready: count('ready'),
+                created: count('created'),
+                skipped: count('skipped'),
+                error: count('error'),
+              },
+            },
+          },
+        })
+      }
       case 'POST /enrollments': {
         const schoolId = schoolHeader ?? ''
         const body = z

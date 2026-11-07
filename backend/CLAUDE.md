@@ -135,6 +135,12 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Données médicales (`blood_type`, `allergies`, `medical_notes`) : `students.medical.view` dans le même périmètre ;
   `medical: null` dans la réponse sinon, et champs `prohibited` dans les requêtes. Jamais dans la liste.
 - Places : `ClassroomSeats::reserve()` (verrou sur la classe, année ouverte, capacité) avant toute inscription active.
+- Import Excel (lot 11b) : fichier lu par le navigateur, lignes envoyées à `POST students/import` (`dry_run`, 500
+  lignes au plus ; `ImportStudents`). Chaque ligne est vérifiée (champs, classe de l'année en cours par son nom et droit
+  `enrollIn`, places comptées sur le lot, doublon dans le lot) ; un élève déjà inscrit (nom, prénom, date de naissance)
+  est `skipped` : relancer le même fichier ne crée aucun doublon. Sans `dry_run`, chaque ligne valide est inscrite
+  comme une inscription manuelle (`EnrollStudent` + `CreateInvoice`, transaction par ligne). Erreurs par ligne
+  (codes), pas en 422.
 - Pré-inscriptions (lot 11a) : `pre_registrations` (enfant, niveau, famille, message jamais journalisé, statut
   pending/refused/enrolled, numéro `PRE-AAAA-NNNNNN` par `Sequence`). Envoi public sans connexion
   `POST public/schools/{slug}/pre-registrations` (`SubmitPreRegistration` : école par `public_school_id()` SECURITY

@@ -3,7 +3,6 @@ import { CheckCircle2, FileSpreadsheet, RotateCcw, Upload } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { CycleBadge } from '@/components/CycleBadge'
 import { ScreenHeader } from '@/components/ScreenHeader'
 import { EmptyState } from '@/components/states/EmptyState'
 import { Badge } from '@/components/ui/badge'
@@ -19,52 +18,100 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useClassroomOptions } from '@/features/classes/api'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
-import { useImportStudents } from '../api'
-import { IMPORT_COLUMNS, parseImport, type ImportResult } from '../import'
+import {
+  ImportSchoolChanged,
+  useCheckImport,
+  useImportStudents,
+  type ImportRowResult,
+} from '../api'
+import { IMPORT_COLUMNS, IMPORT_ERRORS, parseImport, type ImportResult } from '../import'
 
-/** Import Excel : lecture locale du fichier (aucun envoi avant validation), aperçu, erreurs ligne par ligne. */
+/** Lignes envoyées au plus par fichier (limite de l'API). */
+const MAX_ROWS = 500
+
+function ErrorBadges({ codes }: { codes: readonly string[] }) {
+  const { t } = useTranslation()
+  return (
+    <ul className="flex flex-wrap gap-1">
+      {codes.map((code) => {
+        const known = IMPORT_ERRORS.find((candidate) => candidate === code)
+        return (
+          <li key={code}>
+            <Badge variant="destructive">
+              {known === undefined ? code : t(`import.errors.${known}`)}
+            </Badge>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/**
+ * Import Excel (vraie API) : le fichier est lu dans le navigateur, puis l'API vérifie chaque ligne (classe, places,
+ * doublons, élèves déjà inscrits) sans rien écrire ; l'inscription des lignes prêtes se fait ensuite par lots.
+ */
 export function ImportPage() {
   const { t } = useTranslation()
   const inputId = useId()
-  const classrooms = useClassroomOptions()
+  const check = useCheckImport()
   const importStudents = useImportStudents()
   const [result, setResult] = useState<ImportResult | null>(null)
+  const [checked, setChecked] = useState<Map<number, ImportRowResult>>(new Map())
   const [fileName, setFileName] = useState('')
   const [reading, setReading] = useState(false)
-  const [unreadable, setUnreadable] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
   const [onlyErrors, setOnlyErrors] = useState(false)
-  const [imported, setImported] = useState<number | null>(null)
+  const [progress, setProgress] = useState<number | null>(null)
+  const [imported, setImported] = useState<ImportRowResult[] | null>(null)
+
+  const reset = () => {
+    setResult(null)
+    setChecked(new Map())
+    setImported(null)
+    setProgress(null)
+    setFailure(null)
+  }
 
   const onFile = async (file: File | undefined) => {
     if (file === undefined) return
+    reset()
     setReading(true)
-    setUnreadable(false)
-    setImported(null)
     setFileName(file.name)
     try {
       // Bibliothèque chargée à la demande, seulement sur cet écran
       const { readSheet } = await import('read-excel-file/browser')
-      const sheet = await readSheet(file)
-      setResult(parseImport(sheet, classrooms.data ?? []))
+      const parsed = parseImport(await readSheet(file))
+      setResult(parsed)
+      if (parsed.missingColumns.length > 0 || parsed.rows.length === 0) return
+      if (parsed.rows.length > MAX_ROWS) {
+        setFailure(t('import.tooMany', { count: parsed.rows.length, max: MAX_ROWS }))
+        return
+      }
+      const verdict = await check.mutateAsync(parsed.rows.map((row) => row.body))
+      setChecked(new Map(verdict.rows.map((row) => [row.line, row])))
     } catch {
       setResult(null)
-      setUnreadable(true)
+      setFailure(t('import.unreadable'))
     } finally {
       setReading(false)
     }
   }
 
-  const valid = result?.rows.filter((row) => row.input !== null) ?? []
-  const invalid = result?.rows.filter((row) => row.input === null) ?? []
-  const shown = (onlyErrors ? invalid : (result?.rows ?? [])).slice(0, 200)
+  const rows = result?.rows ?? []
+  const ready = rows.filter((row) => checked.get(row.line)?.status === 'ready')
+  const skipped = rows.filter((row) => checked.get(row.line)?.status === 'skipped')
+  const invalid = rows.filter((row) => checked.get(row.line)?.status === 'error')
+  const shown = (onlyErrors ? invalid : rows).slice(0, 200)
+  const created = imported?.filter((row) => row.status === 'created').length ?? 0
+  const failedAfter = imported?.filter((row) => row.status === 'error') ?? []
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader title={t('import.title')} description={t('import.description')} />
+      <ScreenHeader title={t('import.title')} description={t('import.description')} demo={false} />
 
       <Card>
         <CardHeader>
@@ -83,33 +130,44 @@ export function ImportPage() {
       </Card>
 
       {imported !== null ? (
-        <EmptyState
-          title={
-            <span className="inline-flex items-center gap-2">
-              <CheckCircle2 aria-hidden className="size-5 text-success-ink" />
-              {t('import.success', { count: imported })}
-            </span>
-          }
-          action={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild>
-                <Link from="/$school" to="/$school/eleves">
-                  {t('students.title')}
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setImported(null)
-                  setResult(null)
-                }}
-              >
-                <RotateCcw aria-hidden />
-                {t('import.reset')}
-              </Button>
-            </div>
-          }
-        />
+        <div className="grid gap-4">
+          <EmptyState
+            title={
+              <span className="inline-flex items-center gap-2">
+                <CheckCircle2 aria-hidden className="size-5 text-success-ink" />
+                {t('import.success', { count: created })}
+              </span>
+            }
+            description={
+              failedAfter.length > 0
+                ? t('import.failedAfter', { count: failedAfter.length })
+                : undefined
+            }
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild>
+                  <Link from="/$school" to="/$school/eleves">
+                    {t('students.title')}
+                  </Link>
+                </Button>
+                <Button variant="outline" onClick={reset}>
+                  <RotateCcw aria-hidden />
+                  {t('import.reset')}
+                </Button>
+              </div>
+            }
+          />
+          {failedAfter.length > 0 && (
+            <ul className="grid gap-2" aria-label={t('import.failedList')}>
+              {failedAfter.map((row) => (
+                <li key={row.line} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-medium">{t('import.lineNumber', { line: row.line })}</span>
+                  <ErrorBadges codes={row.errors} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ) : (
         <label
           htmlFor={inputId}
@@ -128,6 +186,7 @@ export function ImportPage() {
             type="file"
             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="sr-only"
+            disabled={reading || importStudents.isPending}
             onChange={(event) => {
               void onFile(event.target.files?.[0])
               event.target.value = ''
@@ -136,12 +195,12 @@ export function ImportPage() {
         </label>
       )}
 
-      {unreadable && (
+      {failure !== null && (
         <p
           role="alert"
           className="rounded-xl bg-destructive-soft px-4 py-3 text-sm font-medium text-destructive-ink"
         >
-          {t('import.unreadable')}
+          {failure}
         </p>
       )}
 
@@ -154,18 +213,19 @@ export function ImportPage() {
         </p>
       )}
 
-      {result !== null && imported === null && result.rows.length > 0 && (
+      {result !== null && imported === null && checked.size > 0 && (
         <div className="grid gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-semibold" aria-live="polite">
-              {t('import.summary', { valid: valid.length, invalid: invalid.length })}
+              {t('import.summary', { valid: ready.length, invalid: invalid.length })}
+              {skipped.length > 0 && ` · ${t('import.skippedCount', { count: skipped.length })}`}
             </p>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="only-errors"
                 checked={onlyErrors}
-                onCheckedChange={(checked) => {
-                  setOnlyErrors(checked === true)
+                onCheckedChange={(value) => {
+                  setOnlyErrors(value === true)
                 }}
               />
               <Label htmlFor="only-errors">{t('import.onlyErrors')}</Label>
@@ -183,36 +243,24 @@ export function ImportPage() {
               </TableHeader>
               <TableBody>
                 {shown.map((row) => {
-                  const classroom = (classrooms.data ?? []).find(
-                    (c) => c.id === row.input?.classroomId,
-                  )
+                  const verdict = checked.get(row.line)
                   return (
                     <TableRow
                       key={row.line}
-                      className={cn(row.input === null && 'bg-destructive-soft/40')}
+                      className={cn(verdict?.status === 'error' && 'bg-destructive-soft/40')}
                     >
                       <TableCell className="tabular">{row.line}</TableCell>
                       <TableCell className="font-medium">
                         {row.values.Nom} {row.values['Prénom']}
                       </TableCell>
+                      <TableCell>{row.values.Classe}</TableCell>
                       <TableCell>
-                        {classroom !== undefined ? (
-                          <CycleBadge code={classroom.cycle} label={classroom.name} />
-                        ) : (
-                          row.values.Classe
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {row.input !== null ? (
+                        {verdict?.status === 'ready' ? (
                           <Badge variant="success">{t('import.ok')}</Badge>
+                        ) : verdict?.status === 'skipped' ? (
+                          <Badge variant="secondary">{t('import.skipped')}</Badge>
                         ) : (
-                          <ul className="flex flex-wrap gap-1">
-                            {row.errors.map((error) => (
-                              <li key={error}>
-                                <Badge variant="destructive">{t(`import.errors.${error}`)}</Badge>
-                              </li>
-                            ))}
-                          </ul>
+                          <ErrorBadges codes={verdict?.errors ?? []} />
                         )}
                       </TableCell>
                     </TableRow>
@@ -225,18 +273,31 @@ export function ImportPage() {
             variant="accent"
             size="lg"
             className="justify-self-end"
-            disabled={valid.length === 0 || importStudents.isPending}
+            disabled={ready.length === 0 || importStudents.isPending}
             onClick={() => {
-              const inputs = valid.flatMap((row) => (row.input === null ? [] : [row.input]))
-              void importStudents.mutateAsync(inputs).then((count) => {
-                setImported(count)
-                toast(t('import.success', { count }), { tone: 'success' })
-              })
+              setProgress(0)
+              importStudents
+                .mutateAsync({ rows: ready.map((row) => row.body), onProgress: setProgress })
+                .then((results) => {
+                  setImported(results)
+                  const count = results.filter((row) => row.status === 'created').length
+                  toast(t('import.success', { count }), { tone: 'success' })
+                })
+                .catch((error: unknown) => {
+                  setFailure(
+                    error instanceof ImportSchoolChanged
+                      ? t('import.schoolChanged')
+                      : t('import.interrupted'),
+                  )
+                })
+                .finally(() => {
+                  setProgress(null)
+                })
             }}
           >
-            {t(importStudents.isPending ? 'import.submitting' : 'import.submit', {
-              count: valid.length,
-            })}
+            {importStudents.isPending
+              ? t('import.progress', { done: progress ?? 0, total: ready.length })
+              : t('import.submit', { count: ready.length })}
           </Button>
         </div>
       )}
