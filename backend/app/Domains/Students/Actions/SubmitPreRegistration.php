@@ -19,7 +19,8 @@ use Illuminate\Validation\ValidationException;
  * Pré-inscription envoyée depuis la page publique, sans connexion. L'école est retrouvée par `public_school_id`
  * (SECURITY DEFINER, identifiant seulement), puis la demande s'écrit sous la RLS de cette école. Une même demande
  * renvoyée (même enfant, même date de naissance, même téléphone, encore en attente) n'est pas dupliquée : on rend son
- * numéro. Au plus MAX_PENDING_PER_PHONE demandes en attente par téléphone et par école.
+ * numéro, même pour deux envois simultanés (verrou par école et téléphone). Au plus MAX_PENDING_PER_PHONE demandes
+ * en attente par téléphone et par école.
  */
 final readonly class SubmitPreRegistration
 {
@@ -44,7 +45,12 @@ final readonly class SubmitPreRegistration
             return null;
         }
 
-        return $this->context->run($schoolId, fn (): PreRegistration => DB::transaction(function () use ($input, $now): PreRegistration {
+        return $this->context->run($schoolId, fn (): PreRegistration => DB::transaction(function () use ($schoolId, $input, $now): PreRegistration {
+            // Envois simultanés pour un même téléphone (double clic, nouvel essai) : verrou consultatif de transaction
+            // pris avant la lecture des demandes en attente (un FOR UPDATE ne verrouille aucune ligne quand il n'y en
+            // a pas encore). SQL brut justifié : aucune table lue, seulement le verrou.
+            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['pre_registration:'.$schoolId.':'.$input->guardianPhone]);
+
             $level = Level::query()
                 ->where('code', $input->levelCode)
                 ->whereHas('cycle', static fn ($cycle) => $cycle->where('code', $input->cycleCode)->where('is_active', true))
@@ -53,7 +59,6 @@ final readonly class SubmitPreRegistration
             $pending = PreRegistration::query()
                 ->where('guardian_phone', $input->guardianPhone)
                 ->where('status', PreRegistrationStatus::Pending)
-                ->lockForUpdate()
                 ->get();
             $same = $pending->first(static fn (PreRegistration $existing): bool => $existing->level_id === $level->id
                 && mb_strtolower($existing->child_last_name) === mb_strtolower($input->childLastName)
