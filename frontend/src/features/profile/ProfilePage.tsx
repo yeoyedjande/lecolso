@@ -25,11 +25,7 @@ export function ProfilePage() {
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader
-        title={t('profile.title')}
-        description={t('profile.description')}
-        demo={false}
-      />
+      <ScreenHeader title={t('profile.title')} description={t('profile.description')} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>

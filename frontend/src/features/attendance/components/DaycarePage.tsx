@@ -83,11 +83,7 @@ export function DaycarePage() {
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <ScreenHeader
-        title={t('daycare.title')}
-        description={t('daycare.description')}
-        demo={false}
-      />
+      <ScreenHeader title={t('daycare.title')} description={t('daycare.description')} />
       <QueryState query={board} skeleton={<CardsSkeleton count={3} />}>
         {(data) => {
           const children = data.classrooms.flatMap((classroom) =>

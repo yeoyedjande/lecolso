@@ -75,7 +75,6 @@ export function RolesPage() {
       <ScreenHeader
         title={t('rolesAdmin.title')}
         description={t('rolesAdmin.description')}
-        demo={false}
         actions={
           manage && (
             <Button

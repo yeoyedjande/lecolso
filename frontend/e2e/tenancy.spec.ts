@@ -56,6 +56,9 @@ test('parent de deux écoles : passe de l’une à l’autre par l’adresse, l�
   const api = await mockApi(page, { session: ACCOUNTS.guardian })
   await page.goto('/les-lauriers/parent')
   await expect(page.getByRole('heading', { name: 'Bonjour, Kouadio', level: 1 })).toBeVisible()
+  // Requêtes de la première page encore en cours (annonces, calendrier, non-lus) : comptées avant la navigation,
+  // sinon elles arrivent après le relevé et passent pour des requêtes de la seconde page
+  await page.waitForLoadState('networkidle')
 
   const before = api.schoolHeaders.length
   await page.goto('/petits-genies/parent')

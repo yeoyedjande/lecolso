@@ -30,7 +30,6 @@ export function SchedulesPage() {
       <ScreenHeader
         title={t('billing.schedules.title')}
         description={t('billing.schedules.description')}
-        demo={false}
       />
       <QueryState query={query}>
         {(rows) =>

@@ -382,7 +382,6 @@ export function CashDeskPage() {
     <div className="grid grid-cols-1 gap-6">
       <ScreenHeader
         title={t('billing.cash.title')}
-        demo={false}
         description={
           query.data === undefined
             ? undefined

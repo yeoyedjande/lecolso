@@ -527,7 +527,6 @@ export function FeesPage() {
             ? t('billing.fees.descriptionNoYear')
             : t('billing.fees.description', { year: query.data.academic_year.label })
         }
-        demo={false}
       />
       {query.data?.academic_year.status === 'closed' && (
         <Badge variant="outline" className="justify-self-start">

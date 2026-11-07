@@ -523,11 +523,7 @@ export function AttendancePage() {
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <ScreenHeader
-        title={t('attendance.title')}
-        description={t('attendance.description')}
-        demo={false}
-      />
+      <ScreenHeader title={t('attendance.title')} description={t('attendance.description')} />
       {query.isPending ? (
         <ListSkeleton />
       ) : classroom === undefined ? (

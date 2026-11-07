@@ -98,7 +98,6 @@ export function UsersPage() {
       <ScreenHeader
         title={t('usersAdmin.title')}
         description={t('usersAdmin.description')}
-        demo={false}
         actions={
           canCreate && (
             <Button

@@ -102,7 +102,6 @@ export function StudentsPage({ search }: { search: StudentsSearch }) {
             ? t('students.descriptionNoYear')
             : t('students.description', { year: year.label })
         }
-        demo={false}
         actions={
           <Can permission="students.manage">
             <Button asChild variant="outline">

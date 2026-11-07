@@ -1,5 +1,5 @@
 import { useCycles } from '@/features/cycles/api'
-import type { CycleCode } from '@/lib/demo/types'
+import type { CycleCode } from '@/lib/cycles'
 
 import { useCurrentSchool } from './useCurrentSchool'
 

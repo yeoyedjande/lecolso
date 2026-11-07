@@ -286,7 +286,6 @@ export function PreRegistrationsPage() {
       <ScreenHeader
         title={t('preRegistrations.title')}
         description={t('preRegistrations.description')}
-        demo={false}
       />
       <Field label={t('preRegistrations.filter')} className="max-w-xs">
         {(control) => (

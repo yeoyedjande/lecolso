@@ -105,7 +105,6 @@ export function ClassesPage() {
             ? t('classes.descriptionNoYear')
             : t('classes.description', { year: year.label })
         }
-        demo={false}
         actions={
           canCreate &&
           year != null && (

@@ -4,9 +4,6 @@ import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
 import { session } from '@/lib/api/session'
 import type { components } from '@/lib/api/schema'
-import { useDemoQuery } from '@/lib/demo/hooks'
-
-import { listStudents, studentDetail, type EnrollmentInput, type StudentFilters } from './demo'
 
 export type StudentRow = components['schemas']['StudentRowResource']
 export type StudentFile = components['schemas']['StudentResource']
@@ -265,18 +262,6 @@ export function useDeleteStudent() {
 
 // --- Démonstration : encaissements, espace enseignant et import Excel (modules encore sans backend) ---
 
-export function useDemoStudents(filters: StudentFilters) {
-  return useDemoQuery(['students', 'list', filters], (school, today) =>
-    listStudents(school, filters, today),
-  )
-}
-
-export function useDemoStudent(id: string) {
-  return useDemoQuery(['students', 'detail', id], (school, today) =>
-    studentDetail(school, id, today),
-  )
-}
-
 export type ImportResult = components['schemas']['ImportResultResource']
 export type ImportRowResult = components['schemas']['ImportRowResource']
 type ImportRowBody = components['schemas']['ImportStudentsRequest']['rows'][number]
@@ -357,8 +342,6 @@ export function useImportStudents() {
       ]),
   })
 }
-
-export type { EnrollmentInput, StudentFilters }
 
 // Pré-inscriptions reçues en ligne
 

@@ -151,9 +151,8 @@ export default defineRailway((ctx) => {
       // Même origine : /api/* et /sanctum/* relayés par Caddy vers l'API sur le réseau privé
       VITE_API_URL: "/api/v1",
       API_UPSTREAM: `http://\${{api.RAILWAY_PRIVATE_DOMAIN}}:${API_PORT}`,
-      // staging : page /design et données de démonstration des modules sans backend
+      // staging : page /design (outils de recette)
       VITE_APP_ENV: prod ? "production" : "staging",
-      VITE_DEMO_MODULES: prod ? "false" : "true",
     },
   });
 

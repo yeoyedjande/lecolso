@@ -77,7 +77,6 @@ export function UnpaidPage() {
       <ScreenHeader
         title={t('billing.unpaid.title')}
         description={t('billing.unpaid.description')}
-        demo={false}
       />
       <QueryState query={query}>
         {(all) => {

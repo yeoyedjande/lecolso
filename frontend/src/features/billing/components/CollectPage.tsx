@@ -510,7 +510,6 @@ export function CollectPage({
     <div className="grid gap-6">
       <ScreenHeader
         title={t('billing.collect.title')}
-        demo={false}
         description={t('billing.collect.description')}
       />
       {done !== null ? (

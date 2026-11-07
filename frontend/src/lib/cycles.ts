@@ -5,6 +5,9 @@
  */
 export type CycleTone = 'daycare' | 'kindergarten' | 'primary' | 'other'
 
+/** Codes de cycle ayant une teinte propre (catalogue V1). */
+export type CycleCode = Exclude<CycleTone, 'other'>
+
 const TONES: Record<string, CycleTone> = {
   daycare: 'daycare',
   kindergarten: 'kindergarten',

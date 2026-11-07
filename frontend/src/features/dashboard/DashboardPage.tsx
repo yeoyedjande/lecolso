@@ -372,7 +372,6 @@ export function DashboardPage() {
     <div className="grid gap-6">
       <ScreenHeader
         title={t('dashboard.title')}
-        demo={false}
         description={
           query.data === undefined
             ? undefined

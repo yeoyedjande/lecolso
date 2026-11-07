@@ -73,7 +73,6 @@ export default defineConfig(({ mode }) => {
       env: {
         VITE_API_URL: 'http://api.test/api/v1',
         VITE_APP_ENV: 'local',
-        VITE_DEMO_MODULES: 'true',
       },
     },
   }
