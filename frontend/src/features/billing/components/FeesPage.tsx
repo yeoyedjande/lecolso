@@ -457,54 +457,64 @@ function MobileMoneyFeesCard() {
                 })
             }
             return (
-              <fieldset className="grid gap-3" disabled={!editable || save.isPending}>
-                <legend className="sr-only">{t('billing.fees.mobileMoney.title')}</legend>
-                {(['school', 'guardian'] as const).map((payer) => (
-                  <label
-                    key={payer}
-                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-surface px-3 text-sm font-medium has-[:checked]:border-accent has-[:disabled]:cursor-default"
+              <div className="grid gap-3">
+                {!current.mobile_money.available && (
+                  <p
+                    role="status"
+                    className="rounded-xl bg-orange-100/60 px-3 py-2 text-sm dark:bg-orange/10"
                   >
-                    <input
-                      type="radio"
-                      name="mobile-money-payer"
-                      checked={current.mobile_money.fee_payer === payer}
-                      onChange={() => {
-                        submit(payer, current.mobile_money.fee_rate_bps)
-                      }}
-                      className="size-4 accent-accent"
-                    />
-                    {t(`billing.fees.mobileMoney.${payer}`)}
-                  </label>
-                ))}
-                <form
-                  className="flex flex-wrap items-end gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    if (valid) submit(current.mobile_money.fee_payer, bps)
-                  }}
-                >
-                  <Field
-                    label={t('billing.fees.mobileMoney.rate')}
-                    hint={t('billing.fees.mobileMoney.rateHint')}
-                    error={valid ? undefined : t('billing.fees.mobileMoney.rateError')}
-                    className="max-w-48"
-                  >
-                    {(control) => (
-                      <Input
-                        {...control}
-                        inputMode="decimal"
-                        value={value}
-                        onChange={(event) => {
-                          setRate(event.target.value)
+                    {t('billing.fees.mobileMoney.unavailable')}
+                  </p>
+                )}
+                <fieldset className="grid gap-3" disabled={!editable || save.isPending}>
+                  <legend className="sr-only">{t('billing.fees.mobileMoney.title')}</legend>
+                  {(['school', 'guardian'] as const).map((payer) => (
+                    <label
+                      key={payer}
+                      className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-surface px-3 text-sm font-medium has-[:checked]:border-accent has-[:disabled]:cursor-default"
+                    >
+                      <input
+                        type="radio"
+                        name="mobile-money-payer"
+                        checked={current.mobile_money.fee_payer === payer}
+                        onChange={() => {
+                          submit(payer, current.mobile_money.fee_rate_bps)
                         }}
+                        className="size-4 accent-accent"
                       />
-                    )}
-                  </Field>
-                  <Button type="submit" variant="outline" disabled={!valid || rate === null}>
-                    {t('common.save')}
-                  </Button>
-                </form>
-              </fieldset>
+                      {t(`billing.fees.mobileMoney.${payer}`)}
+                    </label>
+                  ))}
+                  <form
+                    className="flex flex-wrap items-end gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (valid) submit(current.mobile_money.fee_payer, bps)
+                    }}
+                  >
+                    <Field
+                      label={t('billing.fees.mobileMoney.rate')}
+                      hint={t('billing.fees.mobileMoney.rateHint')}
+                      error={valid ? undefined : t('billing.fees.mobileMoney.rateError')}
+                      className="max-w-48"
+                    >
+                      {(control) => (
+                        <Input
+                          {...control}
+                          inputMode="decimal"
+                          value={value}
+                          onChange={(event) => {
+                            setRate(event.target.value)
+                          }}
+                        />
+                      )}
+                    </Field>
+                    <Button type="submit" variant="outline" disabled={!valid || rate === null}>
+                      {t('common.save')}
+                    </Button>
+                  </form>
+                </fieldset>
+              </div>
             )
           }}
         </QueryState>

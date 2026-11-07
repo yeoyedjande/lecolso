@@ -108,25 +108,26 @@ it('envoie un seul SMS à un parent pour ses enfants en retard', function (): vo
         ->and(sentSms()[0]['message'])->toContain('la scolarité d’Awa et Ismaël présente un retard de 290 000 FCFA');
 });
 
-it('écarte une facture à jour et note un échec quand aucun fournisseur SMS n’est configuré', function (): void {
-    // Fournisseur choisi avant tout envoi (le paiement envoie déjà une confirmation)
-    app()->instance(SmsSender::class, new UnconfiguredSmsSender);
+it('écarte une facture à jour', function (): void {
     [$school, $invoice] = billedSchool();
     actingAsRole(Role::Accountant, $school);
     pay($school, $invoice->id, 145000);
     spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$invoice->id]], $school)->assertOk()
         ->assertJsonPath('data.queued', 0)
         ->assertJsonPath('data.not_overdue', 1);
+});
 
-    [$other, $late] = billedSchool();
-    actingAsRole(Role::Accountant, $other);
-    spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$late->id]], $other)->assertOk()->assertJsonPath('data.queued', 1);
-    $reminder = inSchool($other, static fn (): PaymentReminder => PaymentReminder::query()->sole());
-    expect($reminder->status)->toBe(ReminderStatus::Failed)
-        ->and($reminder->failure)->toBe('Aucun fournisseur SMS n’est configuré.');
+it('refuse la relance sans fournisseur SMS, sans rien enregistrer ni annoncer comme envoyé', function (): void {
+    // Fournisseur choisi avant toute requête (la liaison du conteneur est résolue à la première)
+    app()->instance(SmsSender::class, new UnconfiguredSmsSender);
+    [$school, $late] = billedSchool();
+    actingAsRole(Role::Accountant, $school);
 
-    // Un échec n'empêche pas de relancer
-    spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$late->id]], $other)->assertOk()->assertJsonPath('data.queued', 1);
+    spa('POST', '/api/v1/billing/reminders', ['invoice_ids' => [$late->id]], $school)
+        ->assertConflict()->assertJsonPath('code', 'sms_unavailable');
+    expect(inSchool($school, static fn (): int => PaymentReminder::query()->count()))->toBe(0);
+    spa('GET', '/api/v1/billing/unpaid', [], $school)->assertOk()->assertJsonPath('data.0.last_reminder', null);
+    spa('GET', '/api/v1/me')->assertOk()->assertJsonPath('data.sms_available', false);
 });
 
 it('isole impayés et relances entre deux écoles', function (): void {

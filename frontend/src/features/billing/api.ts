@@ -416,7 +416,7 @@ export function useSaveFinancialPolicy() {
     mutationFn: async (
       change:
         | { departure: FinancialPolicy['departure'] }
-        | { mobile_money: FinancialPolicy['mobile_money'] },
+        | { mobile_money: Omit<FinancialPolicy['mobile_money'], 'available'> },
     ): Promise<FinancialPolicy> => {
       const { data, response } = await api.PUT('/billing/policy', { body: change })
       if (data === undefined)

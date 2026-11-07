@@ -34,6 +34,7 @@ final class UnpaidController
      * Relancer par SMS.
      *
      * Un SMS par payeur pour les factures choisies en retard, au plus une fois tous les 7 jours ; envoi en file.
+     * 409 `sms_unavailable` sans fournisseur SMS configuré (rien n'est enregistré).
      */
     public function remind(RemindRequest $request, SendPaymentReminders $send): ReminderOutcomeResource
     {

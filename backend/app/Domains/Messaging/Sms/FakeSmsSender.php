@@ -26,6 +26,12 @@ final class FakeSmsSender implements SmsSender
         $this->logger->info('sms.fake_sent', ['to' => Phone::mask($to), 'length' => mb_strlen($message)]);
     }
 
+    /** Envoi factice (local, staging, tests) : traité comme un fournisseur configuré. */
+    public function available(): bool
+    {
+        return true;
+    }
+
     /**
      * @return list<array{to: string, message: string}>
      */

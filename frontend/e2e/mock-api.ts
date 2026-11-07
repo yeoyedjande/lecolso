@@ -222,7 +222,7 @@ export const ACCOUNTS = {
   },
 } satisfies Record<string, Account>
 
-function profileOf(account: Account, mustChangePassword: boolean) {
+function profileOf(account: Account, mustChangePassword: boolean, smsAvailable = true) {
   const bySchool = new Map<keyof typeof SCHOOLS, Assignment[]>()
   for (const assignment of account.roles) {
     bySchool.set(assignment.school, [...(bySchool.get(assignment.school) ?? []), assignment])
@@ -237,6 +237,7 @@ function profileOf(account: Account, mustChangePassword: boolean) {
     must_change_password: mustChangePassword,
     is_super_admin: account.superAdmin === true,
     can_be_remembered: !staff,
+    sms_available: smsAvailable,
     schools: [...bySchool].map(([key, assignments]) => {
       const roles = assignments.map((assignment) => ({
         role: assignment.role,
@@ -280,9 +281,11 @@ export interface MockApi {
  */
 export async function mockApi(
   page: Page,
-  options: { session?: Account; throttleAfter?: number } = {},
+  /** `sms: false` : comme la production sans fournisseur SMS (staging et local : envoi factice, `true`). */
+  options: { session?: Account; throttleAfter?: number; sms?: boolean } = {},
 ): Promise<MockApi> {
   let current: Account | null = options.session ?? null
+  const smsAvailable = options.sms ?? true
   let mustChange = current?.mustChangePassword ?? false
   let failures = 0
   const calls = new Map<string, number>()
@@ -3304,7 +3307,7 @@ export async function mockApi(
           return route.fulfill({ status: 401, json: { message: 'Unauthenticated.' } })
         }
         // Nom des écoles renommées par PATCH /school (comme l'API, qui lit schools.name)
-        const me = profileOf(current, mustChange)
+        const me = profileOf(current, mustChange, smsAvailable)
         const schools = me.schools.map((school) => ({
           ...school,
           name: profiles.get(school.id)?.name ?? school.name,
@@ -3338,7 +3341,7 @@ export async function mockApi(
         }
         current = account
         mustChange = account.mustChangePassword ?? false
-        return route.fulfill({ json: { data: profileOf(account, mustChange) } })
+        return route.fulfill({ json: { data: profileOf(account, mustChange, smsAvailable) } })
       }
       case 'POST /auth/password': {
         const body = z.object({ current_password: z.string() }).parse(request.postDataJSON())
@@ -4242,6 +4245,7 @@ export async function mockApi(
                   logo_url,
                 }))(schoolProfileOf(school.id)),
                 cycles,
+                sms_available: smsAvailable,
               },
             },
           })
@@ -5582,6 +5586,12 @@ export async function mockApi(
           return route.fulfill({ json: { data: unpaidRows(schoolId) } })
         }
         if (request.method() === 'POST' && path === '/billing/reminders') {
+          // Comme SendPaymentReminders : sans fournisseur SMS, rien n'est enregistré
+          if (!smsAvailable)
+            return route.fulfill({
+              status: 409,
+              json: { message: 'Relances SMS indisponibles.', code: 'sms_unavailable' },
+            })
           const schoolId = schoolHeader ?? ''
           const body = z.object({ invoice_ids: z.array(z.string()) }).parse(request.postDataJSON())
           const rows = unpaidRows(schoolId).filter((row) =>
@@ -5708,7 +5718,7 @@ export async function mockApi(
             json: {
               data: {
                 departure: policies.get(schoolId) ?? 'cancel_unstarted',
-                mobile_money: feesOf(schoolId),
+                mobile_money: { available: true, ...feesOf(schoolId) },
               },
             },
           })

@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\Response;
 
+use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
 
 /**
@@ -181,7 +182,7 @@ it('inscrit l’enfant depuis la pré-inscription et prévient le parent', funct
         ->assertUnprocessable()->assertJsonValidationErrors('pre_registration_id');
 });
 
-it('laisse la pré-inscription en attente si l’inscription échoue, et note un SMS sans fournisseur', function (): void {
+it('laisse la pré-inscription en attente si l’inscription échoue, et ne tente aucun SMS sans fournisseur', function (): void {
     app()->instance(SmsSender::class, new UnconfiguredSmsSender);
     $school = makeSchool(['primary']);
     preRegister($school)->assertCreated();
@@ -193,9 +194,12 @@ it('laisse la pré-inscription en attente si l’inscription échoue, et note un
     spa('POST', '/api/v1/enrollments', enrollFromPreRegistration($classroom, $id), $school)->assertConflict()->assertJsonPath('code', 'classroom_full');
     spa('GET', '/api/v1/pre-registrations/'.$id, [], $school)->assertOk()->assertJsonPath('data.status', 'pending');
 
+    // Sans fournisseur SMS : aucun envoi tenté ni annoncé (l'école prévient la famille elle-même)
     spa('POST', '/api/v1/pre-registrations/'.$id.'/refuse', ['reason' => 'Classe complète'], $school)->assertOk()
-        ->assertJsonPath('data.notification_status', 'failed')
-        ->assertJsonPath('data.notification_failure', 'Aucun fournisseur SMS n’est configuré.');
+        ->assertJsonPath('data.status', 'refused')
+        ->assertJsonPath('data.notification_status', null);
+    expect(postJson('/api/v1/public/schools/'.$school->slug.'/pre-registrations', [])->status())->toBe(422);
+    getJson('/api/v1/public/schools/'.$school->slug)->assertOk()->assertJsonPath('data.sms_available', false);
 });
 
 it('isole les pré-inscriptions entre deux écoles', function (): void {

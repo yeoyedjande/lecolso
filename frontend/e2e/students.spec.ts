@@ -137,12 +137,18 @@ test('pré-inscription reçue en ligne : inscription pré-remplie, SMS noté', a
 })
 
 test('pré-inscription refusée avec un motif', async ({ page }) => {
-  await mockApi(page, { session: ACCOUNTS.director })
+  await mockApi(page, { session: ACCOUNTS.director, sms: false })
   await page.goto('/les-lauriers/pre-inscriptions')
 
   await page.getByRole('button', { name: 'Refuser' }).click()
   const dialog = page.getByRole('dialog', { name: 'Refuser la pré-inscription' })
   await expect(dialog.getByRole('button', { name: 'Refuser la demande' })).toBeDisabled()
+  // Sans fournisseur SMS : l'école prévient la famille elle-même
+  await expect(
+    dialog.getByText(
+      /Prévenez vous-même la famille au \+225 07 07 07 07 01 : aucun SMS n’est envoyé/,
+    ),
+  ).toBeVisible()
   await dialog.getByLabel('Motif du refus').fill('Plus de place en CE1 cette année')
   await dialog.getByRole('button', { name: 'Refuser la demande' }).click()
   await expect(page.getByText('Pré-inscription refusée', { exact: true })).toBeVisible()

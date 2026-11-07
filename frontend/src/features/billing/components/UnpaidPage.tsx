@@ -34,6 +34,9 @@ import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { formatDate, formatMoney, formatPhone } from '@/lib/format'
 import { toast } from '@/lib/toast'
 
+import { useMe } from '@/features/auth/api'
+import { ConflictError } from '@/lib/api/errors'
+
 import { useRemind, useUnpaid, type UnpaidRow } from '../api'
 
 /** Aperçu du SMS, identique au texte envoyé (SendPaymentReminderSms::message). */
@@ -68,6 +71,8 @@ export function UnpaidPage() {
   const school = useCurrentSchool()
   const query = useUnpaid()
   const remind = useRemind()
+  // Sans fournisseur SMS configuré, aucune relance n'est proposée (rien ne serait réellement envoyé)
+  const smsAvailable = useMe().data?.sms_available === true
   const [cycle, setCycle] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirming, setConfirming] = useState(false)
@@ -82,7 +87,7 @@ export function UnpaidPage() {
         {(all) => {
           const rows = all.filter((row) => cycle === '' || row.cycle.id === cycle)
           const cycles = [...new Map(all.map((row) => [row.cycle.id, row.cycle])).values()]
-          const remindable = rows.filter((row) => row.can_remind)
+          const remindable = smsAvailable ? rows.filter((row) => row.can_remind) : []
           const chosen = all.filter((row) => selected.has(row.invoice_id))
           const firstPayer = chosen[0]?.payer?.name
           const preview = smsPreview(chosen.filter((row) => row.payer?.name === firstPayer))
@@ -140,16 +145,22 @@ export function UnpaidPage() {
                     {t('billing.unpaid.tooMany', { max: MAX_REMIND })}
                   </p>
                 )}
-                <Button
-                  variant="accent"
-                  disabled={selected.size === 0 || selected.size > MAX_REMIND}
-                  onClick={() => {
-                    setConfirming(true)
-                  }}
-                >
-                  <MessageSquareText aria-hidden />
-                  {t('billing.unpaid.remind', { count: selected.size })}
-                </Button>
+                {smsAvailable ? (
+                  <Button
+                    variant="accent"
+                    disabled={selected.size === 0 || selected.size > MAX_REMIND}
+                    onClick={() => {
+                      setConfirming(true)
+                    }}
+                  >
+                    <MessageSquareText aria-hidden />
+                    {t('billing.unpaid.remind', { count: selected.size })}
+                  </Button>
+                ) : (
+                  <p className="max-w-md text-sm text-muted-foreground">
+                    {t('billing.unpaid.smsUnavailable')}
+                  </p>
+                )}
               </div>
               <Card className="overflow-x-auto p-0">
                 <Table>
@@ -183,7 +194,7 @@ export function UnpaidPage() {
                     {rows.map((row) => (
                       <TableRow key={row.invoice_id}>
                         <TableCell>
-                          {row.can_remind && (
+                          {row.can_remind && smsAvailable && (
                             <Checkbox
                               aria-label={t('billing.unpaid.select', {
                                 name: row.student.full_name,
@@ -306,8 +317,13 @@ export function UnpaidPage() {
                             if (outcome.no_phone > 0)
                               toast(t('billing.unpaid.skippedNoPhone', { count: outcome.no_phone }))
                           })
-                          .catch(() => {
-                            toast(t('common.error'), { tone: 'error' })
+                          .catch((error: unknown) => {
+                            toast(
+                              error instanceof ConflictError && error.code === 'sms_unavailable'
+                                ? t('billing.unpaid.smsUnavailable')
+                                : t('common.error'),
+                              { tone: 'error' },
+                            )
                           })
                       }}
                     >

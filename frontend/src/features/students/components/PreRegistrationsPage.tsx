@@ -20,6 +20,7 @@ import {
 import { Field } from '@/components/ui/field'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
+import { useMe } from '@/features/auth/api'
 import { FormAlert } from '@/features/auth/components/FormAlert'
 import { ConflictError } from '@/lib/api/errors'
 import { DISPLAY_TIME_ZONE, formatDate, formatDateTime, formatPhone } from '@/lib/format'
@@ -46,9 +47,11 @@ function todayInSchool(): string {
 
 function RefuseDialog({
   request,
+  sms,
   onClose,
 }: {
   request: PreRegistration | null
+  sms: boolean
   onClose: () => void
 }) {
   const { t } = useTranslation()
@@ -68,10 +71,15 @@ function RefuseDialog({
         <DialogDescription>
           {request === null
             ? null
-            : t('preRegistrations.refuseDescription', {
-                reference: request.reference,
-                phone: formatPhone(request.guardian.phone),
-              })}
+            : t(
+                sms
+                  ? 'preRegistrations.refuseDescriptionSms'
+                  : 'preRegistrations.refuseDescription',
+                {
+                  reference: request.reference,
+                  phone: formatPhone(request.guardian.phone),
+                },
+              )}
         </DialogDescription>
         {error !== null && <FormAlert>{error}</FormAlert>}
         <Field label={t('preRegistrations.refuseReason')} hint={t('preRegistrations.refuseHint')}>
@@ -279,13 +287,15 @@ export function PreRegistrationsPage() {
   const [status, setStatus] = useState<PreRegistrationStatus | 'all'>('pending')
   const query = usePreRegistrations(status === 'all' ? null : status)
   const [refusing, setRefusing] = useState<PreRegistration | null>(null)
+  // Sans fournisseur SMS, aucun texte n'annonce un SMS au parent
+  const sms = useMe().data?.sms_available === true
   const today = todayInSchool()
 
   return (
     <div className="grid gap-6">
       <ScreenHeader
         title={t('preRegistrations.title')}
-        description={t('preRegistrations.description')}
+        description={t(sms ? 'preRegistrations.descriptionSms' : 'preRegistrations.description')}
       />
       <Field label={t('preRegistrations.filter')} className="max-w-xs">
         {(control) => (
@@ -330,6 +340,7 @@ export function PreRegistrationsPage() {
       </QueryState>
       <RefuseDialog
         request={refusing}
+        sms={sms}
         onClose={() => {
           setRefusing(null)
         }}
