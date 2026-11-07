@@ -15,7 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class PublicSchoolResource extends JsonResource
 {
     /**
-     * @return array{name: string, slug: string, city: string|null, type: string, address: string|null, phone: string|null, email: string|null, motto: string|null, logo_url: string|null, cycles: list<array{code: string, name: string, levels: list<string>}>}
+     * @return array{name: string, slug: string, city: string|null, type: string, address: string|null, phone: string|null, email: string|null, motto: string|null, logo_url: string|null, cycles: list<array{code: string, name: string, levels: list<array{code: string, name: string}>}>}
      */
     public function toArray(Request $request): array
     {

@@ -24,7 +24,7 @@ final class FindPublicSchool
         }
 
         /** @var object{name: string, slug: string, city: string|null, type: string, address: string|null, phone: string|null, email: string|null, motto: string|null, logo_path: string|null, cycles: string} $row */
-        /** @var list<array{code: string, name: string, levels: list<string>}> $cycles */
+        /** @var list<array{code: string, name: string, levels: list<array{code: string, name: string}>}> $cycles */
         $cycles = json_decode($row->cycles, true, flags: JSON_THROW_ON_ERROR);
 
         return new PublicSchoolProfile(

@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 use App\Domains\Students\Http\Controllers\EnrollmentController;
 use App\Domains\Students\Http\Controllers\PersonPhotoFileController;
+use App\Domains\Students\Http\Controllers\PreRegistrationController;
+use App\Domains\Students\Http\Controllers\PublicPreRegistrationController;
 use App\Domains\Students\Http\Controllers\StudentController;
 use App\Domains\Students\Http\Controllers\StudentGuardianController;
 use App\Domains\Students\Http\Controllers\StudentPhotoController;
@@ -16,6 +18,12 @@ Route::get('files/person-photos/{file}', PersonPhotoFileController::class)
     ->where('file', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp')
     ->middleware('signed:relative')
     ->name('files.person-photo');
+
+// Pré-inscription depuis la page publique : sans connexion, limitée par adresse et par téléphone
+Route::post('public/schools/{slug}/pre-registrations', PublicPreRegistrationController::class)
+    ->where('slug', '[a-z0-9-]{1,50}')
+    ->middleware('throttle:pre-registration')
+    ->name('public.schools.pre-registrations.store');
 
 // Routes d'un établissement (en-tête X-School-Id)
 Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
@@ -32,6 +40,10 @@ Route::middleware(['auth:sanctum', 'school'])->group(static function (): void {
     Route::post('students/{student}/guardians', [StudentGuardianController::class, 'store'])->name('students.guardians.store');
     Route::patch('students/{student}/guardians/{guardian}', [StudentGuardianController::class, 'update'])->name('students.guardians.update');
     Route::delete('students/{student}/guardians/{guardian}', [StudentGuardianController::class, 'destroy'])->name('students.guardians.destroy');
+
+    Route::get('pre-registrations', [PreRegistrationController::class, 'index'])->name('pre-registrations.index');
+    Route::get('pre-registrations/{preRegistration}', [PreRegistrationController::class, 'show'])->name('pre-registrations.show');
+    Route::post('pre-registrations/{preRegistration}/refuse', [PreRegistrationController::class, 'refuse'])->name('pre-registrations.refuse');
 
     Route::post('enrollments', [EnrollmentController::class, 'store'])->name('enrollments.store');
     Route::patch('enrollments/{enrollment}', [EnrollmentController::class, 'update'])->name('enrollments.update');

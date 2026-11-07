@@ -2457,7 +2457,7 @@
         "/enrollments": {
             "post": {
                 "operationId": "enrollments.store",
-                "description": "Dossier, tuteurs (r\u00e9utilis\u00e9s par t\u00e9l\u00e9phone : fratrie), classe et services optionnels en une fois ; matricule\n\u00ab LAU-000123 \u00bb attribu\u00e9 ; facture de l'ann\u00e9e cr\u00e9\u00e9e d'apr\u00e8s la grille du niveau.\n409 `classroom_full` (capacit\u00e9 atteinte) ou `year_closed` (ann\u00e9e cl\u00f4tur\u00e9e).",
+                "description": "Dossier, tuteurs (r\u00e9utilis\u00e9s par t\u00e9l\u00e9phone : fratrie), classe et services optionnels en une fois ; matricule\n\u00ab LAU-000123 \u00bb attribu\u00e9 ; facture de l'ann\u00e9e cr\u00e9\u00e9e d'apr\u00e8s la grille du niveau.\nAvec `pre_registration_id`, la pr\u00e9-inscription passe \u00ab inscrite \u00bb et le parent est pr\u00e9venu par SMS.\n409 `classroom_full` (capacit\u00e9 atteinte), `year_closed` (ann\u00e9e cl\u00f4tur\u00e9e) ou `already_decided`.",
                 "summary": "Inscrire un nouvel \u00e9l\u00e8ve",
                 "tags": [
                     "Enrollment"
@@ -4662,6 +4662,289 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/pre-registrations": {
+            "get": {
+                "operationId": "pre-registrations.index",
+                "description": "Personnel avec `students.manage` : demandes des niveaux de ses cycles (200 au plus), les plus r\u00e9centes d'abord.",
+                "summary": "Pr\u00e9-inscriptions",
+                "tags": [
+                    "PreRegistration"
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/PreRegistrationStatus"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PreRegistrationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PreRegistrationResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/pre-registrations/{preRegistration}": {
+            "get": {
+                "operationId": "pre-registrations.show",
+                "description": "Pour pr\u00e9-remplir l'inscription : l'inscrire par `POST enrollments` avec `pre_registration_id`.",
+                "summary": "Une pr\u00e9-inscription",
+                "tags": [
+                    "PreRegistration"
+                ],
+                "parameters": [
+                    {
+                        "name": "preRegistration",
+                        "in": "path",
+                        "required": true,
+                        "description": "The pre registration ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PreRegistrationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PreRegistrationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/pre-registrations/{preRegistration}/refuse": {
+            "post": {
+                "operationId": "pre-registrations.refuse",
+                "description": "Motif obligatoire, envoy\u00e9 au parent par SMS. 409 `already_decided`.",
+                "summary": "Refuser une pr\u00e9-inscription",
+                "tags": [
+                    "PreRegistration"
+                ],
+                "parameters": [
+                    {
+                        "name": "preRegistration",
+                        "in": "path",
+                        "required": true,
+                        "description": "The pre registration ID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefusePreRegistrationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`PreRegistrationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PreRegistrationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/public/schools/{slug}/fees": {
+            "get": {
+                "operationId": "public.schools.fees",
+                "description": "Sans connexion. Grille de l'ann\u00e9e en cours si l'\u00e9cole a choisi de la publier, sinon `data: null`.\n404 : \u00e9cole inconnue.",
+                "summary": "Tarifs publics d'une \u00e9cole",
+                "tags": [
+                    "PublicFees"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/PublicFeeGridResource"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    }
+                }
+            }
+        },
+        "/public/schools/{slug}/pre-registrations": {
+            "post": {
+                "operationId": "public.schools.pre-registrations.store",
+                "description": "Sans connexion, depuis la page publique de l'\u00e9cole. Renvoie seulement le num\u00e9ro du dossier (`reference`) ; une\nm\u00eame demande renvoy\u00e9e rend le m\u00eame num\u00e9ro. Limit\u00e9 par adresse et par t\u00e9l\u00e9phone (429). 404 : \u00e9cole inconnue ;\n422 : niveau inconnu, champ pi\u00e8ge rempli ; 409 `too_many_pending`.",
+                "summary": "Envoyer une pr\u00e9-inscription",
+                "tags": [
+                    "PublicPreRegistration"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubmitPreRegistrationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "reference": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "reference"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -10126,7 +10409,7 @@
             },
             "EnrollStudentRequest": {
                 "type": "object",
-                "description": "Inscription compl\u00e8te d'un nouvel \u00e9l\u00e8ve : `student` (dossier), `guardians` (1 \u00e0 4 ; un seul payeur et un seul\ncontact principal, le premier tuteur par d\u00e9faut), `classroom_id` et `options` (codes des services optionnels). Droits : students.manage sur le cycle de la\nclasse ; champs m\u00e9dicaux de `student` refus\u00e9s sans students.medical.view sur ce cycle.",
+                "description": "Inscription compl\u00e8te d'un nouvel \u00e9l\u00e8ve : `student` (dossier), `guardians` (1 \u00e0 4 ; un seul payeur et un seul\ncontact principal, le premier tuteur par d\u00e9faut), `classroom_id`, `options` (codes des services optionnels) et\n`pre_registration_id` (pr\u00e9-inscription en attente men\u00e9e \u00e0 son terme : elle passe \u00ab inscrite \u00bb, SMS au parent). Droits : students.manage sur le cycle de la\nclasse ; champs m\u00e9dicaux de `student` refus\u00e9s sans students.medical.view sur ce cycle.",
                 "properties": {
                     "student": {
                         "type": "object",
@@ -10260,6 +10543,13 @@
                         },
                         "minItems": 1,
                         "maxItems": 4
+                    },
+                    "pre_registration_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
                     }
                 },
                 "required": [
@@ -11765,6 +12055,169 @@
                 ],
                 "title": "PostMessageRequest"
             },
+            "PreRegistrationResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "reference": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "refused",
+                            "enrolled"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "child": {
+                        "type": "object",
+                        "properties": {
+                            "last_name": {
+                                "type": "string"
+                            },
+                            "first_name": {
+                                "type": "string"
+                            },
+                            "gender": {
+                                "type": "string",
+                                "enum": [
+                                    "F",
+                                    "M"
+                                ]
+                            },
+                            "birth_date": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "last_name",
+                            "first_name",
+                            "gender",
+                            "birth_date"
+                        ]
+                    },
+                    "level": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "cycle_id": {
+                                "type": "string"
+                            },
+                            "cycle_name": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "name",
+                            "cycle_id",
+                            "cycle_name"
+                        ]
+                    },
+                    "guardian": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "phone": {
+                                "type": "string"
+                            },
+                            "email": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "name",
+                            "phone",
+                            "email"
+                        ]
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "decided_by_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "decided_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "decision_note": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "student_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "notification_status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "notification_failure": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "reference",
+                    "status",
+                    "created_at",
+                    "child",
+                    "level",
+                    "guardian",
+                    "message",
+                    "decided_by_name",
+                    "decided_at",
+                    "decision_note",
+                    "student_id",
+                    "notification_status",
+                    "notification_failure"
+                ],
+                "title": "PreRegistrationResource"
+            },
+            "PreRegistrationStatus": {
+                "type": "string",
+                "description": "Pr\u00e9-inscription : en attente du secr\u00e9tariat, refus\u00e9e (motif), ou inscrite (\u00e9l\u00e8ve cr\u00e9\u00e9 par l'inscription pr\u00e9-remplie).\n",
+                "enum": [
+                    "pending",
+                    "refused",
+                    "enrolled"
+                ],
+                "title": "PreRegistrationStatus"
+            },
             "ProfileResource": {
                 "type": "object",
                 "properties": {
@@ -11811,6 +12264,71 @@
                     "schools"
                 ],
                 "title": "ProfileResource"
+            },
+            "PublicFeeGridResource": {
+                "type": "object",
+                "properties": {
+                    "year_label": {
+                        "type": "string"
+                    },
+                    "fee_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "optional": {
+                                    "type": "boolean"
+                                }
+                            },
+                            "required": [
+                                "code",
+                                "name",
+                                "optional"
+                            ]
+                        }
+                    },
+                    "levels": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "cycle_name": {
+                                    "type": "string"
+                                },
+                                "level_code": {
+                                    "type": "string"
+                                },
+                                "level_name": {
+                                    "type": "string"
+                                },
+                                "amounts": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "integer"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "cycle_name",
+                                "level_code",
+                                "level_name",
+                                "amounts"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "year_label",
+                    "fee_types",
+                    "levels"
+                ],
+                "title": "PublicFeeGridResource"
             },
             "PublicSchoolResource": {
                 "type": "object",
@@ -11874,7 +12392,19 @@
                                 "levels": {
                                     "type": "array",
                                     "items": {
-                                        "type": "string"
+                                        "type": "object",
+                                        "properties": {
+                                            "code": {
+                                                "type": "string"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "code",
+                                            "name"
+                                        ]
                                     }
                                 }
                             },
@@ -12172,6 +12702,21 @@
                     "refunded_by_name"
                 ],
                 "title": "RefundResource"
+            },
+            "RefusePreRegistrationRequest": {
+                "type": "object",
+                "description": "Refus d'une pr\u00e9-inscription : motif obligatoire, envoy\u00e9 au parent par SMS.",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                    }
+                },
+                "required": [
+                    "reason"
+                ],
+                "title": "RefusePreRegistrationRequest"
             },
             "RemindRequest": {
                 "type": "object",
@@ -13511,6 +14056,9 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "public_fees": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
@@ -13526,7 +14074,8 @@
                     "email",
                     "motto",
                     "currency",
-                    "logo_url"
+                    "logo_url",
+                    "public_fees"
                 ],
                 "title": "SchoolProfileResource"
             },
@@ -14467,6 +15016,85 @@
                 ],
                 "title": "SubjectResource"
             },
+            "SubmitPreRegistrationRequest": {
+                "type": "object",
+                "description": "Pr\u00e9-inscription depuis la page publique (sans connexion). `website` : champ pi\u00e8ge invisible, rempli par les seuls\nrobots (refus\u00e9). `consent` : accord de la famille pour que l'\u00e9cole traite la demande.",
+                "properties": {
+                    "cycle_code": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "level_code": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "child_last_name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 80
+                    },
+                    "child_first_name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 80
+                    },
+                    "child_gender": {
+                        "$ref": "#/components/schemas/Gender"
+                    },
+                    "child_birth_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "guardian_name": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 120
+                    },
+                    "guardian_phone": {
+                        "type": "string",
+                        "maxLength": 30
+                    },
+                    "guardian_email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    },
+                    "consent": {
+                        "enum": [
+                            "yes",
+                            "on",
+                            "1",
+                            1,
+                            "true",
+                            true
+                        ]
+                    },
+                    "website": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "cycle_code",
+                    "level_code",
+                    "child_last_name",
+                    "child_first_name",
+                    "child_gender",
+                    "child_birth_date",
+                    "guardian_name",
+                    "guardian_phone"
+                ],
+                "title": "SubmitPreRegistrationRequest"
+            },
             "SyncRequest": {
                 "type": "object",
                 "description": "File hors connexion : 1 \u00e0 100 op\u00e9rations `{ id (UUID de l'appareil), type, payload }`. Chaque op\u00e9ration est\ncontr\u00f4l\u00e9e comme son \u00e9quivalent en ligne ; une op\u00e9ration d\u00e9j\u00e0 trait\u00e9e renvoie son premier r\u00e9sultat.",
@@ -14962,6 +15590,9 @@
                             "null"
                         ],
                         "maxLength": 120
+                    },
+                    "public_fees": {
+                        "type": "boolean"
                     }
                 },
                 "title": "UpdateSchoolProfileRequest"

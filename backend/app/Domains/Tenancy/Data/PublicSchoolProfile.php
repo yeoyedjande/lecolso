@@ -8,7 +8,7 @@ namespace App\Domains\Tenancy\Data;
 final readonly class PublicSchoolProfile
 {
     /**
-     * @param  list<array{code: string, name: string, levels: list<string>}>  $cycles
+     * @param  list<array{code: string, name: string, levels: list<array{code: string, name: string}>}>  $cycles
      */
     public function __construct(
         public string $name,
