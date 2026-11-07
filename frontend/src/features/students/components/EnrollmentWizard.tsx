@@ -161,7 +161,7 @@ export function EnrollmentWizard({
       {(preRegistration) =>
         preRegistration?.status !== 'pending' ? (
           <div className="grid gap-6">
-            <ScreenHeader title={t('enrollment.title')} demo={false} />
+            <ScreenHeader title={t('enrollment.title')} />
             <EmptyState
               illustration="lost"
               title={
@@ -282,7 +282,7 @@ function EnrollmentForm({ preRegistration }: { preRegistration: PreRegistration 
     const enrollment = created.enrollments[0]
     return (
       <div className="grid gap-6">
-        <ScreenHeader title={t('enrollment.title')} demo={false} />
+        <ScreenHeader title={t('enrollment.title')} />
         <EmptyState
           illustration="empty"
           title={
@@ -331,7 +331,7 @@ function EnrollmentForm({ preRegistration }: { preRegistration: PreRegistration 
   if (year === null) {
     return (
       <div className="grid gap-6">
-        <ScreenHeader title={t('enrollment.title')} demo={false} />
+        <ScreenHeader title={t('enrollment.title')} />
         <EmptyState title={t('classes.noYearTitle')} description={t('classes.noYearDescription')} />
       </div>
     )
@@ -342,11 +342,7 @@ function EnrollmentForm({ preRegistration }: { preRegistration: PreRegistration 
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader
-        title={t('enrollment.title')}
-        description={t('enrollment.description')}
-        demo={false}
-      />
+      <ScreenHeader title={t('enrollment.title')} description={t('enrollment.description')} />
 
       <ol
         className="grid grid-cols-4 gap-2"

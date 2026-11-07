@@ -154,7 +154,6 @@ utile seulement en développement local (Vite sur `localhost:5173`, API sur `loc
 | --- | --- | --- |
 | `VITE_API_URL` | `/api/v1` | API sur la même origine (lue au build) |
 | `VITE_APP_ENV` | `staging` / `production` | `/design` présente en staging, absente du build de production (lue au build) |
-| `VITE_DEMO_MODULES` | `true` / `false` | données de démonstration des modules dont le backend n'existe pas encore (lue au build) |
 | `API_UPSTREAM` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080` | adresse privée de l'API pour le proxy Caddy (lue au démarrage) |
 
 Les variables `VITE_*` sont déclarées en `ARG` dans `docker/production/web.Dockerfile` ; un changement impose un nouveau build.

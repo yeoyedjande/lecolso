@@ -4,8 +4,7 @@ import { z } from 'zod/mini'
  * Variables d'environnement du build, validées au démarrage (fixées au build sur Railway).
  * - VITE_API_URL : URL de l'API (préfixe /api/v1 compris) : chemin « /api/v1 » en staging et en production
  *   (même origine, proxy Caddy, ADR 0005), URL absolue en développement local ;
- * - VITE_APP_ENV : local | staging | production (défaut production : rien de réservé au développement) ;
- * - VITE_DEMO_MODULES : true pour afficher les données de démonstration des modules sans backend.
+ * - VITE_APP_ENV : local | staging | production (défaut production : rien de réservé au développement).
  * Aucune variable de domaine : les écoles sont servies par chemin (`/{slug}`, ADR 0005), jamais par sous-domaine.
  */
 const envSchema = z.object({
@@ -14,10 +13,6 @@ const envSchema = z.object({
     z.transform((url) => url.replace(/\/+$/, '')),
   ),
   VITE_APP_ENV: z._default(z.enum(['local', 'staging', 'production']), 'production'),
-  VITE_DEMO_MODULES: z.pipe(
-    z._default(z.enum(['true', 'false']), 'false'),
-    z.transform((value) => value === 'true'),
-  ),
 })
 
 const parsed = envSchema.safeParse(import.meta.env)
@@ -31,7 +26,6 @@ if (!parsed.success) {
 export const env = {
   apiUrl: parsed.data.VITE_API_URL,
   appEnv: parsed.data.VITE_APP_ENV,
-  demoModules: parsed.data.VITE_DEMO_MODULES,
 } as const
 
 /** Page /design et outils de recette : en local et en staging seulement. */

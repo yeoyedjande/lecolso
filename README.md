@@ -97,7 +97,5 @@ Une seule application, un chemin par établissement : `https://app.ekalewa.com/{
 | Compte, connexion | `/compte`, `/connexion`, `/etablissements` | tous | — |
 | Design system | `/design` | équipe (local et staging seulement) | — |
 
-Les modules sans backend (élèves, paiements, notes, présences, messages…) affichent des **données de démonstration**
-générées dans le navigateur (`VITE_DEMO_MODULES=true`) : elles sont cohérentes entre les écrans mais repartent de zéro
-au rechargement. Restent sur la vraie API : connexion, profil, établissements, cycles et leurs paramètres,
-réinitialisation de mot de passe, liste et création d'écoles (super-admin), page publique d'une école.
+Tous les écrans sont branchés sur la vraie API : il n'y a plus de données de démonstration générées dans le navigateur.
+Les données de démonstration viennent du `DemoSeeder` (`make migrate`), en local et en staging seulement.

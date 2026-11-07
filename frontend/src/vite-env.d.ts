@@ -5,8 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_API_URL: string
   /** local | staging | production (défaut : production). */
   readonly VITE_APP_ENV?: string
-  /** « true » : données de démonstration pour les modules dont le backend n'existe pas encore. */
-  readonly VITE_DEMO_MODULES?: string
 }
 
 interface ImportMeta {

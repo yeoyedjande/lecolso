@@ -23,11 +23,7 @@ export function SettingsPage() {
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader
-        title={t('settings.title')}
-        description={t('settings.description')}
-        demo={false}
-      />
+      <ScreenHeader title={t('settings.title')} description={t('settings.description')} />
       <Tabs defaultValue="identity" className="min-w-0">
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
           <TabsList className="w-max">

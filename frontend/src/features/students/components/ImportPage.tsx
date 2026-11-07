@@ -111,7 +111,7 @@ export function ImportPage() {
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader title={t('import.title')} description={t('import.description')} demo={false} />
+      <ScreenHeader title={t('import.title')} description={t('import.description')} />
 
       <Card>
         <CardHeader>

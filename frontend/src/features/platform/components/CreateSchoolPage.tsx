@@ -115,7 +115,6 @@ export function CreateSchoolPage() {
     return (
       <div className="grid gap-6">
         <ScreenHeader
-          demo={false}
           title={t('platform.create.doneTitle', { name: created.data.name })}
           description={t('platform.create.doneDescription')}
         />
@@ -210,7 +209,6 @@ export function CreateSchoolPage() {
         </Link>
       </Button>
       <ScreenHeader
-        demo={false}
         title={t('platform.create.title')}
         description={t('platform.create.description')}
       />

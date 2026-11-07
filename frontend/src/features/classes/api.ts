@@ -3,9 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
-import { useDemoQuery } from '@/lib/demo/hooks'
-
-import { classroomsByLevel } from './demo'
 
 export type Classroom = components['schemas']['ClassroomResource']
 export type SaveClassroomInput = components['schemas']['SaveClassroomRequest']
@@ -71,24 +68,4 @@ export function useDeleteClassroom() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   })
-}
-
-/**
- * Classes de démonstration (modules encore sans API : élèves, notes, présences, messages, import) :
- * liées aux élèves de démonstration, elles passeront sur la vraie API avec les élèves (lot 4b).
- */
-export function useClassrooms() {
-  return useDemoQuery(['classes'], (school) => classroomsByLevel(school))
-}
-
-/** Liste simple des classes (sélecteurs), triée par niveau. */
-export function useClassroomOptions() {
-  return useDemoQuery(['classes', 'options'], (school) =>
-    [...school.classrooms].sort(
-      (a, b) =>
-        (school.levels.find((l) => l.code === a.levelCode)?.position ?? 0) -
-          (school.levels.find((l) => l.code === b.levelCode)?.position ?? 0) ||
-        a.name.localeCompare(b.name),
-    ),
-  )
 }

@@ -1,4 +1,4 @@
-import type { CycleCode } from '@/lib/demo/types'
+import type { CycleCode } from '@/lib/cycles'
 
 import { useCycles, type CycleSettings } from './api'
 

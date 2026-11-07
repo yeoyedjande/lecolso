@@ -29,7 +29,6 @@ export function SchoolsListPage() {
   return (
     <div className="grid gap-6">
       <ScreenHeader
-        demo={false}
         title={t('platform.schools.title')}
         description={t('platform.schools.description')}
         actions={

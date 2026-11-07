@@ -68,8 +68,7 @@ src/
 - Rapidité de navigation : la garde réutilise le profil `/me` en cache (revérifié en arrière-plan après 60 s, attendu
   seulement s'il est absent ou invalidé) ; les liens des menus (`SpaceLink`) préchargent leur écran dès qu'ils sont visibles ;
   aucune latence simulée dans la démo. Mesure : `npm run e2e:perf` (budget 600 ms par écran, processeur ÷ 4, API à 200 ms).
-- États : `Skeleton`, `EmptyState`, `ErrorState`, `OfflineBanner`, `DemoBanner` (écrans alimentés par `features/<domaine>/demo/`
-  quand `VITE_DEMO_MODULES=true`).
+- États : `Skeleton`, `EmptyState`, `ErrorState`, `OfflineBanner`.
 - Page `/design` : vitrine des tokens et composants, en local et en staging (`VITE_APP_ENV`) ; en production, `vite.config.ts`
   remplace `DesignPage` par un module vide.
 - Espaces d'un établissement : back-office sous `/{slug}/…` (`routes/$school/_gestion/`, accueil `/{slug}/tableau-de-bord`,
@@ -80,21 +79,16 @@ src/
   de chaque espace (avec le slug de l'URL) : session, mot de passe provisoire, appartenance à l'école, espace. Menus dans `features/shell/nav.ts`, filtrés par
   les permissions de `/me`. Un écran pas encore livré tombe sur la route attrape-tout `$.tsx` de l'espace (« Bientôt disponible »).
 
-## Données de démonstration (modules sans backend)
+## Données de l'API
 
-- Générateur déterministe dans `lib/demo/` (`dataset.ts` : élèves, tuteurs, frais, échéances, paiements, notes,
-  compétences, présences, garderie ; année 2026-2027) et magasin en mémoire par établissement
-  (`store.ts`, perdu au rechargement). Calculs métier purs et testés dans `features/<domaine>/demo/`
-  (soldes, impayés, moyennes pondérées, rangs, appel…).
-- Les écrans n'appellent que les hooks de `features/<domaine>/api.ts`, construits sur `useDemoQuery` / `useDemoMutation`
-  (`lib/demo/hooks.ts`, clé `['school', <id>, …]`). Quand un module backend existera, seul le `queryFn` du hook change.
-  `VITE_DEMO_MODULES=false` : ces hooks lèvent `ModuleUnavailableError` et `<QueryState>` affiche « Bientôt disponible ».
-- Restent branchés sur la vraie API : authentification, `/me`, établissements, **cycles et leurs paramètres**
+- Tout écran passe par les hooks de `features/<domaine>/api.ts` (TanStack Query, clé `['school', <id>, …]`, client
+  `lib/api/client.ts`). Il n'y a plus de données de démonstration côté navigateur (lot 11c) : en local et en staging,
+  elles viennent du `DemoSeeder` du backend.
+- Branchés sur la vraie API : authentification, `/me`, établissements, **cycles et leurs paramètres**
   (`features/cycles/api.ts`), **rôles et permissions** (`features/roles`, écran `/{slug}/roles`) et **comptes de l'école**
   (`features/users`, écran `/{slug}/utilisateurs` : liste par curseur, ajout, rôles, désactivation, suppression,
   mot de passe provisoire), **années scolaires** (`features/academic`, onglet des paramètres) et **classes**
-  (`features/classes` : `useClassroomList`, `useSaveClassroom`, `useDeleteClassroom` ; les hooks de démonstration
-  `useClassrooms` / `useClassroomOptions` servent encore aux notes, messages et à l'import), **élèves, tuteurs et
+  (`features/classes` : `useClassroomList`, `useSaveClassroom`, `useDeleteClassroom`), **élèves, tuteurs et
   inscriptions** (`features/students/api.ts` : `useStudentList` par curseur, `useStudentFile` — `null` si introuvable
   ou hors périmètre —, `useEnrollStudent`, `useUpdateStudent`, `useUpdateEnrollment`, tuteurs ; écrans Élèves, fiche,
   Inscriptions). `medical` vaut `null` sans `students.medical.view` : n'afficher et n'envoyer les champs médicaux
