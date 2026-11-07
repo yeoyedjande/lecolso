@@ -83,7 +83,8 @@ export const SCREENS: Screen[] = [
     [
       ['enseignant-accueil', '/les-lauriers/enseignant', 'Faire l’appel'],
       ['enseignant-appel', '/les-lauriers/enseignant/appel', /présent\(s\)/],
-      ['enseignant-notes', '/les-lauriers/enseignant/notes', 'Évaluation'],
+      // Une ligne de la grille : écran chargé (la liste « Matière » n'est plus en attente)
+      ['enseignant-notes', '/les-lauriers/enseignant/notes', 'KOUADIO Ange'],
       [
         'enseignant-journal',
         '/les-lauriers/enseignant/journal',
