@@ -80,6 +80,9 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Middleware `super_admin` (`EnsureSuperAdmin`, après `auth:sanctum`) : `users.is_super_admin` (jamais assignable en masse), sinon **404**.
 - Lecture et écriture hors RLS uniquement par `Platform::run(fn)` : bascule la connexion par défaut sur `pgsql_platform`
   (rôle de connexion séparé `app_platform`, `BYPASSRLS`), dans une transaction, et rétablit la connexion précédente dans un `finally`.
+- Premier super-administrateur d'une base vide : commande `platform:create-super-admin` (`Identity\Actions\CreateSuperAdmin`,
+  mot de passe saisi masqué, jamais en argument ; refus s'il en existe déjà un), seule autre Action autorisée à importer
+  `Platform`. Procédure : `docs/deploiement-railway.md`.
 - Seules les Actions des routes `/api/v1/platform/*` importent `Platform` (test d'architecture `tests/Unit/ArchitectureTest.php`).
   Les modèles chargés dans `Platform::run()` gardent la connexion `pgsql_platform` : ne pas les réutiliser pour écrire ensuite.
 - Identifiants `DB_PLATFORM_*` fournis au seul service `api` (ni `worker` ni `scheduler`).

@@ -76,12 +76,42 @@ de démo du README existent toujours, avec le mot de passe `Demo2026!`.
    un slug réservé (`config/tenancy.php`) : la renommer à la main avant de redéployer.
 9. **Vérifier** (remplacer l'hôte par `staging.ekalewa.com` pour le staging) :
    - `https://app.ekalewa.com/api/v1/health` répond 200 (`database` et `redis` à `ok`), à travers le proxy ;
-   - `https://app.ekalewa.com/connexion` : connexion d'un compte de démo (staging), puis `/me` ;
+   - `https://app.ekalewa.com/connexion` : connexion d'un compte de démo (staging) ou du premier super-administrateur
+     (production, voir plus bas), puis `/me` ;
    - dans les outils du navigateur, le cookie de session n'a **pas** d'attribut `Domain` (limité à l'hôte) ;
    - `https://app.ekalewa.com/les-lauriers` ouvre la page publique de l'école sans connexion ;
    - les journaux de `api` montrent l'adresse IP réelle des visiteurs (pas celle du proxy) : sinon, ajouter la plage
      d'adresses du proxy Railway à `trusted_proxies` dans `docker/production/web.Caddyfile` ;
    - un test d'envoi de fichier atterrit dans le bucket.
+
+## Premier super-administrateur (production, une fois)
+
+La production démarre sans aucun compte : le `DemoSeeder` y est refusé, et aucun compte de démonstration n'existe
+(`+22507000000…`, `Demo2026!` : staging et local seulement). Le premier super-administrateur se crée **à la main**,
+une seule fois, après le premier déploiement :
+
+```bash
+railway ssh --service api --environment production
+```
+
+```bash
+php artisan platform:create-super-admin
+```
+
+La commande demande le nom affiché, le téléphone (identifiant de connexion), l'e-mail (facultatif), puis le mot de
+passe **deux fois, sans l'afficher** : 12 caractères au moins, avec majuscules, minuscules et chiffres, sans le numéro
+de téléphone. Elle :
+
+- refuse de s'exécuter sans terminal interactif (aucun mot de passe en argument, en option ni en variable : il
+  resterait dans l'historique du shell et la liste des processus) ;
+- refuse s'il existe déjà un super-administrateur, ou si le téléphone ou l'e-mail appartient déjà à un compte ;
+- n'écrit dans le journal que `platform.super_admin_created` et l'identifiant du compte (ni mot de passe, ni
+  téléphone, ni e-mail).
+
+Nom, téléphone et e-mail peuvent aussi être passés en options (`--name`, `--phone`, `--email`) ; le mot de passe, jamais.
+Ensuite : se connecter sur `https://app.ekalewa.com/connexion`, ouvrir `/plateforme`, créer la première école et son
+directeur (mot de passe provisoire affiché une seule fois, à transmettre au directeur, qui le change à la première
+connexion). Ce parcours est rejoué en test (`tests/Feature/Platform/ProductionBootstrapTest.php`).
 
 ## Rôles PostgreSQL en production
 
