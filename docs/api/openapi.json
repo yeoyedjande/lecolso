@@ -7806,7 +7806,7 @@
         "/billing/reminders": {
             "post": {
                 "operationId": "billing.reminders.store",
-                "description": "Un SMS par payeur pour les factures choisies en retard, au plus une fois tous les 7 jours ; envoi en file.",
+                "description": "Un SMS par payeur pour les factures choisies en retard, au plus une fois tous les 7 jours ; envoi en file.\n409 `sms_unavailable` sans fournisseur SMS configur\u00e9 (rien n'est enregistr\u00e9).",
                 "summary": "Relancer par SMS",
                 "tags": [
                     "Unpaid"
@@ -10763,6 +10763,10 @@
                     "mobile_money": {
                         "type": "object",
                         "properties": {
+                            "available": {
+                                "type": "boolean",
+                                "description": "Un prestataire est configur\u00e9 : sinon, le paiement en ligne n'est pas propos\u00e9 aux parents"
+                            },
                             "fee_payer": {
                                 "type": "string",
                                 "enum": [
@@ -10775,6 +10779,7 @@
                             }
                         },
                         "required": [
+                            "available",
                             "fee_payer",
                             "fee_rate_bps"
                         ]
@@ -12473,6 +12478,10 @@
                         "type": "boolean",
                         "description": "\u00ab Se souvenir de moi \u00bb propos\u00e9 (comptes sans r\u00f4le du personnel)"
                     },
+                    "sms_available": {
+                        "type": "boolean",
+                        "description": "Un fournisseur SMS est configur\u00e9 : sinon, aucun \u00e9cran ne promet ni ne propose d'envoi par SMS"
+                    },
                     "schools": {
                         "type": "array",
                         "items": {
@@ -12488,6 +12497,7 @@
                     "must_change_password",
                     "is_super_admin",
                     "can_be_remembered",
+                    "sms_available",
                     "schools"
                 ],
                 "title": "ProfileResource"
@@ -12641,6 +12651,10 @@
                                 "levels"
                             ]
                         }
+                    },
+                    "sms_available": {
+                        "type": "boolean",
+                        "description": "Un fournisseur SMS est configur\u00e9 : sinon, le formulaire de pr\u00e9-inscription ne promet aucun SMS"
                     }
                 },
                 "required": [
@@ -12653,7 +12667,8 @@
                     "email",
                     "motto",
                     "logo_url",
-                    "cycles"
+                    "cycles",
+                    "sms_available"
                 ],
                 "title": "PublicSchoolResource"
             },

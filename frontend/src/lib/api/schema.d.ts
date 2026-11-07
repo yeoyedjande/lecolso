@@ -2347,6 +2347,7 @@ export interface paths {
         /**
          * Relancer par SMS
          * @description Un SMS par payeur pour les factures choisies en retard, au plus une fois tous les 7 jours ; envoi en file.
+         *     409 `sms_unavailable` sans fournisseur SMS configuré (rien n'est enregistré).
          */
         post: operations["billing.reminders.store"];
         delete?: never;
@@ -3125,6 +3126,8 @@ export interface components {
             /** @enum {string} */
             departure: "cancel_unstarted" | "keep_all";
             mobile_money: {
+                /** @description Un prestataire est configuré : sinon, le paiement en ligne n'est pas proposé aux parents */
+                available: boolean;
                 /** @enum {string} */
                 fee_payer: "school" | "guardian";
                 fee_rate_bps: number;
@@ -3569,6 +3572,8 @@ export interface components {
             is_super_admin: boolean;
             /** @description « Se souvenir de moi » proposé (comptes sans rôle du personnel) */
             can_be_remembered: boolean;
+            /** @description Un fournisseur SMS est configuré : sinon, aucun écran ne promet ni ne propose d'envoi par SMS */
+            sms_available: boolean;
             schools: components["schemas"]["SchoolMembershipResource"][];
         };
         /** PublicFeeGridResource */
@@ -3607,6 +3612,8 @@ export interface components {
                     name: string;
                 }[];
             }[];
+            /** @description Un fournisseur SMS est configuré : sinon, le formulaire de pré-inscription ne promet aucun SMS */
+            sms_available: boolean;
         };
         /**
          * PublishAnnouncementRequest

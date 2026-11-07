@@ -234,7 +234,7 @@
       "nameHint": "Tel qu’il figure sur l’extrait de naissance.",
       "nameError": "Le nom est obligatoire.",
       "comment": "Observation",
-      "notify": "Prévenir les parents par SMS",
+      "notify": "Prévenir les parents",
       "consent": "J’ai vérifié les informations",
       "tab1": "Identité",
       "tab2": "Parents",
@@ -743,6 +743,7 @@
         "failed": "Relance du {{date}} non envoyée"
       },
       "remindRule": "Un parent déjà relancé depuis moins de 7 jours ne reçoit pas de nouveau SMS.",
+      "smsUnavailable": "Les relances par SMS seront disponibles quand le service SMS sera activé. En attendant, contactez les familles directement.",
       "skippedRecent": "{{count}} parent(s) déjà relancé(s) depuis moins de 7 jours",
       "skippedNoPhone": "{{count}} facture(s) sans parent joignable par téléphone",
       "tooMany": "{{max}} factures au plus par relance : filtrez par cycle."
@@ -849,7 +850,8 @@
         "guardian": "Ajoutés au montant payé par le parent",
         "rate": "Taux des frais (%)",
         "rateHint": "Taux du prestataire, par exemple 1,5.",
-        "rateError": "Saisissez un taux entre 0 et 10 %."
+        "rateError": "Saisissez un taux entre 0 et 10 %.",
+        "unavailable": "Le paiement Mobile Money n’est pas encore activé : aucun prestataire n’est raccordé. Les parents voient « bientôt disponible » et paient à l’école. Ces réglages s’appliqueront dès son activation."
       }
     },
     "invoice": {
@@ -1751,7 +1753,8 @@
       "consent": "J’accepte que l’école me contacte au sujet de cette demande.",
       "submit": "Envoyer la demande",
       "doneTitle": "Demande envoyée !",
-      "doneDescription": "Numéro de dossier {{reference}}. Notez-le : l’école vous recontactera au {{phone}} et vous informera de sa décision par SMS.",
+      "doneDescription": "Numéro de dossier {{reference}}. Notez-le : l’établissement vous recontactera au {{phone}}.",
+      "doneDescriptionSms": "Numéro de dossier {{reference}}. Notez-le : l’établissement vous recontactera au {{phone}} et vous informera de sa décision par SMS.",
       "website": "Ne pas remplir ce champ",
       "failed": "La demande n’a pas pu être envoyée. Vérifiez votre connexion et réessayez.",
       "tooMany": "Trop de demandes envoyées depuis ce téléphone ou ce numéro. Réessayez plus tard ou contactez l’école.",
@@ -1771,7 +1774,8 @@
   },
   "preRegistrations": {
     "title": "Pré-inscriptions",
-    "description": "Demandes envoyées en ligne par les familles depuis la page publique de l’école. Appelez la famille, puis inscrivez l’enfant ou refusez la demande : le parent est prévenu par SMS.",
+    "description": "Demandes envoyées en ligne par les familles depuis la page publique de l’école. Appelez la famille, puis inscrivez l’enfant ou refusez la demande.",
+    "descriptionSms": "Demandes envoyées en ligne par les familles depuis la page publique de l’école. Appelez la famille, puis inscrivez l’enfant ou refusez la demande : le parent est prévenu par SMS.",
     "filter": "Afficher",
     "filters": {
       "pending": "En attente",
@@ -1797,7 +1801,8 @@
     "enroll": "Inscrire",
     "refuse": "Refuser",
     "refuseTitle": "Refuser la pré-inscription",
-    "refuseDescription": "Le motif est envoyé par SMS au {{phone}} avec le numéro {{reference}}. N’y mettez aucune information sur l’enfant.",
+    "refuseDescription": "Le motif est conservé dans le dossier {{reference}}. Prévenez vous-même la famille au {{phone}} : aucun SMS n’est envoyé.",
+    "refuseDescriptionSms": "Le motif est envoyé par SMS au {{phone}} avec le numéro {{reference}}. N’y mettez aucune information sur l’enfant.",
     "refuseReason": "Motif du refus",
     "refuseHint": "Par exemple : « Plus de place en CE1 cette année ».",
     "refuseConfirm": "Refuser la demande",

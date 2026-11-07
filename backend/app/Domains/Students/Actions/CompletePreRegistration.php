@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Students\Actions;
 
 use App\Domains\Identity\Models\User;
+use App\Domains\Messaging\Contracts\SmsSender;
 use App\Domains\Students\Enums\PreRegistrationStatus;
 use App\Domains\Students\Jobs\SendPreRegistrationSms;
 use App\Domains\Students\Models\PreRegistration;
@@ -17,8 +18,10 @@ use Illuminate\Support\Facades\DB;
  * Pré-inscription menée à son terme par l'inscription pré-remplie : à appeler dans la transaction qui inscrit
  * l'élève (le dossier reste en attente si l'inscription échoue). SMS au parent après la validation.
  */
-final class CompletePreRegistration
+final readonly class CompletePreRegistration
 {
+    public function __construct(private SmsSender $sms) {}
+
     /**
      * @throws BusinessConflict already_decided
      */
@@ -34,9 +37,12 @@ final class CompletePreRegistration
             'decided_by_name' => $author->name,
             'decided_at' => $now,
             'student_id' => $student->id,
-            'notification_status' => SendPreRegistrationSms::QUEUED,
+            // Sans fournisseur SMS, aucun envoi n'est tenté ni annoncé
+            'notification_status' => $this->sms->available() ? SendPreRegistrationSms::QUEUED : null,
         ])->save();
 
-        DB::afterCommit(static fn () => SendPreRegistrationSms::dispatch($locked->school_id, $locked->id));
+        if ($locked->notification_status !== null) {
+            DB::afterCommit(static fn () => SendPreRegistrationSms::dispatch($locked->school_id, $locked->id));
+        }
     }
 }
