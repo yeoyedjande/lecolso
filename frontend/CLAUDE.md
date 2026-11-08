@@ -81,6 +81,11 @@ src/
 
 ## Données de l'API
 
+- Capacités de l'environnement : `sms_available` (`/me`, page publique) et `mobile_money.available` (politique
+  financière, fiche enfant). Faux en production tant qu'aucun fournisseur n'est raccordé : aucun texte ne promet alors
+  de SMS (clés `…Sms` utilisées seulement s'il est vrai), les relances ne sont pas proposées, le paiement en ligne
+  affiche « bientôt disponible ». Mock e2e : `mockApi(page, { sms: false })` pour ce cas.
+
 - Tout écran passe par les hooks de `features/<domaine>/api.ts` (TanStack Query, clé `['school', <id>, …]`, client
   `lib/api/client.ts`). Il n'y a plus de données de démonstration côté navigateur (lot 11c) : en local et en staging,
   elles viennent du `DemoSeeder` du backend.

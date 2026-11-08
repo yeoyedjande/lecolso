@@ -140,6 +140,18 @@ test('impayés : relance SMS d’un parent, une seule fois par semaine', async (
   await expect(page.getByText(/déjà relancé\(s\) depuis moins de 7 jours/).first()).toBeVisible()
 })
 
+test('impayés sans fournisseur SMS : aucune relance proposée ni annoncée', async ({ page }) => {
+  await mockApi(page, { session: ACCOUNTS.director, sms: false })
+  await page.goto('/les-lauriers/impayes')
+
+  await expect(page.getByText('Total en retard')).toBeVisible()
+  await expect(
+    page.getByText(/Les relances par SMS seront disponibles quand le service SMS sera activé/),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Relancer/ })).toHaveCount(0)
+  await expect(page.getByRole('checkbox', { name: /^Sélectionner / })).toHaveCount(0)
+})
+
 test('tableau de bord : effectifs et encaissements réels', async ({ page }) => {
   await mockApi(page, { session: ACCOUNTS.accountant })
   await page.goto('/les-lauriers/tableau-de-bord')

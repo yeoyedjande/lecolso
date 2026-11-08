@@ -165,10 +165,15 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
                   {t('publicSchool.pre.doneTitle')}
                 </span>
               }
-              description={t('publicSchool.pre.doneDescription', {
-                reference: done.reference,
-                phone: formatPhone(done.phone),
-              })}
+              description={t(
+                data.sms_available
+                  ? 'publicSchool.pre.doneDescriptionSms'
+                  : 'publicSchool.pre.doneDescription',
+                {
+                  reference: done.reference,
+                  phone: formatPhone(done.phone),
+                },
+              )}
               action={
                 <Button asChild>
                   <Link to="/$school" params={{ school: slug }}>

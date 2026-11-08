@@ -14,4 +14,9 @@ final class UnconfiguredSmsSender implements SmsSender
     {
         throw new RuntimeException('Aucun fournisseur SMS n’est configuré pour cet environnement.');
     }
+
+    public function available(): bool
+    {
+        return false;
+    }
 }

@@ -40,6 +40,7 @@ describe('useLogout', () => {
       must_change_password: false,
       is_super_admin: false,
       can_be_remembered: false,
+      sms_available: true,
       schools: [],
     })
     window.localStorage.setItem('gestion-ecole.school-id', 'ecole-1')

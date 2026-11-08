@@ -36,6 +36,8 @@ it('n’utilise Platform que dans les Actions super-admin', function (): void {
         // Routes /api/v1/platform/* (middleware EnsureSuperAdmin)
         'Domains/Tenancy/Actions/CreateSchool.php',
         'Domains/Tenancy/Actions/ListAllSchools.php',
+        // Commande platform:create-super-admin (mise en place d'une base vide, lancée à la main)
+        'Domains/Identity/Actions/CreateSuperAdmin.php',
     ]))->toBe([]);
 
     // Dans App\Support\Tenancy, seul BelongsToSchool s'en sert (pas de filtre Eloquent dans Platform::run)

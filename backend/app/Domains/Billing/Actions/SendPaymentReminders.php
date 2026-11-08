@@ -12,6 +12,8 @@ use App\Domains\Billing\Models\Payer;
 use App\Domains\Billing\Models\PaymentReminder;
 use App\Domains\Billing\Support\InvoiceTotals;
 use App\Domains\Identity\Models\User;
+use App\Domains\Messaging\Contracts\SmsSender;
+use App\Support\Http\BusinessConflict;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -19,20 +21,28 @@ use Illuminate\Support\Facades\DB;
 /**
  * Relance des impayés (décision du 05/11/2026) : un SMS par payeur pour ses factures en retard, au plus une fois tous
  * les 7 jours (une relance en échec ne compte pas). La relance est enregistrée puis envoyée par un job en file, après
- * la validation de la transaction.
+ * la validation de la transaction. Sans fournisseur SMS configuré, la relance est refusée (409) plutôt qu'annoncée.
  */
-final class SendPaymentReminders
+final readonly class SendPaymentReminders
 {
     public const int MIN_DAYS_BETWEEN = 7;
 
     /** Factures par demande : toute une école en une fois (un SMS par payeur, regroupement intact). */
     public const int MAX_INVOICES = 1000;
 
+    public function __construct(private SmsSender $sms) {}
+
     /**
      * @param  Collection<int, Invoice>  $invoices  factures autorisées (billing.manage sur leur cycle)
+     *
+     * @throws BusinessConflict sms_unavailable (aucun fournisseur SMS : rien n'est enregistré ni annoncé comme envoyé)
      */
     public function handle(User $author, Collection $invoices, Carbon $now): ReminderOutcome
     {
+        if (! $this->sms->available()) {
+            throw new BusinessConflict('sms_unavailable', 'Les relances par SMS seront disponibles quand un fournisseur SMS sera configuré.');
+        }
+
         $withTotals = InvoiceTotals::select(Invoice::query()->whereKey($invoices->modelKeys()), $now)
             ->with('payer.guardian')
             ->get();

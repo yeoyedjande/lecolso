@@ -30,6 +30,8 @@ test('école sans affectation : introuvable, aucune requête avec son identifian
   // Sa propre école fonctionne toujours, avec son seul identifiant
   await page.goto('/les-lauriers/eleves')
   await expect(page.getByRole('heading', { name: 'Élèves', level: 1 })).toBeVisible()
+  // La liste arrivée, ses requêtes sont parties (le titre s'affiche avant elles)
+  await expect(page.getByText(/élèves affichés/)).toBeVisible()
   expect(new Set(api.schoolHeaders)).toEqual(new Set([SCHOOLS.lauriers.id]))
 })
 

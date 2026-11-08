@@ -7,6 +7,7 @@ use App\Domains\Billing\Data\GatewayRequest;
 use App\Domains\Billing\Data\GatewayResult;
 use App\Domains\Billing\Enums\PaymentIntentStatus;
 use App\Domains\Billing\Gateways\FakePaymentGateway;
+use App\Domains\Billing\Gateways\UnconfiguredPaymentGateway;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Billing\Models\Payment;
 use App\Domains\Identity\Enums\Role;
@@ -247,4 +248,14 @@ it('isole les paiements Mobile Money entre familles et entre établissements', f
     actingAsRole(Role::Director, $elsewhere);
     spa('GET', "/api/v1/guardian/payment-intents/{$id}", [], $elsewhere)->assertNotFound();
     spa('POST', '/api/v1/guardian/children/'.$student->id.'/payments', ['amount' => 5000, 'method' => 'wave', 'phone' => '0701020304'], $elsewhere)->assertNotFound();
+});
+
+it('indique dans la politique financière si un prestataire Mobile Money est raccordé', function (): void {
+    [$school] = mobileMoneySchool();
+    actingAsRole(Role::Director, $school);
+    spa('GET', '/api/v1/billing/policy', [], $school)->assertOk()->assertJsonPath('data.mobile_money.available', true);
+
+    // Production sans prestataire : réglages conservés, paiement en ligne non proposé
+    app()->instance(PaymentGateway::class, new UnconfiguredPaymentGateway);
+    spa('GET', '/api/v1/billing/policy', [], $school)->assertOk()->assertJsonPath('data.mobile_money.available', false);
 });

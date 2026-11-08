@@ -26,6 +26,7 @@ use App\Domains\Students\Enums\GuardianRelation;
 use App\Domains\Students\Models\Enrollment;
 use App\Domains\Students\Models\Student;
 use App\Domains\Tenancy\Models\School;
+use App\Support\Console\Terminal;
 use App\Support\Tenancy\Platform;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
@@ -320,4 +321,18 @@ function sentSms(): array
     $sender = app()->get(SmsSender::class);
 
     return $sender instanceof FakeSmsSender ? $sender->sent() : [];
+}
+
+/** Branche (ou débranche) un faux terminal sur l'entrée standard des commandes Artisan : Pest n'en a aucun. */
+function attachTerminal(bool $attached = true): void
+{
+    app()->instance(Terminal::class, new class($attached) extends Terminal
+    {
+        public function __construct(private readonly bool $attached) {}
+
+        public function stdinIsTerminal(): bool
+        {
+            return $this->attached;
+        }
+    });
 }

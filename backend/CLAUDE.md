@@ -80,6 +80,9 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Middleware `super_admin` (`EnsureSuperAdmin`, après `auth:sanctum`) : `users.is_super_admin` (jamais assignable en masse), sinon **404**.
 - Lecture et écriture hors RLS uniquement par `Platform::run(fn)` : bascule la connexion par défaut sur `pgsql_platform`
   (rôle de connexion séparé `app_platform`, `BYPASSRLS`), dans une transaction, et rétablit la connexion précédente dans un `finally`.
+- Premier super-administrateur d'une base vide : commande `platform:create-super-admin` (`Identity\Actions\CreateSuperAdmin`,
+  mot de passe saisi masqué, jamais en argument ; refus s'il en existe déjà un), seule autre Action autorisée à importer
+  `Platform`. Procédure : `docs/deploiement-railway.md`.
 - Seules les Actions des routes `/api/v1/platform/*` importent `Platform` (test d'architecture `tests/Unit/ArchitectureTest.php`).
   Les modèles chargés dans `Platform::run()` gardent la connexion `pgsql_platform` : ne pas les réutiliser pour écrire ensuite.
 - Identifiants `DB_PLATFORM_*` fournis au seul service `api` (ni `worker` ni `scheduler`).
@@ -116,8 +119,12 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   promoteur et permissions des parents), `revokeRole`. Un compte existant d'une autre école est retrouvé par
   `auth_user_id(phone)` et rattaché. Suppression : affectations retirées, puis `forget_user(id)` (SECURITY DEFINER)
   n'efface que les comptes sans aucune école et jamais un super-admin.
-- SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
-  journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
+- SMS : interface `Messaging\Contracts\SmsSender` (`send`, `available`) ; `FakeSmsSender` hors production (téléphone
+  masqué, contenu jamais journalisé, `available` vrai), `UnconfiguredSmsSender` (refus, `available` faux) en production
+  tant qu'aucun fournisseur n'est choisi. Sans fournisseur : `sms_available` faux dans `/me` et la page publique (aucun
+  écran ne promet de SMS), relances refusées (409 `sms_unavailable`, rien d'enregistré), aucun SMS de décision de
+  pré-inscription tenté, confirmation de paiement notée non envoyée sans tâche en file. Brancher un fournisseur = une
+  implémentation de `SmsSender` liée dans `IdentityServiceProvider` ; rien d'autre à changer.
 
 ## Élèves, tuteurs et inscriptions (domaine Students)
 
@@ -192,7 +199,8 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   `HandlePaymentWebhook` : signature, école par `payment_intent_school()` SECURITY DEFINER, `TenantContext::run`).
   `SettleMobilePayment` → `RecordPayment::online()` : paiement sans caisse (`cash_session_id` nul), reçu `REC-…`,
   enregistré même si la facture a été réglée entre-temps (trop-perçu). Frais : `FinancialPolicy::mobileMoney()`
-  (`schools.settings.billing_mobile_money`, `GET/PUT billing/policy`).
+  (`schools.settings.billing_mobile_money`, `GET/PUT billing/policy` ; `mobile_money.available` : un prestataire est
+  raccordé, sinon l'écran Frais l'indique et les parents voient « bientôt disponible »).
 - Tarifs publics (lot 11a) : `GET public/schools/{slug}/fees` (`ShowPublicFees`, sans connexion, sous la RLS de l'école
   du slug) : grille de l'année en cours par niveau des cycles actifs, seulement si `schools.settings.public_fees`
   (réglage `public_fees` de `PATCH school`, désactivé par défaut) ; sinon `data: null`.
