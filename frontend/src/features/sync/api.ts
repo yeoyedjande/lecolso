@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
+import { session } from '@/lib/api/session'
 import { db } from '@/lib/offline/db'
 import { notifyOutbox, onOutboxChange, pendingCount } from '@/lib/offline/outbox'
 import { toast } from '@/lib/toast'
@@ -25,6 +26,10 @@ const BATCH = 100
 /**
  * Envoie la file hors connexion de l'école à POST /sync, par lots de 100. Opération appliquée (ou déjà traitée) :
  * retirée ; refusée : retirée et signalée (`rejected`) ; réseau coupé : gardée pour plus tard.
+ * L'en-tête X-School-Id suit l'école choisie à l'instant de la requête : si l'utilisateur change d'école pendant
+ * l'envoi, les lots suivants partiraient vers l'autre école, qui refuserait (introuvable) des saisies qu'on effacerait.
+ * L'envoi s'arrête donc dès que l'école courante n'est plus `schoolId`, avant la requête comme à sa réponse, sans
+ * rien retirer : la file repart à la prochaine visite de l'école (opérations idempotentes côté serveur).
  */
 export async function flushOutbox(
   schoolId: string,
@@ -35,6 +40,7 @@ export async function flushOutbox(
   const rejected: SyncResult[] = []
 
   for (let start = 0; start < items.length; start += BATCH) {
+    if (session.getSchoolId() !== schoolId) break
     const batch = items.slice(start, start + BATCH)
     const operations = batch.flatMap((item) => {
       const type = TYPES.find((candidate) => candidate === item.type)
@@ -45,6 +51,7 @@ export async function flushOutbox(
       body: { operations: [] },
       bodySerializer: () => JSON.stringify({ operations }),
     })
+    if (session.getSchoolId() !== schoolId) break
     if (data === undefined) {
       await db.outbox.bulkUpdate(
         batch.map((item) => ({ key: item.id, changes: { attempts: item.attempts + 1 } })),
