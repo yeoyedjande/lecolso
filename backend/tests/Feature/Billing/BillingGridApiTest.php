@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Academic\Enums\AcademicYearStatus;
 use App\Domains\Billing\Models\FeeSchedule;
+use App\Domains\Billing\Models\InstallmentDate;
 use App\Domains\Billing\Models\Invoice;
 use App\Domains\Identity\Enums\Role;
 
@@ -149,3 +150,21 @@ it('réserve la grille et l’échéancier au personnel : ni enseignant ni paren
     spa('GET', '/api/v1/billing/schedules', [], $school)->assertForbidden();
     spa('POST', '/api/v1/billing/invoices/generate', [], $school)->assertForbidden();
 })->with([Role::Teacher, Role::Guardian]);
+
+it('recrée le calendrier complet quand la périodicité change ou qu’il est incomplet', function (): void {
+    $school = makeSchool(['primary']);
+    currentYearOf($school);
+    $primary = cycleOf($school, 'primary');
+    actingAsRole(Role::Director, $school);
+    spa('GET', '/api/v1/billing/grid', [], $school)->assertOk()->assertJsonCount(3, 'data.cycles.0.dates');
+
+    spa('PATCH', '/api/v1/cycles/'.$primary->id, ['settings' => ['billing_period' => 'monthly']], $school)->assertOk();
+    spa('GET', '/api/v1/billing/grid', [], $school)->assertOk()
+        ->assertJsonCount(10, 'data.cycles.0.dates')
+        ->assertJsonPath('data.cycles.0.billing_period', 'monthly');
+
+    // Calendrier incomplet (une date manquante) : remplacé d'un bloc, sans doublon de position
+    inSchool($school, static fn (): mixed => InstallmentDate::query()->where('cycle_id', $primary->id)->orderByDesc('position')->firstOrFail()->delete());
+    spa('GET', '/api/v1/billing/grid', [], $school)->assertOk()->assertJsonCount(10, 'data.cycles.0.dates');
+    expect(inSchool($school, static fn (): int => InstallmentDate::query()->where('cycle_id', $primary->id)->distinct()->count('position')))->toBe(10);
+});
