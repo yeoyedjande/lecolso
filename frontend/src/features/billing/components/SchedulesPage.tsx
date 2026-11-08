@@ -2,9 +2,9 @@ import { useTranslation } from 'react-i18next'
 
 import { MoneyAmount } from '@/components/MoneyAmount'
 import { ScreenHeader } from '@/components/ScreenHeader'
+import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { Card } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import {
   Table,
   TableBody,
@@ -15,70 +15,69 @@ import {
 } from '@/components/ui/table'
 import { formatDay } from '@/lib/format'
 
-import { useSchedules } from '../api'
+import { useBillingSchedules } from '../api'
 
-/** Échéanciers : attendu et encaissé par échéance (toutes classes). */
+/**
+ * Échéancier de l'année (vraie API) : montant attendu à chaque date, toutes factures confondues.
+ * Les montants encaissés et le taux de recouvrement arrivent avec les encaissements.
+ */
 export function SchedulesPage() {
   const { t } = useTranslation()
-  const query = useSchedules()
+  const query = useBillingSchedules()
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <ScreenHeader
         title={t('billing.schedules.title')}
         description={t('billing.schedules.description')}
       />
       <QueryState query={query}>
-        {(rows) => (
-          <Card className="overflow-x-auto p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('billing.schedules.installment')}</TableHead>
-                  <TableHead>{t('billing.schedules.dueDate')}</TableHead>
-                  <TableHead className="text-right">{t('billing.schedules.expected')}</TableHead>
-                  <TableHead className="text-right">{t('billing.schedules.collected')}</TableHead>
-                  <TableHead className="w-48">{t('billing.schedules.rate')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => {
-                  const rate =
-                    row.expected === 0 ? 0 : Math.round((row.collected / row.expected) * 100)
-                  return (
-                    <TableRow key={`${row.kind}-${row.dueDate}`}>
+        {(rows) =>
+          rows.length === 0 ? (
+            <EmptyState
+              title={t('billing.schedules.emptyTitle')}
+              description={t('billing.schedules.emptyDescription')}
+            />
+          ) : (
+            <Card className="overflow-x-auto p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('billing.schedules.installment')}</TableHead>
+                    <TableHead>{t('billing.schedules.dueDate')}</TableHead>
+                    <TableHead className="text-right">{t('billing.schedules.expected')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow key={row.due_on}>
                       <TableCell>
                         <span className="grid">
                           <span className="font-medium">{row.label}</span>
                           <span className="text-xs text-muted-foreground">
-                            {t('billing.schedules.students', { count: row.students })}
+                            {t('billing.schedules.students', { count: row.invoices })}
                           </span>
                         </span>
                       </TableCell>
-                      <TableCell>{formatDay(row.dueDate)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell>{formatDay(row.due_on)}</TableCell>
+                      <TableCell className="text-right font-semibold">
                         <MoneyAmount value={row.expected} />
                       </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        <MoneyAmount value={row.collected} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Progress
-                            value={rate}
-                            aria-label={t('billing.schedules.rate')}
-                            className="flex-1"
-                          />
-                          <span className="w-10 text-right text-sm font-semibold tabular">{`${String(rate)} %`}</span>
-                        </div>
-                      </TableCell>
                     </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
+                  ))}
+                  <TableRow>
+                    <TableCell colSpan={2} className="font-semibold">
+                      {t('billing.schedules.total')}
+                    </TableCell>
+                    <TableCell className="text-right font-display text-lg font-bold">
+                      <MoneyAmount value={rows.reduce((sum, row) => sum + row.expected, 0)} />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </Card>
+          )
+        }
       </QueryState>
     </div>
   )

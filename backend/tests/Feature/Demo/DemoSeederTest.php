@@ -56,7 +56,28 @@ it('crée les deux écoles, leurs cycles, un compte par rôle et leurs affectati
         ->and(ownerCount('users'))->toBe(count(DemoSeeder::ACCOUNTS))
         ->and(ownerCount('role_assignments'))->toBe(array_sum(array_map(static fn (array $account): int => count($account['roles']), DemoSeeder::ACCOUNTS)))
         ->and(DB::connection('pgsql_owner')->scalar('select count(*) from users where must_change_password'))->toBe(0)
-        ->and(DB::connection('pgsql_owner')->scalar('select phone from users where is_super_admin'))->toBe('+2250700000001');
+        ->and(DB::connection('pgsql_owner')->scalar('select phone from users where is_super_admin'))->toBe('+2250700000001')
+        // Rôle personnalisé de démonstration, une seule fois malgré deux exécutions
+        ->and(DB::connection('pgsql_owner')->scalar('select name from school_roles where system_key is null'))->toBe('Surveillant général')
+        ->and(ownerCount('school_roles'))->toBe(1)
+        // Année 2026-2027 en cours et classes des deux écoles, une seule fois
+        ->and(ownerCount('academic_years'))->toBe(2)
+        ->and(ownerCount('classrooms'))->toBe(17)
+        ->and(DB::connection('pgsql_owner')->scalar('select count(*) from classrooms where homeroom_teacher_id is not null'))->toBe(2)
+        ->and(ownerCount('students'))->toBe(48)
+        ->and(ownerCount('enrollments'))->toBe(48)
+        ->and(DB::connection('pgsql_owner')->scalar("select max(matricule) from students where matricule like 'LAU-%'"))->toBe('LAU-000035')
+        ->and(DB::connection('pgsql_owner')->scalar("select sum(last_value)::int from document_sequences where key = 'student_matricule'"))->toBe(48)
+        ->and(DB::connection('pgsql_owner')->scalar("select count(*) from guardian_student gs join guardians g on g.id = gs.guardian_id where g.phone = '+2250700000008'"))->toBe(3)
+        // Facturation : une facture par élève, une seule remise, échéances égales aux lignes
+        ->and(ownerCount('invoices'))->toBe(48)
+        ->and(DB::connection('pgsql_owner')->scalar("select count(*) from invoice_lines where kind = 'discount'"))->toBe(1)
+        ->and(ownerCount('payments'))->toBeGreaterThan(10)
+        ->and(ownerCount('payment_cancellations'))->toBe(1)
+        ->and(DB::connection('pgsql_owner')->scalar('select count(*) from cash_sessions where closed_at is null and business_date < current_date'))->toBe(0)
+        ->and(DB::connection('pgsql_owner')->scalar('select count(distinct receipt_number) = count(*) from payments'))->toBeTrue()
+        ->and(DB::connection('pgsql_owner')->scalar('select coalesce(sum(amount), 0)::bigint from installments'))
+        ->toBe(DB::connection('pgsql_owner')->scalar('select coalesce(sum(amount), 0)::bigint from invoice_lines'));
 });
 
 it('permet à la directrice de la maternelle de se connecter et de ne voir que la maternelle', function (): void {

@@ -1,6 +1,7 @@
-# Gestion École
+# EKALEWA
 
 Plateforme SaaS de gestion d'établissements scolaires (garderie, maternelle, primaire ; secondaire en V2, supérieur en V3).
+Domaine officiel : [ekalewa.com](https://ekalewa.com) — application sur `app.ekalewa.com`, recette sur `staging.ekalewa.com`.
 Développée à 100 % avec [Claude Code](https://docs.claude.com/en/docs/claude-code/overview), hébergée sur GitHub, déployée sur Railway.
 
 ## Prérequis
@@ -66,15 +67,15 @@ de s'exécuter en production. Connexion par téléphone (« 07 00 00 00 03 » ou
 
 | Compte | Téléphone | E-mail | Rôle |
 | --- | --- | --- | --- |
-| Super-admin Démo | +225 07 00 00 00 01 | superadmin@demo.lecolso.ci | super-admin de la plateforme |
-| Konan Promoteur | +225 07 00 00 00 02 | promoteur@demo.lecolso.ci | promoteur des deux écoles |
-| Yao Directeur | +225 07 00 00 00 03 | directeur@demo.lecolso.ci | directeur, Les Lauriers (toute l'école) |
-| Aminata Directrice maternelle | +225 07 00 00 00 04 | directrice.maternelle@demo.lecolso.ci | directrice, Les Lauriers, **maternelle uniquement** |
-| Awa Secrétaire | +225 07 00 00 00 05 | secretaire@demo.lecolso.ci | secrétaire, Les Lauriers |
-| Moussa Comptable | +225 07 00 00 00 06 | comptable@demo.lecolso.ci | comptable, Les Lauriers |
-| Fatou Enseignante | +225 07 00 00 00 07 | enseignante@demo.lecolso.ci | enseignante, Les Lauriers, primaire |
-| Kouadio Parent | +225 07 00 00 00 08 | parent@demo.lecolso.ci | parent dans les deux écoles |
-| Mariam Directrice | +225 07 00 00 00 09 | directrice@demo.lecolso.ci | directrice, Petits Génies |
+| Super-admin Démo | +225 07 00 00 00 01 | superadmin@demo.ekalewa.com | super-admin de la plateforme |
+| Konan Promoteur | +225 07 00 00 00 02 | promoteur@demo.ekalewa.com | promoteur des deux écoles |
+| Yao Directeur | +225 07 00 00 00 03 | directeur@demo.ekalewa.com | directeur, Les Lauriers (toute l'école) |
+| Aminata Directrice maternelle | +225 07 00 00 00 04 | directrice.maternelle@demo.ekalewa.com | directrice, Les Lauriers, **maternelle uniquement** |
+| Awa Secrétaire | +225 07 00 00 00 05 | secretaire@demo.ekalewa.com | secrétaire, Les Lauriers |
+| Moussa Comptable | +225 07 00 00 00 06 | comptable@demo.ekalewa.com | comptable, Les Lauriers |
+| Fatou Enseignante | +225 07 00 00 00 07 | enseignante@demo.ekalewa.com | enseignante, Les Lauriers, primaire |
+| Kouadio Parent | +225 07 00 00 00 08 | parent@demo.ekalewa.com | parent dans les deux écoles |
+| Mariam Directrice | +225 07 00 00 00 09 | directrice@demo.ekalewa.com | directrice, Petits Génies |
 
 | École | Cycles |
 | --- | --- |
@@ -83,16 +84,18 @@ de s'exécuter en production. Connexion par téléphone (« 07 00 00 00 03 » ou
 
 ### Espaces de l'application
 
+Une seule application, un chemin par établissement : `https://app.ekalewa.com/{slug}/…` (staging :
+`https://staging.ekalewa.com/{slug}/…`), sans sous-domaine par école (ADR 0005). Écoles de démo : `les-lauriers`, `petits-genies`.
+
 | Espace | Adresse | Pour qui | À essayer avec |
 | --- | --- | --- | --- |
-| Back-office | `/gestion` | promoteur, direction, secrétariat, comptabilité | Yao Directeur, Moussa Comptable, Aminata (maternelle) |
-| Enseignant (mobile) | `/enseignant` | enseignants | Fatou Enseignante (CE1 A et CM1 A) |
-| Parent (mobile) | `/parent` | parents | Kouadio Parent (2 enfants aux Lauriers, 1 aux Petits Génies) |
+| Back-office | `/{slug}/tableau-de-bord`, `/{slug}/eleves`, `/{slug}/encaissements`… | promoteur, direction, secrétariat, comptabilité | Yao Directeur, Moussa Comptable, Aminata (maternelle) |
+| Enseignant (mobile) | `/{slug}/enseignant` | enseignants | Fatou Enseignante (CE1 A et CM1 A) |
+| Parent (mobile) | `/{slug}/parent` | parents | Kouadio Parent (2 enfants aux Lauriers, 1 aux Petits Génies) |
+| Page publique | `/{slug}`, `/{slug}/preinscription` | tout le monde, sans connexion | `/les-lauriers`, pré-inscription |
 | Plateforme | `/plateforme` | super-admin | Super-admin Démo (liste et création d'écoles) |
-| Page publique | `/ecole/<slug>` (en production : `<slug>.<domaine>`) | tout le monde, sans connexion | `/ecole/les-lauriers`, pré-inscription |
+| Compte, connexion | `/compte`, `/connexion`, `/etablissements` | tous | — |
 | Design system | `/design` | équipe (local et staging seulement) | — |
 
-Les modules sans backend (élèves, paiements, notes, présences, messages…) affichent des **données de démonstration**
-générées dans le navigateur (`VITE_DEMO_MODULES=true`) : elles sont cohérentes entre les écrans mais repartent de zéro
-au rechargement. Restent sur la vraie API : connexion, profil, établissements, cycles et leurs paramètres,
-réinitialisation de mot de passe, liste et création d'écoles (super-admin), page publique d'une école.
+Tous les écrans sont branchés sur la vraie API : il n'y a plus de données de démonstration générées dans le navigateur.
+Les données de démonstration viennent du `DemoSeeder` (`make migrate`), en local et en staging seulement.

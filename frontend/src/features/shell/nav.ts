@@ -8,12 +8,15 @@ import {
   FileText,
   GraduationCap,
   Home,
+  Inbox,
   LayoutDashboard,
   MessageCircle,
   Receipt,
   School,
   Settings,
+  ShieldCheck,
   Sparkles,
+  UserCog,
   UserPlus,
   UserRound,
   Users,
@@ -32,6 +35,7 @@ export type NavKey =
   | 'dashboard'
   | 'students'
   | 'enrollment'
+  | 'preRegistrations'
   | 'import'
   | 'classes'
   | 'payments'
@@ -47,6 +51,8 @@ export type NavKey =
   | 'messages'
   | 'calendar'
   | 'settings'
+  | 'roles'
+  | 'users'
   | 'home'
   | 'myClasses'
   | 'rollCall'
@@ -58,7 +64,7 @@ export interface NavItem {
   key: NavKey
   path: string
   icon: LucideIcon
-  permission?: string
+  permission?: string | readonly string[]
 }
 
 export type NavSectionKey = 'pilotage' | 'schooling' | 'finance' | 'pedagogy' | 'daily' | 'admin'
@@ -75,6 +81,12 @@ export const BACK_OFFICE_NAV: NavSection[] = [
     items: [
       { key: 'students', path: 'eleves', icon: Users, permission: 'students.view' },
       { key: 'enrollment', path: 'inscriptions', icon: UserPlus, permission: 'students.manage' },
+      {
+        key: 'preRegistrations',
+        path: 'pre-inscriptions',
+        icon: Inbox,
+        permission: 'students.manage',
+      },
       { key: 'import', path: 'import', icon: FileSpreadsheet, permission: 'students.manage' },
       { key: 'classes', path: 'classes', icon: School, permission: 'school.settings.view' },
     ],
@@ -110,6 +122,13 @@ export const BACK_OFFICE_NAV: NavSection[] = [
     key: 'admin',
     items: [
       { key: 'settings', path: 'parametres', icon: Settings, permission: 'school.settings.view' },
+      {
+        key: 'users',
+        path: 'utilisateurs',
+        icon: UserCog,
+        permission: ['users.view', 'users.reset_password'],
+      },
+      { key: 'roles', path: 'roles', icon: ShieldCheck, permission: 'roles.manage' },
     ],
   },
 ]

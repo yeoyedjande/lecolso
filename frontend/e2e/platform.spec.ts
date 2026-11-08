@@ -57,14 +57,14 @@ test.describe('super-admin', () => {
   test('un directeur ne peut pas ouvrir la plateforme', async ({ page }) => {
     await mockApi(page, { session: ACCOUNTS.director })
     await page.goto('/plateforme')
-    await expect(page).toHaveURL(/\/gestion$/)
+    await expect(page).toHaveURL(/\/les-lauriers\/tableau-de-bord$/)
   })
 })
 
 test.describe('page publique de l’école (sans connexion)', () => {
   test('présentation puis pré-inscription', async ({ page }) => {
     const api = await mockApi(page)
-    await page.goto('/ecole/les-lauriers')
+    await page.goto('/les-lauriers')
     await expect(
       page.getByRole('heading', { name: 'Bienvenue à Les Lauriers', level: 1 }),
     ).toBeVisible()
@@ -76,6 +76,8 @@ test.describe('page publique de l’école (sans connexion)', () => {
     await page.getByLabel('Nom', { exact: true }).fill('Kouassi')
     await page.getByLabel('Prénom(s)').fill('Aya')
     await page.getByLabel('Date de naissance').fill('2020-03-14')
+    await expect(page.getByRole('heading', { name: /Tarifs/ })).toHaveCount(0)
+    await page.getByLabel('Sexe').selectOption('Fille')
     await page.getByLabel('Niveau souhaité').selectOption('Moyenne section')
     await page.getByLabel('Nom complet').fill('Adjoua Kouassi')
     await page.getByLabel('Téléphone').fill('1234')
@@ -87,12 +89,45 @@ test.describe('page publique de l’école (sans connexion)', () => {
     await page.getByLabel('J’accepte que l’école me contacte au sujet de cette demande.').check()
     await page.getByRole('button', { name: 'Envoyer la demande' }).click()
     await expect(page.getByRole('heading', { name: /Demande envoyée/, level: 1 })).toBeVisible()
-    await expect(page.getByText(/Référence PRE-2026-0001/)).toBeVisible()
+    await expect(page.getByText(/Numéro de dossier PRE-2026-000002/)).toBeVisible()
+    // Staging (envoi factice) : la décision est annoncée par SMS
+    await expect(page.getByText(/vous informera de sa décision par SMS/)).toBeVisible()
+  })
+
+  test('tarifs publiés par l’école : grille de l’année en cours', async ({ page }) => {
+    await mockApi(page, { session: ACCOUNTS.director })
+    await page.goto('/les-lauriers/parametres')
+    await page.getByLabel('Afficher les tarifs sur la page publique').click()
+    await expect(
+      page.getByText('Les tarifs sont affichés sur la page publique', { exact: true }),
+    ).toBeVisible()
+
+    await page.goto('/les-lauriers')
+    await expect(page.getByRole('heading', { name: 'Tarifs 2026-2027', level: 2 })).toBeVisible()
+    await expect(page.getByRole('columnheader', { name: 'Scolarité' })).toBeVisible()
+    await expect(page.getByRole('rowheader', { name: /CE1/ })).toBeVisible()
+  })
+
+  test('pré-inscription sans fournisseur SMS : aucune promesse de SMS', async ({ page }) => {
+    await mockApi(page, { sms: false })
+    await page.goto('/les-lauriers/preinscription')
+    await page.getByLabel('Nom', { exact: true }).fill('Kouassi')
+    await page.getByLabel('Prénom(s)').fill('Aya')
+    await page.getByLabel('Date de naissance').fill('2020-03-14')
+    await page.getByLabel('Niveau souhaité').selectOption('Moyenne section')
+    await page.getByLabel('Nom complet').fill('Adjoua Kouassi')
+    await page.getByLabel('Téléphone').fill('07 00 00 00 21')
+    await page.getByLabel('J’accepte que l’école me contacte au sujet de cette demande.').check()
+    await page.getByRole('button', { name: 'Envoyer la demande' }).click()
+    await expect(
+      page.getByText(/l’établissement vous recontactera au \+225 07 00 00 00 21\.$/),
+    ).toBeVisible()
+    await expect(page.getByText(/SMS/)).toHaveCount(0)
   })
 
   test('école inconnue : message clair', async ({ page }) => {
     await mockApi(page)
-    await page.goto('/ecole/inconnue')
+    await page.goto('/inconnue')
     await expect(
       page.getByRole('heading', { name: 'Cette école n’existe pas ou n’a pas encore de page.' }),
     ).toBeVisible()

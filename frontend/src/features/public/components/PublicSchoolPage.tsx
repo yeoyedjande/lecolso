@@ -1,80 +1,97 @@
 import { Link } from '@tanstack/react-router'
-import { HeartHandshake, LogIn, MapPin, ShieldCheck, Smartphone, UserPlus } from 'lucide-react'
+import {
+  HeartHandshake,
+  LogIn,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Smartphone,
+  UserPlus,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Logo, LogoMark } from '@/components/brand/Logo'
 import { HeroPattern } from '@/components/brand/Patterns'
-import { CycleBadge } from '@/components/CycleBadge'
 import { MoneyAmount } from '@/components/MoneyAmount'
 import { Reveal } from '@/components/motion/Reveal'
-import { DemoBanner } from '@/components/states/DemoBanner'
 import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SchoolLogo } from '@/features/school/components/SchoolLogo'
 import { CYCLE_CLASSES, cycleTone } from '@/lib/cycles'
-import { YEAR_LABEL } from '@/lib/demo/dates'
+import { formatPhone } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { usePublicFees, usePublicSchool, type PublicSchool } from '../api'
+import { usePublicFees, usePublicSchool } from '../api'
 
-function Fees({ slug, school }: { slug: string; school: PublicSchool }) {
+/** Tarifs publiés par l'école (année en cours) ; rien si l'école ne les publie pas. */
+function Fees({ slug }: { slug: string }) {
   const { t } = useTranslation()
   const query = usePublicFees(slug)
-  const codes = new Set(school.cycles.flatMap((cycle) => cycle.levels))
+  const grid = query.data
+  if (grid === undefined || grid === null || grid.levels.length === 0) return null
+  const optional = grid.fee_types.filter((type) => type.optional)
   return (
-    <QueryState query={query}>
-      {({ levels, fees }) => (
-        <div className="grid gap-3">
-          <DemoBanner />
-          <div className="overflow-hidden rounded-3xl border bg-card shadow-soft">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/60 text-left text-xs text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">{t('billing.fees.level')}</th>
-                  <th className="px-4 py-3 text-right">{t('publicSchool.registration')}</th>
-                  <th className="px-4 py-3 text-right">{t('publicSchool.tuition')}</th>
+    <section aria-labelledby="fees-title" className="grid gap-5">
+      <h2 id="fees-title" className="font-display text-2xl font-bold">
+        {t('publicSchool.fees', { year: grid.year_label })}
+      </h2>
+      <div className="grid gap-3">
+        <div className="overflow-x-auto rounded-3xl border bg-card shadow-soft">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/60 text-left text-xs text-muted-foreground uppercase">
+              <tr>
+                <th scope="col" className="px-4 py-3">
+                  {t('billing.fees.level')}
+                </th>
+                {grid.fee_types.map((type) => (
+                  <th key={type.code} scope="col" className="px-4 py-3 text-right">
+                    {type.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {grid.levels.map((level) => (
+                <tr key={`${level.cycle_name}-${level.level_code}`} className="border-t">
+                  <th scope="row" className="px-4 py-3 text-left font-medium">
+                    {level.level_name}
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {level.cycle_name}
+                    </span>
+                  </th>
+                  {grid.fee_types.map((type) => {
+                    const amount = level.amounts[type.code]
+                    return (
+                      <td key={type.code} className="px-4 py-3 text-right whitespace-nowrap">
+                        {amount === undefined ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <MoneyAmount value={amount} />
+                        )}
+                      </td>
+                    )
+                  })}
                 </tr>
-              </thead>
-              <tbody>
-                {levels
-                  .filter((level) => codes.has(level.name) || codes.size === 0)
-                  .map((level) => (
-                    <tr key={level.code} className="border-t">
-                      <td className="px-4 py-3">
-                        <CycleBadge code={level.cycle} label={level.name} />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <MoneyAmount
-                          value={
-                            fees.find(
-                              (fee) => fee.levelCode === level.code && fee.kind === 'registration',
-                            )?.amount ?? 0
-                          }
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        <MoneyAmount
-                          value={
-                            fees.find(
-                              (fee) => fee.levelCode === level.code && fee.kind === 'tuition',
-                            )?.amount ?? 0
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-sm text-muted-foreground">{t('publicSchool.feesHint')}</p>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-    </QueryState>
+        <p className="text-sm text-muted-foreground">
+          {optional.length === 0
+            ? t('publicSchool.feesHint')
+            : t('publicSchool.feesOptional', {
+                services: optional.map((type) => type.name).join(', '),
+              })}
+        </p>
+      </div>
+    </section>
   )
 }
 
-/** Page publique d'une école (<slug>.<domaine> ou /ecole/<slug>) : sans connexion. */
+/** Page publique d'une école (/{slug}) : sans connexion ni affectation, informations publiables seulement. */
 export function PublicSchoolPage({ slug }: { slug: string }) {
   const { t } = useTranslation()
   const query = usePublicSchool(slug)
@@ -100,9 +117,13 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
             <header className="relative overflow-hidden bg-navy text-white">
               <HeroPattern className="pointer-events-none absolute inset-0 size-full opacity-90" />
               <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 pt-5">
-                <span className="flex items-center gap-3">
-                  <LogoMark className="size-10 ring-1 ring-white/20" />
-                  <span className="font-display text-lg font-bold">{school.name}</span>
+                <span className="flex min-w-0 items-center gap-3">
+                  {school.logo_url === null ? (
+                    <LogoMark className="size-10 ring-1 ring-white/20" />
+                  ) : (
+                    <SchoolLogo url={school.logo_url} name={school.name} className="size-12" />
+                  )}
+                  <span className="font-display text-lg font-bold break-words">{school.name}</span>
                 </span>
                 <Button asChild size="sm" variant="secondary">
                   <Link to="/connexion">
@@ -121,9 +142,11 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                 <h1 className="max-w-2xl font-display text-4xl leading-tight font-bold text-balance sm:text-5xl">
                   {t('publicSchool.hero', { name: school.name })}
                 </h1>
-                <p className="max-w-xl text-lg text-white/85">{t('publicSchool.heroText')}</p>
+                <p className="max-w-xl text-lg text-white/85">
+                  {school.motto ?? t('publicSchool.heroText')}
+                </p>
                 <Button asChild variant="accent" size="lg" className="w-fit">
-                  <Link to="/ecole/$slug/preinscription" params={{ slug }}>
+                  <Link to="/$school/preinscription" params={{ school: slug }}>
                     <UserPlus aria-hidden />
                     {t('publicSchool.preRegister')}
                   </Link>
@@ -149,7 +172,9 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                           <CardContent className="grid gap-2 pt-6">
                             <h3 className="font-display text-xl font-bold">{cycle.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {t('publicSchool.levels', { levels: cycle.levels.join(', ') })}
+                              {t('publicSchool.levels', {
+                                levels: cycle.levels.map((level) => level.name).join(', '),
+                              })}
                             </p>
                           </CardContent>
                         </Card>
@@ -178,17 +203,63 @@ export function PublicSchoolPage({ slug }: { slug: string }) {
                 </ul>
               </section>
 
-              <section aria-labelledby="fees-title" className="grid gap-5">
-                <h2 id="fees-title" className="font-display text-2xl font-bold">
-                  {t('publicSchool.fees', { year: YEAR_LABEL })}
-                </h2>
-                <Fees slug={slug} school={school} />
-              </section>
+              <Fees slug={slug} />
+
+              {(school.address !== null || school.phone !== null || school.email !== null) && (
+                <section aria-labelledby="contact-title" className="grid gap-5">
+                  <h2 id="contact-title" className="font-display text-2xl font-bold">
+                    {t('publicSchool.contact')}
+                  </h2>
+                  <dl className="grid gap-4 sm:grid-cols-3">
+                    {school.address !== null && (
+                      <div className="grid gap-1 rounded-2xl border bg-card p-4">
+                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin aria-hidden className="size-4" />
+                          {t('publicSchool.address')}
+                        </dt>
+                        <dd className="font-medium break-words">{school.address}</dd>
+                      </div>
+                    )}
+                    {school.phone !== null && (
+                      <div className="grid gap-1 rounded-2xl border bg-card p-4">
+                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone aria-hidden className="size-4" />
+                          {t('publicSchool.phone')}
+                        </dt>
+                        <dd className="font-medium">
+                          <a
+                            className="tabular underline-offset-4 hover:underline"
+                            href={`tel:${school.phone}`}
+                          >
+                            {formatPhone(school.phone)}
+                          </a>
+                        </dd>
+                      </div>
+                    )}
+                    {school.email !== null && (
+                      <div className="grid gap-1 rounded-2xl border bg-card p-4">
+                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail aria-hidden className="size-4" />
+                          {t('publicSchool.email')}
+                        </dt>
+                        <dd className="font-medium break-words">
+                          <a
+                            className="underline-offset-4 hover:underline"
+                            href={`mailto:${school.email}`}
+                          >
+                            {school.email}
+                          </a>
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </section>
+              )}
 
               <section className="grid justify-items-center gap-4 rounded-3xl bg-navy px-6 py-10 text-center text-white">
                 <p className="font-display text-2xl font-bold">{t('publicSchool.heroText')}</p>
                 <Button asChild variant="accent" size="lg">
-                  <Link to="/ecole/$slug/preinscription" params={{ slug }}>
+                  <Link to="/$school/preinscription" params={{ school: slug }}>
                     <UserPlus aria-hidden />
                     {t('publicSchool.preRegister')}
                   </Link>

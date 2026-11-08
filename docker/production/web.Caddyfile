@@ -1,25 +1,58 @@
+# Service web (Railway) : application monopage + proxy de même origine vers l'API (ADR 0005).
+# https://app.<domaine>/api/*     → API Laravel (réseau privé Railway)
+# https://app.<domaine>/sanctum/* → API Laravel (cookie CSRF de Sanctum)
+# tout le reste                   → fichiers de l'application, index.html pour les routes du frontend
 {
 	auto_https off
 	admin off
+	servers {
+		# TLS est terminé par le proxy de Railway, seul à joindre ce conteneur : ses en-têtes X-Forwarded-*
+		# sont acceptés depuis les réseaux privés (dont 100.64.0.0/10, plage interne des plateformes cloud).
+		# Venant d'ailleurs, ils sont ignorés et l'adresse de connexion fait foi.
+		trusted_proxies static private_ranges 100.64.0.0/10
+		trusted_proxies_strict
+		client_ip_headers X-Forwarded-For
+	}
 }
 
 :{$PORT:8080} {
-	root * /srv
 	encode zstd gzip
 
-	# Fichiers versionnés (hash dans le nom) : cache long. Tout le reste (index.html servi pour chaque route de
-	# l'application, sw.js, manifeste, icônes) est revalidé, pour qu'un déploiement soit pris en compte aussitôt.
-	@versioned path /assets/*
-	@revalidated not path /assets/*
-	header @versioned Cache-Control "public, max-age=31536000, immutable"
-	header @revalidated Cache-Control "no-cache"
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 		-Server
 	}
 
-	# Application monopage : toute route inconnue renvoie index.html
-	try_files {path} /index.html
-	file_server
+	@backend path /api/* /sanctum/*
+	handle @backend {
+		# Même origine : cookies de session et XSRF-TOKEN limités à l'hôte (aucun domaine parent),
+		# donc jamais partagés entre app.<domaine> et staging.<domaine> ; aucune requête CORS.
+		# Hôte public conservé (Host d'origine, lu par Sanctum pour les domaines « stateful »).
+		reverse_proxy {$API_UPSTREAM} {
+			# Une seule adresse, celle du client vue par Railway : Laravel (trustProxies) la lit telle quelle
+			# pour les limites de débit ; une valeur envoyée par le navigateur n'est jamais retransmise.
+			header_up X-Forwarded-For {client_ip}
+			header_up X-Real-IP {client_ip}
+			# Railway ne sert que du https : l'API voit le schéma public, pas celui du réseau interne
+			header_up X-Forwarded-Proto https
+			header_up -X-Forwarded-Host
+			header_up -X-Forwarded-Port
+		}
+	}
+
+	handle {
+		root * /srv
+
+		# Fichiers versionnés (hash dans le nom) : cache long. Tout le reste (index.html servi pour chaque route
+		# de l'application, sw.js, manifeste, icônes) est revalidé, pour qu'un déploiement soit pris en compte aussitôt.
+		@versioned path /assets/*
+		@revalidated not path /assets/*
+		header @versioned Cache-Control "public, max-age=31536000, immutable"
+		header @revalidated Cache-Control "no-cache"
+
+		# Application monopage : toute route inconnue (dont /{slug}/…) renvoie index.html
+		try_files {path} /index.html
+		file_server
+	}
 }

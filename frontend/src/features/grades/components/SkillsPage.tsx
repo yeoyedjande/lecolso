@@ -1,6 +1,8 @@
+import { Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ClassPicker, TermSelect } from '@/components/ClassPicker'
 import { ScreenHeader } from '@/components/ScreenHeader'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ListSkeleton, QueryState } from '@/components/states/QueryState'
@@ -13,16 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { can } from '@/features/auth/access'
-import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
-import { termCount } from '@/features/cycles/useCycleSettings'
-import type { SkillLevel } from '@/lib/demo/types'
 import { cn } from '@/lib/utils'
 
-import { useSetSkill, useSkillMatrix } from '../api'
-import { usePedagogyClasses } from '@/features/cycles/usePedagogyClasses'
-
-import { ClassPicker, TermPicker } from '@/components/ClassPicker'
+import {
+  useGradingClassrooms,
+  useSaveSkills,
+  useSkillGrid,
+  type SkillGrid,
+  type SkillLevel,
+} from '../api'
 
 const NEXT: Record<SkillLevel | 'none', SkillLevel | null> = {
   none: 'A',
@@ -37,26 +38,36 @@ const TONE: Record<SkillLevel | 'none', string> = {
   none: 'bg-surface text-muted-foreground border-dashed',
 }
 
+function isLevel(value: string | null): value is SkillLevel {
+  return value === 'A' || value === 'EA' || value === 'NA'
+}
+
+/** Compétences rangées par domaine, dans l'ordre du référentiel. */
+function domainsOf(grid: SkillGrid): { name: string; skills: SkillGrid['skills'] }[] {
+  const domains: { name: string; skills: SkillGrid['skills'] }[] = []
+  for (const skill of grid.skills) {
+    const last = domains.at(-1)
+    if (last?.name === skill.domain) last.skills.push(skill)
+    else domains.push({ name: skill.domain, skills: [skill] })
+  }
+  return domains
+}
+
 /** Livret de compétences (classes évaluées par compétences) : un clic fait évoluer le niveau. */
 export function SkillsPage() {
   const { t } = useTranslation()
-  const school = useCurrentSchool()
-  const editable = can(school, 'grades.manage')
-  const { classrooms, settingsOf, loading } = usePedagogyClasses(
-    'grades.view',
-    (settings) => settings.assessment_mode === 'competency',
-  )
+  const classes = useGradingClassrooms()
+  const classrooms = (classes.data ?? []).filter((classroom) => classroom.mode === 'competency')
   const [classroomId, setClassroomId] = useState('')
-  const [term, setTerm] = useState(1)
+  const [termId, setTermId] = useState<string | null>(null)
   const classroom = classrooms.find((candidate) => candidate.id === classroomId) ?? classrooms[0]
-  const settings = settingsOf(classroom)
-  const matrix = useSkillMatrix(classroom?.id ?? '', term)
-  const setSkill = useSetSkill()
+  const grid = useSkillGrid(classroom?.id ?? '', termId)
+  const save = useSaveSkills()
 
   return (
     <div className="grid gap-6">
       <ScreenHeader title={t('skills.title')} description={t('skills.description')} />
-      {loading ? (
+      {classes.isPending ? (
         <ListSkeleton />
       ) : classroom === undefined ? (
         <EmptyState title={t('skills.noClass')} />
@@ -77,38 +88,56 @@ export function SkillsPage() {
               ))}
             </ul>
             <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
-              <ClassPicker classrooms={classrooms} value={classroom.id} onChange={setClassroomId} />
-              <TermPicker
-                count={termCount(settings)}
-                type={settings?.term_type ?? 'free_period'}
-                value={term}
-                onChange={setTerm}
+              <ClassPicker
+                classrooms={classrooms}
+                value={classroom.id}
+                onChange={(id) => {
+                  // Périodes propres au cycle de la classe : celle du jour par défaut
+                  setClassroomId(id)
+                  setTermId(null)
+                }}
+              />
+              <TermSelect
+                terms={grid.data?.terms ?? []}
+                value={grid.data?.term.id ?? ''}
+                onChange={setTermId}
               />
             </div>
           </div>
-          <QueryState query={matrix}>
+          <QueryState query={grid}>
             {(data) => {
-              const total =
-                data.rows.length *
-                data.domains.reduce((sum, domain) => sum + domain.skills.length, 0)
+              const editable = data.can_manage
+              const domains = domainsOf(data)
+              const total = data.rows.length * data.skills.length
               const done = data.rows.reduce(
-                (sum, row) =>
-                  sum + Object.values(row.levels).filter((level) => level !== null).length,
+                (sum, row) => sum + row.levels.filter((cell) => cell.level !== null).length,
                 0,
               )
-              return (
+              return data.rows.length === 0 ? (
+                <EmptyState title={t('grades.noStudent')} />
+              ) : (
                 <div className="grid gap-2">
-                  <p className="text-sm text-muted-foreground">
+                  {data.closed && (
+                    <p
+                      className="flex items-center gap-2 rounded-xl bg-muted p-3 text-sm"
+                      role="status"
+                    >
+                      <Lock className="size-4 shrink-0" aria-hidden />
+                      {t('grades.closedBanner')}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
                     {t('skills.progress', { done, total })}
+                    {save.data?.queued === true && ` · ${t('grades.queued')}`}
                   </p>
-                  <Card className="overflow-hidden p-0">
+                  <Card className="overflow-x-auto p-0">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead rowSpan={2} className="sticky left-0 z-10 min-w-44 bg-card">
                             {t('grades.student')}
                           </TableHead>
-                          {data.domains.map((domain) => (
+                          {domains.map((domain) => (
                             <TableHead
                               key={domain.name}
                               colSpan={domain.skills.length}
@@ -119,7 +148,7 @@ export function SkillsPage() {
                           ))}
                         </TableRow>
                         <TableRow>
-                          {data.domains.flatMap((domain) =>
+                          {domains.flatMap((domain) =>
                             domain.skills.map((skill, index) => (
                               <TableHead
                                 key={skill.id}
@@ -138,11 +167,14 @@ export function SkillsPage() {
                         {data.rows.map((row) => (
                           <TableRow key={row.student.id}>
                             <TableCell className="sticky left-0 z-10 bg-card font-medium">
-                              {row.name}
+                              {row.student.full_name}
                             </TableCell>
-                            {data.domains.flatMap((domain) =>
+                            {domains.flatMap((domain) =>
                               domain.skills.map((skill, index) => {
-                                const level = row.levels[skill.id] ?? null
+                                const raw =
+                                  row.levels.find((cell) => cell.skill_id === skill.id)?.level ??
+                                  null
+                                const level = isLevel(raw) ? raw : null
                                 const key = level ?? 'none'
                                 return (
                                   <TableCell
@@ -156,7 +188,7 @@ export function SkillsPage() {
                                         short:
                                           level === null ? '·' : t(`skillLevelsShort.${level}`),
                                         skill: skill.label,
-                                        student: row.name,
+                                        student: row.student.full_name,
                                         level: t(`skillLevels.${key}`),
                                       })}
                                       className={cn(
@@ -164,11 +196,16 @@ export function SkillsPage() {
                                         TONE[key],
                                       )}
                                       onClick={() => {
-                                        setSkill.mutate({
-                                          studentId: row.student.id,
-                                          skillId: skill.id,
-                                          term,
-                                          level: NEXT[key],
+                                        save.mutate({
+                                          classroomId: classroom.id,
+                                          termId: data.term.id,
+                                          evaluations: [
+                                            {
+                                              student_id: row.student.id,
+                                              skill_id: skill.id,
+                                              level: NEXT[key],
+                                            },
+                                          ],
                                         })
                                       }}
                                     >

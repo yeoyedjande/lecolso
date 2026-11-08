@@ -1,4 +1,4 @@
-# Gestion École — plateforme SaaS multi-établissements
+# EKALEWA — plateforme SaaS multi-établissements
 
 Plateforme SaaS de gestion d'établissements scolaires privés (Côte d'Ivoire, puis Afrique de l'Ouest francophone).
 V1 : garderie, maternelle, primaire. V2 : collège, lycée. V3 : enseignement supérieur (LMD).

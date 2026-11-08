@@ -1,8 +1,7 @@
-import { Link, Outlet, useLocation } from '@tanstack/react-router'
+import { Link, Outlet } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Logo } from '@/components/brand/Logo'
-import { PageTransition } from '@/components/motion/Reveal'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { UserMenu } from '@/features/shell/UserMenu'
 import { useDocumentTheme } from '@/lib/hooks/useDocumentTheme'
@@ -10,7 +9,6 @@ import { useDocumentTheme } from '@/lib/hooks/useDocumentTheme'
 /** Espace super-admin : hors établissement, en-tête simple. */
 export function PlatformLayout() {
   const { t } = useTranslation()
-  const location = useLocation()
   useDocumentTheme()
 
   return (
@@ -40,9 +38,7 @@ export function PlatformLayout() {
         tabIndex={-1}
         className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 outline-none sm:px-6 lg:py-8"
       >
-        <PageTransition key={location.pathname}>
-          <Outlet />
-        </PageTransition>
+        <Outlet />
       </main>
     </div>
   )

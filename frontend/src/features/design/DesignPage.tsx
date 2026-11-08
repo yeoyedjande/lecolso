@@ -9,7 +9,6 @@ import { KpiCard } from '@/components/KpiCard'
 import { MoneyAmount } from '@/components/MoneyAmount'
 import { Reveal } from '@/components/motion/Reveal'
 import { PageHeader } from '@/components/PageHeader'
-import { DemoBanner } from '@/components/states/DemoBanner'
 import { EmptyState } from '@/components/states/EmptyState'
 import { ErrorState } from '@/components/states/ErrorState'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -229,7 +228,7 @@ export function DesignPage() {
           <Badge variant="outline">{t('roles.teacher')}</Badge>
           <Badge variant="success">{t('auth.password.success')}</Badge>
           <Badge variant="destructive">{t('nav.unpaid')}</Badge>
-          <Badge variant="accent">{t('states.demo')}</Badge>
+          <Badge variant="accent">{t('preRegistrations.status.pending')}</Badge>
           <CycleBadge code="daycare" label={t('cycles.daycare')} />
           <CycleBadge code="kindergarten" label={t('cycles.kindergarten')} />
           <CycleBadge code="primary" label={t('cycles.primary')} />
@@ -283,7 +282,6 @@ export function DesignPage() {
       </Section>
 
       <Section id="feedback" title={t('design.sections.feedback')}>
-        <DemoBanner />
         <div className="grid gap-3 sm:grid-cols-3">
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />

@@ -5,33 +5,44 @@ L'infrastructure est décrite dans `.railway/railway.ts` (infrastructure en code
 
 ## Architecture déployée
 
+Routage par chemin (ADR 0005) : une seule application, `https://app.ekalewa.com/{slug}/*`, **aucun sous-domaine par école**.
+
 | Service Railway | Source | Rôle | Domaine public |
 | --- | --- | --- | --- |
-| `api` | `docker/production/api.Dockerfile` | API Laravel (FrankenPHP) ; migrations avant chaque déploiement | `api.<domaine>` |
+| `web` | `docker/production/web.Dockerfile` | Application + PWA (Caddy) et proxy `/api/*`, `/sanctum/*` vers `api` | `app.ekalewa.com` (staging : `staging.ekalewa.com`) |
+| `api` | `docker/production/api.Dockerfile` | API Laravel (FrankenPHP, port 8080) ; migrations avant chaque déploiement | `api.ekalewa.com` en production seulement (webhooks, intégrations) |
 | `worker` | même image, `php artisan horizon` | Files : PDF, SMS, WhatsApp, webhooks | — |
 | `scheduler` | même image, `php artisan schedule:work` | Relances, tâches planifiées | — |
 | `gotenberg` | image `gotenberg/gotenberg:8` | Rendu PDF, réseau privé uniquement | — |
-| `web` | `docker/production/web.Dockerfile` | Back-office + PWA (fichiers statiques, Caddy) | `app.<domaine>`, `*.<domaine>` |
-
-`<domaine>` vaut `PRODUCTION_DOMAIN` en production et `STAGING_DOMAIN` en staging (`.railway/railway.ts`).
 | `postgres` | base gérée Railway | Données | — |
 | `redis` | base gérée Railway | Files et cache | — |
 | `fichiers` | bucket Railway (S3, privé) | Photos, pièces jointes, PDF | — (URL signées) |
 
+`ekalewa.com` (site vitrine) n'est pas servi par ce dépôt.
+
 Région : **EU West (Amsterdam)** pour tous les services et le bucket (`ams`), la plus proche d'Abidjan.
 Les données sont donc hébergées hors de Côte d'Ivoire : point à faire valider pour la déclaration ARTCI avant le pilote.
 
+### Chemin d'une requête du navigateur
+
+```text
+navigateur ─https─▶ proxy Railway (TLS) ─▶ web (Caddy) ─┬─ /api/*, /sanctum/* ─▶ api:8080 (réseau privé)
+                                                         └─ le reste ─▶ fichiers de l'application (index.html)
+```
+
+Le navigateur ne parle qu'à l'origine de l'application : pas de CORS, pas de requête `OPTIONS` préalable, cookies
+limités à cet hôte. `api.ekalewa.com` ne sert qu'aux appels de serveur à serveur.
+
 ## Environnements
 
-| Environnement Railway | Branche | Domaine | Usage |
+| Environnement Railway | Branche | Adresse | Usage |
 | --- | --- | --- | --- |
-| `production` | `main` | `PRODUCTION_DOMAIN` | Écoles pilotes puis clients |
-| `staging` | `develop` | `STAGING_DOMAIN` | Recette avant mise en production, données de démo uniquement |
+| `production` | `main` | `https://app.ekalewa.com` | Écoles pilotes puis clients |
+| `staging` | `develop` | `https://staging.ekalewa.com` | Recette avant mise en production, données de démo uniquement |
 
-Le staging a son **propre domaine**, jamais `staging.<domaine de production>` : le cookie de session de production
-est posé sur `.<domaine>` et serait sinon envoyé aux serveurs de staging. Un domaine propre est obligatoire dans les deux
-cas : sur `*.up.railway.app` (suffixe public), `api.` et `app.` ne peuvent pas partager de cookie.
-Les noms de cookie diffèrent aussi (`lecolso_session`, `lecolso_staging_session`).
+Les cookies de session et `XSRF-TOKEN` sont **limités à l'hôte** (`SESSION_DOMAIN` vide) : un cookie de
+`app.ekalewa.com` n'est jamais envoyé à `staging.ekalewa.com`, et inversement. Les noms diffèrent aussi
+(`lecolso_session`, `lecolso_staging_session`). Ne jamais poser `SESSION_DOMAIN=.ekalewa.com`.
 
 En staging, le pré-déploiement de `api` rejoue aussi `DemoSeeder` (idempotent, refusé en production) : les comptes
 de démo du README existent toujours, avec le mot de passe `Demo2026!`.
@@ -41,9 +52,9 @@ de démo du README existent toujours, avec le mot de passe `Demo2026!`.
 1. **GitHub** : dépôt `yeoyedjande/lecolso` ; protéger `main` (pull request obligatoire, job `ci-ok` requis).
 2. **Railway** : créer un compte, installer la CLI **5.42.1 ou plus récente** (`npm i -g @railway/cli`, le moteur IaC est
    fourni par la CLI), `railway login`, créer le projet et le lier : `railway link`.
-3. **Infrastructure** : remplacer `VOTRE-DOMAINE` et `VOTRE-DOMAINE-STAGING` dans `.railway/railway.ts`, puis
+3. **Infrastructure** :
    ```bash
-   cd .railway && npm install
+   cd .railway && npm ci
    railway config plan      # vérifier ce qui sera créé
    railway config apply
    ```
@@ -56,13 +67,52 @@ de démo du README existent toujours, avec le mot de passe `Demo2026!`.
      (jamais dans `worker` ni `scheduler`, ni dans une variable partagée) ;
    - clés SMS, paiement et secret de webhook quand les fournisseurs seront choisis.
 6. **Wait for CI** : dans les réglages de chaque service relié à GitHub, activer l'attente de la CI GitHub avant déploiement.
-7. **Domaines** : ajouter chez le registrar les enregistrements CNAME et TXT donnés par Railway pour `api.`, `app.` et `*.` (le joker exige aussi un CNAME `_acme-challenge`).
+7. **DNS** (chez le registrar de `ekalewa.com`), enregistrements CNAME et TXT donnés par Railway pour :
+   `app.ekalewa.com` et `api.ekalewa.com` (production), `staging.ekalewa.com` (staging). **Aucun joker `*.`.**
+   `ekalewa.com` (vitrine) : hébergé ailleurs, ou redirigé vers `app.ekalewa.com` en attendant.
 8. **Premier déploiement** : staging en poussant sur `develop`, production en fusionnant `develop` → `main`.
    Le pré-déploiement de `api` crée ou met à jour les rôles `app_user` et `app_platform`, lance les migrations
-   (et, en staging, les comptes de démo).
-9. **Vérifier** : `https://api.<domaine>/api/v1/health` répond 200 (`database` et `redis` à `ok`) ; la page
-   `https://app.<domaine>` s'affiche ; connexion avec un compte de démo (staging) ; `https://les-lauriers.<domaine>`
-   ouvre la page publique de l'école ; un test d'envoi de fichier atterrit dans le bucket.
+   (et, en staging, les comptes de démo). La migration `assert_no_reserved_school_slugs` échoue si une école porte
+   un slug réservé (`config/tenancy.php`) : la renommer à la main avant de redéployer.
+9. **Vérifier** (remplacer l'hôte par `staging.ekalewa.com` pour le staging) :
+   - `https://app.ekalewa.com/api/v1/health` répond 200 (`database` et `redis` à `ok`), à travers le proxy ;
+   - `https://app.ekalewa.com/connexion` : connexion d'un compte de démo (staging) ou du premier super-administrateur
+     (production, voir plus bas), puis `/me` ;
+   - dans les outils du navigateur, le cookie de session n'a **pas** d'attribut `Domain` (limité à l'hôte) ;
+   - `https://app.ekalewa.com/les-lauriers` ouvre la page publique de l'école sans connexion ;
+   - les journaux de `api` montrent l'adresse IP réelle des visiteurs (pas celle du proxy) : sinon, ajouter la plage
+     d'adresses du proxy Railway à `trusted_proxies` dans `docker/production/web.Caddyfile` ;
+   - un test d'envoi de fichier atterrit dans le bucket.
+
+## Premier super-administrateur (production, une fois)
+
+La production démarre sans aucun compte : le `DemoSeeder` y est refusé, et aucun compte de démonstration n'existe
+(`+22507000000…`, `Demo2026!` : staging et local seulement). Le premier super-administrateur se crée **à la main**,
+une seule fois, après le premier déploiement :
+
+```bash
+railway ssh --service api --environment production
+```
+
+```bash
+php artisan platform:create-super-admin
+```
+
+La commande demande le nom affiché, le téléphone (identifiant de connexion), l'e-mail (facultatif), puis le mot de
+passe **deux fois, sans l'afficher** : 12 caractères au moins, avec majuscules, minuscules et chiffres, sans le numéro
+de téléphone. Elle :
+
+- refuse de s'exécuter sans terminal interactif, y compris avec une entrée redirigée (`echo … |`, `< fichier`) :
+  aucun mot de passe en argument, en option, en variable ni dans un fichier (il resterait dans l'historique du shell,
+  la liste des processus ou sur le disque) ;
+- refuse s'il existe déjà un super-administrateur, ou si le téléphone ou l'e-mail appartient déjà à un compte ;
+- n'écrit dans le journal que `platform.super_admin_created` et l'identifiant du compte (ni mot de passe, ni
+  téléphone, ni e-mail).
+
+Nom, téléphone et e-mail peuvent aussi être passés en options (`--name`, `--phone`, `--email`) ; le mot de passe, jamais.
+Ensuite : se connecter sur `https://app.ekalewa.com/connexion`, ouvrir `/plateforme`, créer la première école et son
+directeur (mot de passe provisoire affiché une seule fois, à transmettre au directeur, qui le change à la première
+connexion). Ce parcours est rejoué en test (`tests/Feature/Platform/ProductionBootstrapTest.php`).
 
 ## Rôles PostgreSQL en production
 
@@ -93,45 +143,57 @@ Comme `DB_PLATFORM_PASSWORD` n'existe que dans `api`, seul le pré-déploiement 
 
 ## Session et authentification (navigateur)
 
-Le frontend (`app.<domaine>`, `<slug>.<domaine>`) et l'API (`api.<domaine>`) partagent le domaine principal : la session
-est un cookie httpOnly posé sur `.<domaine>`, et Sanctum (mode SPA) protège les requêtes par le jeton CSRF `XSRF-TOKEN`.
+Le frontend appelle l'API sur sa propre origine (`/api/v1`, `/sanctum/csrf-cookie`), relayée par Caddy : la session est
+un cookie httpOnly **limité à l'hôte**, et Sanctum (mode SPA) protège les requêtes par le jeton CSRF `XSRF-TOKEN`
+(cookie lisible par l'application, renvoyé dans l'en-tête `X-XSRF-TOKEN`).
 
-| Variable | Valeur en production | Rôle |
+| Variable | Valeur en production (staging) | Rôle |
 | --- | --- | --- |
 | `SESSION_DRIVER` | `redis` | sessions partagées par les répliques de `api` |
 | `SESSION_LIFETIME` | `480` | 8 h d'inactivité ; « se souvenir de moi » (30 jours) réservé aux comptes sans rôle du personnel |
-| `SESSION_DOMAIN` | `.<domaine>` | cookie lisible par `api.` et envoyé depuis `app.` et `<slug>.` |
-| `SESSION_COOKIE` | `lecolso_session` (staging : `lecolso_staging_session`) | nom du cookie propre à chaque environnement |
+| `SESSION_DOMAIN` | vide (`null`) | cookie limité à l'hôte : jamais partagé avec un autre sous-domaine d'`ekalewa.com` |
+| `SESSION_COOKIE` | `lecolso_session` (`lecolso_staging_session`) | nom du cookie propre à chaque environnement |
 | `SESSION_SECURE_COOKIE` | `true` | cookie envoyé en HTTPS uniquement |
-| `SESSION_SAME_SITE` | `lax` | même site : les requêtes du frontend emportent le cookie |
-| `SANCTUM_STATEFUL_DOMAINS` | `app.<domaine>,*.<domaine>` | origines traitées en session (sinon : aucune session) |
-| `FRONTEND_URL` | `https://app.<domaine>` | origine autorisée par CORS (avec cookies) |
-| `CORS_ALLOWED_ORIGIN_PATTERN` | `#^https://[a-z0-9-]+\.<domaine>$#` | pages des écoles autorisées par CORS |
+| `SESSION_SAME_SITE` | `lax` | même origine : les requêtes du frontend emportent le cookie |
+| `SANCTUM_STATEFUL_DOMAINS` | `app.ekalewa.com` (`staging.ekalewa.com`) | origine traitée en session (sinon : aucune session) |
+| `APP_URL`, `FRONTEND_URL` | `https://app.ekalewa.com` (`https://staging.ekalewa.com`) | base des liens envoyés (`SchoolUrl`) |
 
-Ces valeurs sont dans `.railway/railway.ts` (communes à `api`, `worker`, `scheduler`).
+Ces valeurs sont dans `.railway/railway.ts` (communes à `api`, `worker`, `scheduler`). CORS n'autorise que `FRONTEND_URL`,
+utile seulement en développement local (Vite sur `localhost:5173`, API sur `localhost:8080`).
 
-## Laravel derrière le proxy Railway
+## Laravel derrière les proxys (Railway, puis Caddy)
 
-- `trustProxies(at: '*')` (`bootstrap/app.php`) : Railway termine TLS et transmet `X-Forwarded-*` ; le schéma https,
-  l'hôte et l'IP réelle (limites de débit) en dépendent. Les conteneurs ne sont joignables que par le proxy Railway.
+- Caddy (`docker/production/web.Caddyfile`) n'accepte `X-Forwarded-*` que du réseau privé (`trusted_proxies`), puis
+  transmet à l'API **une seule** adresse client (`X-Forwarded-For`, `X-Real-IP`), `X-Forwarded-Proto: https`, et l'hôte
+  public d'origine ; il retire `X-Forwarded-Host` et `X-Forwarded-Port`. Une valeur envoyée par le navigateur n'est
+  jamais retransmise.
+- Laravel : `trustProxies(at: '*')` (`bootstrap/app.php`) fait confiance à l'adresse qui le joint (Caddy, ou le proxy Railway
+  pour `api.ekalewa.com`) : schéma https et IP réelle (limites de débit) en dépendent. Les conteneurs ne sont
+  joignables que par le proxy Railway ou le réseau privé.
 - `URL::forceScheme('https')` en staging et en production (`AppServiceProvider`).
 - Journaux sur stderr (`LOG_CHANNEL=stderr`, `LOG_LEVEL=info`), collectés par Railway.
-- Redis par `REDIS_URL` (sessions, cache, files).
+- Redis par `REDIS_URL` (sessions, cache, files). Préfixes figés (`REDIS_PREFIX`, `CACHE_PREFIX`, `HORIZON_PREFIX`) : ils ne
+  dépendent plus d'`APP_NAME`, dont un changement (nom affiché) aurait déconnecté tout le monde et orphelin les files.
 - Disque `s3` sur le bucket : `league/flysystem-aws-s3-v3`, visibilité `private`, accès par URL signée (`temporaryUrl`) uniquement.
 - Images : `.dockerignore` exclut `.env`, `vendor`, `node_modules`, tests et documentation du contexte de build.
-- `web` : `index.html` (servi pour toutes les routes), `sw.js` et le manifeste en `Cache-Control: no-cache` ;
-  `/assets/*` (noms versionnés) en cache long.
+- `web` : `index.html` (servi pour toutes les routes, dont `/{slug}/…`), `sw.js` et le manifeste en
+  `Cache-Control: no-cache` ; `/assets/*` (noms versionnés) en cache long. Les réponses de l'API gardent leurs propres en-têtes.
 
-## Variables du frontend (service `web`, lues au build)
+## Variables du service `web`
 
-| Variable | staging | production | Rôle |
-| --- | --- | --- | --- |
-| `VITE_API_URL` | `https://api.<domaine>/api/v1` | idem | URL de l'API |
-| `VITE_APP_ENV` | `staging` | `production` | `/design` présente en staging, absente du build de production |
-| `VITE_DEMO_MODULES` | `true` | `false` | données de démonstration des modules dont le backend n'existe pas encore |
-| `VITE_TENANT_DOMAIN` | `STAGING_DOMAIN` | `PRODUCTION_DOMAIN` | sur `<slug>.<domaine>` : page publique sans session, établissement présélectionné une fois connecté |
+| Variable | Valeur | Rôle |
+| --- | --- | --- |
+| `VITE_API_URL` | `/api/v1` | API sur la même origine (lue au build) |
+| `VITE_APP_ENV` | `staging` / `production` | `/design` présente en staging, absente du build de production (lue au build) |
+| `API_UPSTREAM` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080` | adresse privée de l'API pour le proxy Caddy (lue au démarrage) |
 
-Elles sont déclarées en `ARG` dans `docker/production/web.Dockerfile` ; un changement impose un nouveau build.
+Les variables `VITE_*` sont déclarées en `ARG` dans `docker/production/web.Dockerfile` ; un changement impose un nouveau build.
+
+## Liens envoyés aux utilisateurs
+
+E-mails, SMS, WhatsApp et PDF ne contiennent que des liens construits par `App\Support\Tenancy\SchoolUrl::to($school,
+'chemin')` : `FRONTEND_URL/{slug}/chemin`. Jamais de sous-domaine ni d'URL composée à la main ; un lien ne donne
+aucun droit (session, appartenance et Policies sont vérifiées à l'ouverture).
 
 ## Opérations courantes
 

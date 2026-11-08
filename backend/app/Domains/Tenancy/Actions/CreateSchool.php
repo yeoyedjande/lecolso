@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Tenancy\Actions;
 
 use App\Domains\Academic\Actions\ProvisionCycles;
+use App\Domains\Billing\Actions\ProvisionFeeTypes;
 use App\Domains\Identity\Actions\ResetUserPassword;
 use App\Domains\Identity\Enums\Role;
 use App\Domains\Identity\Models\RoleAssignment;
@@ -16,12 +17,15 @@ use App\Support\Tenancy\Platform;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Super-admin : crée une école, ouvre ses cycles (catalogue) et rattache son directeur, en une seule transaction
+ * Super-admin : crée une école, ouvre ses cycles (catalogue), crée ses types de frais et rattache son directeur, en une seule transaction
  * sur la connexion app_platform. Le directeur reçoit un mot de passe provisoire s'il n'avait pas de compte.
  */
 final readonly class CreateSchool
 {
-    public function __construct(private ProvisionCycles $provisionCycles) {}
+    public function __construct(
+        private ProvisionCycles $provisionCycles,
+        private ProvisionFeeTypes $provisionFeeTypes,
+    ) {}
 
     /**
      * @throws ValidationException slug déjà utilisé (vérifié hors RLS : toutes les écoles de la plateforme)
@@ -44,6 +48,7 @@ final readonly class CreateSchool
             ])->save();
 
             $this->provisionCycles->handle($school, $data->cycles);
+            $this->provisionFeeTypes->handle($school);
 
             $provisional = null;
             $director = User::query()->where('phone', $data->directorPhone)->first();

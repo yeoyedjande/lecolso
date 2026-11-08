@@ -1,24 +1,31 @@
 import { describe, expect, it } from 'vitest'
 
-import { enrollmentSchema } from './enrollmentSchema'
+import { enrollmentPayload, enrollmentSchema, type EnrollmentValues } from './enrollmentSchema'
 
-const valid = {
-  firstName: 'Aya',
-  lastName: 'Kouassi',
-  gender: 'F',
-  birthDate: '2019-03-14',
-  district: 'Cocody Angré',
-  medicalNote: '',
+const valid: EnrollmentValues = {
+  student: {
+    firstName: ' Aya ',
+    lastName: 'Kouassi',
+    gender: 'F',
+    birthDate: '2019-03-14',
+    birthPlace: '',
+    address: 'Cocody Angré',
+    bloodType: 'O+',
+    allergies: 'Arachide',
+    medicalNotes: '',
+  },
   guardians: [
     {
       name: 'Adjoua Kouassi',
-      relation: 'Mère',
+      relation: 'mother',
       phone: '07 00 00 00 00',
+      email: '',
       profession: '',
       isPayer: true,
+      canPickUp: true,
     },
   ],
-  classroomId: 'lau-ce1-a',
+  classroomId: '0195f000-0000-7000-8000-0000000b0003',
   options: ['canteen'],
 }
 
@@ -29,28 +36,56 @@ function codes(input: unknown): string[] {
     : result.error.issues.map((issue) => `${issue.path.join('.')}:${issue.message}`)
 }
 
-describe('formulaire d’inscription', () => {
+describe('enrollmentSchema', () => {
   it('accepte une inscription complète', () => {
     expect(codes(valid)).toEqual([])
   })
 
-  it('exige un payeur parmi les parents', () => {
-    expect(codes({ ...valid, guardians: [{ ...valid.guardians[0], isPayer: false }] })).toContain(
-      'guardians:payer',
-    )
+  it('signale chaque champ invalide par un code', () => {
+    expect(
+      codes({
+        ...valid,
+        student: { ...valid.student, firstName: ' ', birthDate: '14/03/2019' },
+        classroomId: '',
+      }),
+    ).toEqual([
+      'student.firstName:required',
+      'student.birthDate:birthDate',
+      'classroomId:classroom',
+    ])
   })
 
-  it('refuse un téléphone non ivoirien et une date invalide', () => {
-    const result = codes({
-      ...valid,
-      birthDate: '14/03/2019',
-      guardians: [{ ...valid.guardians[0], phone: '+33612345678' }],
+  it('exige un téléphone ivoirien et un seul payeur', () => {
+    const guardian = valid.guardians[0]
+    if (guardian === undefined) throw new Error('fixture')
+    expect(codes({ ...valid, guardians: [{ ...guardian, phone: '123' }] })).toEqual([
+      'guardians.0.phone:phone',
+    ])
+    expect(
+      codes({ ...valid, guardians: [guardian, { ...guardian, phone: '05 00 00 00 00' }] }),
+    ).toEqual(['guardians:payer'])
+  })
+})
+
+describe('enrollmentPayload', () => {
+  it('normalise le téléphone, fait du premier tuteur le contact principal', () => {
+    const payload = enrollmentPayload(valid, true)
+    expect(payload.student).toMatchObject({
+      first_name: 'Aya',
+      birth_place: null,
+      blood_type: 'O+',
     })
-    expect(result).toContain('birthDate:birthDate')
-    expect(result).toContain('guardians.0.phone:phone')
+    expect(payload.guardians[0]).toMatchObject({
+      phone: '+2250700000000',
+      is_primary_contact: true,
+      is_payer: true,
+      email: null,
+    })
   })
 
-  it('exige une classe', () => {
-    expect(codes({ ...valid, classroomId: '' })).toContain('classroomId:classroom')
+  it('n’envoie pas les données médicales sans le droit de les saisir', () => {
+    const payload = enrollmentPayload(valid, false)
+    expect('allergies' in payload.student).toBe(false)
+    expect('blood_type' in payload.student).toBe(false)
   })
 })

@@ -7,6 +7,7 @@ namespace Tests;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Timebox;
 use Tests\Support\InstantTimebox;
 use Tests\Support\SpaClient;
@@ -34,6 +35,8 @@ abstract class TestCase extends BaseTestCase
         // Connexion : durée minimale notée mais pas attendue (un test dédié vérifie la vraie Timebox)
         $this->app->instance(Timebox::class, new InstantTimebox);
         SpaClient::reset();
+        // Stockage privé factice pour tous les tests (chaque paiement rend un reçu PDF, chaque bulletin validé aussi)
+        Storage::fake();
 
         // DatabaseTruncation ne ferme pas les connexions (RefreshDatabase le fait) : sans cela, chaque test
         // laisse jusqu'à trois sessions PostgreSQL ouvertes et le serveur finit par refuser les connexions

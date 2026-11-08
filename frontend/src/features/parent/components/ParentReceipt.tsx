@@ -2,23 +2,36 @@ import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
-import { ReceiptPage } from '@/features/billing/components/ReceiptPage'
+import { useReceipt } from '@/features/billing/api'
+import { ReceiptPdfButton } from '@/features/billing/components/ReceiptPdfButton'
+import { ReceiptToolbar } from '@/features/billing/components/ReceiptPage'
+import { ReceiptSheet } from '@/features/billing/components/ReceiptSheet'
+import { receiptContent } from '@/features/billing/receipt'
 
-import { useParentPayments } from '../api'
-
-/** Reçu vu par un parent : seulement pour un paiement d'un de ses enfants. */
+/** Reçu vu par un parent : l'API ne le donne que pour un paiement d'un de ses enfants (sinon introuvable). */
 export function ParentReceipt({ paymentId }: { paymentId: string }) {
   const { t } = useTranslation()
-  const payments = useParentPayments()
+  const query = useReceipt(paymentId)
   return (
-    <QueryState query={payments}>
-      {(list) =>
-        list.some((payment) => payment.id === paymentId) ? (
-          <ReceiptPage paymentId={paymentId} backTo="/parent/paiements" />
-        ) : (
-          <EmptyState headingLevel={1} illustration="lost" title={t('billing.receipt.notFound')} />
-        )
-      }
-    </QueryState>
+    <div className="grid gap-4">
+      <ReceiptToolbar backTo="/$school/parent/paiements">
+        {query.data !== undefined && query.data !== null && (
+          <ReceiptPdfButton paymentId={paymentId} />
+        )}
+      </ReceiptToolbar>
+      <QueryState query={query}>
+        {(receipt) =>
+          receipt === null ? (
+            <EmptyState
+              headingLevel={1}
+              illustration="lost"
+              title={t('billing.receipt.notFound')}
+            />
+          ) : (
+            <ReceiptSheet receipt={receiptContent(receipt)} />
+          )
+        }
+      </QueryState>
+    </div>
   )
 }

@@ -1,7 +1,8 @@
+import type { components } from '@/lib/api/schema'
 import { normalizeCiPhone } from '@/lib/phone'
-import type { DemoClassroom, Gender } from '@/lib/demo/types'
 
-import type { EnrollmentInput } from './demo'
+/** Ligne envoyée à l'API (`POST students/import`), valeurs normalisées quand c'est possible. */
+export type ImportRowBody = components['schemas']['ImportStudentsRequest']['rows'][number]
 
 /** Colonnes attendues dans le fichier Excel (première ligne), dans cet ordre ou non. */
 export const IMPORT_COLUMNS = [
@@ -18,23 +19,26 @@ export const IMPORT_COLUMNS = [
 
 type Column = (typeof IMPORT_COLUMNS)[number]
 
-export type ImportError =
-  | 'missingColumns'
-  | 'lastName'
-  | 'firstName'
-  | 'gender'
-  | 'birthDate'
-  | 'classroom'
-  | 'guardian'
-  | 'phone'
-  | 'duplicate'
+/** Codes d'erreur d'une ligne, renvoyés par l'API (une seule source de vérité). */
+export const IMPORT_ERRORS = [
+  'last_name',
+  'first_name',
+  'gender',
+  'birth_date',
+  'classroom',
+  'year_closed',
+  'classroom_full',
+  'guardian',
+  'phone',
+  'duplicate',
+] as const
+export type ImportError = (typeof IMPORT_ERRORS)[number]
 
 export interface ImportRow {
   /** Numéro de ligne dans le fichier (en-tête = ligne 1). */
   line: number
   values: Record<Column, string>
-  errors: ImportError[]
-  input: EnrollmentInput | null
+  body: ImportRowBody
 }
 
 export interface ImportResult {
@@ -68,33 +72,29 @@ export function parseBirthDate(text: string): string | null {
   const value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
   const date = new Date(`${value}T12:00:00Z`)
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null
-  if (Number(year) < 2005 || Number(year) > 2025) return null
   return value
 }
 
-function parseGender(text: string): Gender | null {
+function parseGender(text: string): string {
   const value = normalizeHeader(text)
   if (['f', 'fille', 'feminin'].includes(value)) return 'F'
   if (['m', 'g', 'garcon', 'masculin'].includes(value)) return 'M'
-  return null
+  return text
 }
 
-function parseRelation(text: string): 'Père' | 'Mère' | 'Tuteur' | 'Tutrice' {
+function parseRelation(text: string): 'mother' | 'father' | 'guardian' {
   const value = normalizeHeader(text)
-  if (value === 'pere') return 'Père'
-  if (value === 'tuteur') return 'Tuteur'
-  if (value === 'tutrice') return 'Tutrice'
-  return 'Mère'
+  if (value === 'pere') return 'father'
+  if (value === 'mere' || value === '') return 'mother'
+  return 'guardian'
 }
 
 /**
- * Vérifie un tableau lu depuis Excel (première ligne = en-têtes) : chaque ligne reçoit ses erreurs, et
- * une ligne valide devient une inscription. Les doublons (même nom, prénom et date de naissance) sont signalés.
+ * Lit un tableau Excel (première ligne = en-têtes, sans accents ni casse imposés) : colonnes manquantes, puis une
+ * ligne à envoyer à l'API par ligne non vide (dates JJ/MM/AAAA ou Excel en AAAA-MM-JJ, sexe en F/M, lien en code,
+ * téléphone en E.164 quand c'est possible). L'API vérifie chaque ligne (classe, places, doublons).
  */
-export function parseImport(
-  sheet: readonly (readonly unknown[])[],
-  classrooms: readonly DemoClassroom[],
-): ImportResult {
+export function parseImport(sheet: readonly (readonly unknown[])[]): ImportResult {
   const [header = [], ...body] = sheet
   const positions = new Map<Column, number>()
   header.forEach((cell, index) => {
@@ -105,7 +105,6 @@ export function parseImport(
   const missingColumns = IMPORT_COLUMNS.filter((column) => !positions.has(column))
   if (missingColumns.length > 0) return { missingColumns, rows: [] }
 
-  const seen = new Set<string>()
   const rows: ImportRow[] = []
   body.forEach((cells, index) => {
     const cell = (column: Column): string => cellText(cells[positions.get(column) ?? -1])
@@ -121,55 +120,22 @@ export function parseImport(
       Téléphone: cell('Téléphone'),
     }
     if (IMPORT_COLUMNS.every((column) => values[column] === '')) return
-
-    const errors: ImportError[] = []
-    const gender = parseGender(values.Sexe)
-    const birthDate = parseBirthDate(values['Date de naissance'])
-    const classroom = classrooms.find(
-      (candidate) => normalizeHeader(candidate.name) === normalizeHeader(values.Classe),
-    )
-    const phone = normalizeCiPhone(values['Téléphone'])
-    if (values.Nom === '') errors.push('lastName')
-    if (values['Prénom'] === '') errors.push('firstName')
-    if (gender === null) errors.push('gender')
-    if (birthDate === null) errors.push('birthDate')
-    if (classroom === undefined) errors.push('classroom')
-    if (values.Parent.length < 2) errors.push('guardian')
-    if (phone === null) errors.push('phone')
-    const key = normalizeHeader(`${values.Nom}|${values['Prénom']}|${birthDate ?? ''}`)
-    if (seen.has(key)) errors.push('duplicate')
-    seen.add(key)
-
+    const line = index + 2
     rows.push({
-      line: index + 2,
+      line,
       values,
-      errors,
-      input:
-        errors.length > 0 ||
-        gender === null ||
-        birthDate === null ||
-        classroom === undefined ||
-        phone === null
-          ? null
-          : {
-              lastName: values.Nom,
-              firstName: values['Prénom'],
-              gender,
-              birthDate,
-              district: values.Quartier,
-              medicalNote: null,
-              classroomId: classroom.id,
-              options: [],
-              guardians: [
-                {
-                  name: values.Parent,
-                  relation: parseRelation(values.Lien),
-                  phone,
-                  profession: '',
-                  isPayer: true,
-                },
-              ],
-            },
+      body: {
+        line,
+        last_name: values.Nom,
+        first_name: values['Prénom'],
+        gender: parseGender(values.Sexe),
+        birth_date: parseBirthDate(values['Date de naissance']) ?? values['Date de naissance'],
+        classroom: values.Classe,
+        address: values.Quartier === '' ? null : values.Quartier,
+        guardian_name: values.Parent,
+        guardian_relation: parseRelation(values.Lien),
+        guardian_phone: normalizeCiPhone(values['Téléphone']) ?? values['Téléphone'],
+      },
     })
   })
   return { missingColumns, rows }

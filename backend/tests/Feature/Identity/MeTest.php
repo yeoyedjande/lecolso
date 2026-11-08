@@ -22,7 +22,7 @@ it('renvoie le profil, les écoles, les rôles par cycle et les permissions', fu
         ->assertJsonPath('data.is_super_admin', false)
         ->assertJsonCount(2, 'data.schools')
         ->assertJsonPath('data.schools.0.id', $schoolA->id)
-        ->assertJsonPath('data.schools.0.roles', [['role' => 'director', 'cycle_id' => $kindergarten->id]])
+        ->assertJsonPath('data.schools.0.roles', [['role' => 'director', 'role_name' => null, 'cycle_id' => $kindergarten->id]])
         ->assertJsonPath('data.schools.1.id', $schoolB->id);
 
     // Clés avec des points : lues directement (assertJsonPath les prendrait pour des chemins)
@@ -47,4 +47,19 @@ it('ne divulgue ni le mot de passe ni le jeton de session', function (): void {
     expect($json)->not->toContain('password":"')
         ->and($json)->not->toContain('remember_token')
         ->and($json)->toContain($user->phone);
+});
+
+it('donne les permissions d’un rôle personnalisé, sous sa clé d’affectation', function (): void {
+    $school = makeSchool(['primary']);
+    $role = customRole($school, ['students.view', 'attendance.manage']);
+    $user = makeUser();
+    assignRole($user, $school, $role->id);
+    login($user)->assertOk();
+
+    $me = spa('GET', '/api/v1/me')->assertOk()
+        ->assertJsonPath('data.schools.0.roles', [['role' => $role->id, 'role_name' => 'Surveillant général', 'cycle_id' => null]]);
+
+    $permissions = $me->json('data.schools.0.permissions');
+    \assert(is_array($permissions));
+    expect(array_keys($permissions))->toBe(['students.view', 'attendance.manage']);
 });

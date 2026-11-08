@@ -1,204 +1,200 @@
-import { useNavigate } from '@tanstack/react-router'
-import { CalendarCheck2, Send } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { CalendarPlus, Send } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DemoBanner } from '@/components/states/DemoBanner'
-import { QueryState } from '@/components/states/QueryState'
+import { EmptyState } from '@/components/states/EmptyState'
+import { ListSkeleton, QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
-import { demoToday } from '@/lib/demo/dates'
-import { formatDay } from '@/lib/format'
+import { ConflictError, ValidationError } from '@/lib/api/errors'
+import { formatDate } from '@/lib/format'
 import { toast } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 
-import { useAbsencesToJustify, useJustifyAbsence, useMyChildren } from '../api'
-import { isDay, JUSTIFY_REASONS, type JustifyReason } from '../demo'
+import { useChild, useJustifyAbsence, useMyChildren } from '../api'
 
-/** Justification d'absence : un formulaire, puis retour à l'accueil (3 écrans au plus). */
+/**
+ * Justification d'une absence relevée par l'école : l'enfant, l'absence, le motif et une photo facultative du
+ * certificat ; l'école accepte ou refuse. Trois écrans au plus depuis l'accueil.
+ */
 export function JustifyPage({
   studentId,
-  date,
+  markId,
 }: {
   studentId: string | undefined
-  date: string | undefined
+  markId: string | undefined
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const children = useMyChildren()
-  const pending = useAbsencesToJustify()
+  const [childId, setChildId] = useState(studentId ?? '')
+  const current = childId === '' ? (children.data?.[0]?.student.id ?? '') : childId
+  const child = useChild(current)
   const justify = useJustifyAbsence()
-  const today = demoToday()
-  const [child, setChild] = useState(studentId ?? '')
-  const [from, setFrom] = useState(date ?? today)
-  const [to, setTo] = useState(date ?? today)
-  const [reason, setReason] = useState<JustifyReason>('illness')
-  const [comment, setComment] = useState('')
-  // Dates vides ou incomplètes refusées avant tout envoi
-  const invalid = !isDay(from) || !isDay(to) || to < from
+  const [chosen, setChosen] = useState(markId ?? '')
+  const [reason, setReason] = useState('')
+  const [proof, setProof] = useState<File | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <div className="grid gap-5">
       <div className="grid gap-2">
-        <DemoBanner />
         <h1 className="font-display text-2xl font-bold">{t('parent.justify.title')}</h1>
         <p className="text-muted-foreground">{t('parent.justify.subtitle')}</p>
+        <Button asChild variant="outline" className="justify-self-start">
+          <Link
+            from="/$school"
+            to="/$school/parent/prevenir"
+            search={current === '' ? {} : { eleve: current }}
+          >
+            <CalendarPlus aria-hidden />
+            {t('parent.plan.link')}
+          </Link>
+        </Button>
       </div>
-
-      <QueryState query={pending}>
-        {(list) =>
-          list.length > 0 && (
-            <section aria-labelledby="pending-title" className="grid gap-2">
-              <h2 id="pending-title" className="text-sm font-semibold">
-                {t('parent.justify.pending')}
-              </h2>
-              <ul className="flex flex-wrap gap-2">
-                {list.slice(0, 6).map((entry) => (
-                  <li key={`${entry.student.id}-${entry.date}`}>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setChild(entry.student.id)
-                        setFrom(entry.date)
-                        setTo(entry.date)
-                      }}
-                    >
-                      <CalendarCheck2 aria-hidden />
-                      {`${entry.student.firstName} · ${formatDay(entry.date)}`}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )
-        }
-      </QueryState>
-
-      <QueryState query={children}>
-        {(list) => {
-          const selected = list.find((candidate) => candidate.student.id === child) ?? list[0]
-          return (
-            <Card>
-              <CardContent className="p-4">
+      {children.isPending ? (
+        <ListSkeleton />
+      ) : (children.data ?? []).length === 0 ? (
+        <EmptyState title={t('parent.home.noChild')} />
+      ) : (
+        <>
+          {(children.data ?? []).length > 1 && (
+            <Field label={t('parent.justify.child')}>
+              {(control) => (
+                <NativeSelect
+                  {...control}
+                  value={current}
+                  onChange={(event) => {
+                    setChildId(event.target.value)
+                    setChosen('')
+                  }}
+                >
+                  {(children.data ?? []).map((candidate) => (
+                    <option key={candidate.student.id} value={candidate.student.id}>
+                      {candidate.student.full_name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              )}
+            </Field>
+          )}
+          <QueryState query={child}>
+            {(data) => {
+              const open = (data?.absences ?? []).filter((mark) => mark.can_justify)
+              const selected = open.find((mark) => mark.id === chosen) ?? open[0]
+              return open.length === 0 || data === null ? (
+                <EmptyState title={t('parent.justify.none')} />
+              ) : (
                 <form
-                  noValidate
                   className="grid gap-4"
                   onSubmit={(event) => {
                     event.preventDefault()
-                    if (selected === undefined || invalid) return
-                    void justify
-                      .mutateAsync({
-                        studentId: selected.student.id,
-                        from,
-                        to,
-                        reason,
-                        comment: comment.trim(),
+                    if (selected === undefined) return
+                    setError(null)
+                    justify
+                      .mutateAsync({ markId: selected.id, reason: reason.trim(), proof })
+                      .then(() => {
+                        toast(t('parent.justify.sent'), { tone: 'success' })
+                        void navigate({
+                          from: '/$school',
+                          to: '/$school/parent/enfants/$studentId',
+                          params: { studentId: data.student.id },
+                          search: { onglet: 'absences' },
+                        })
                       })
-                      .then((count) => {
-                        toast(t('parent.justify.success', { count }), { tone: 'success' })
-                        void navigate({ to: '/parent' })
+                      .catch((caught: unknown) => {
+                        setError(
+                          caught instanceof ConflictError
+                            ? caught.message
+                            : caught instanceof ValidationError
+                              ? (Object.values(caught.fields)[0]?.[0] ?? t('common.error'))
+                              : t('common.error'),
+                        )
                       })
                   }}
                 >
-                  <Field label={t('parent.justify.child')}>
-                    {(control) => (
-                      <NativeSelect
-                        {...control}
-                        value={selected?.student.id ?? ''}
-                        onChange={(event) => {
-                          setChild(event.target.value)
-                        }}
+                  <fieldset className="grid gap-2">
+                    <legend className="mb-1 text-sm font-medium">
+                      {t('parent.justify.absence')}
+                    </legend>
+                    {open.map((mark) => (
+                      <label
+                        key={mark.id}
+                        className={cn(
+                          'flex min-h-12 items-center gap-3 rounded-xl border bg-card px-3 text-sm',
+                          selected?.id === mark.id && 'border-accent ring-2 ring-accent/20',
+                        )}
                       >
-                        {list.map((candidate) => (
-                          <option key={candidate.student.id} value={candidate.student.id}>
-                            {candidate.student.firstName}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                    )}
-                  </Field>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label={t('parent.justify.from')}>
-                      {(control) => (
-                        <Input
-                          {...control}
-                          type="date"
-                          value={from}
-                          onChange={(event) => {
-                            setFrom(event.target.value)
-                            if (event.target.value > to) setTo(event.target.value)
+                        <input
+                          type="radio"
+                          name="absence"
+                          className="size-4 accent-[var(--color-accent)]"
+                          checked={selected?.id === mark.id}
+                          onChange={() => {
+                            setChosen(mark.id)
                           }}
                         />
-                      )}
-                    </Field>
-                    <Field
-                      label={t('parent.justify.to')}
-                      error={invalid ? t('parent.justify.errors.dates') : undefined}
-                    >
-                      {(control) => (
-                        <Input
-                          {...control}
-                          type="date"
-                          value={to}
-                          onChange={(event) => {
-                            setTo(event.target.value)
-                          }}
-                        />
-                      )}
-                    </Field>
-                  </div>
+                        <span className="first-letter:uppercase">{formatDate(mark.date)}</span>
+                        {mark.justification?.status === 'refused' && (
+                          <span className="text-xs text-destructive-ink">
+                            {t('parent.justify.refusedBefore')}
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </fieldset>
                   <Field label={t('parent.justify.reason')}>
-                    {(control) => (
-                      <NativeSelect
-                        {...control}
-                        value={reason}
-                        onChange={(event) => {
-                          const value = JUSTIFY_REASONS.find(
-                            (candidate) => candidate === event.target.value,
-                          )
-                          if (value !== undefined) setReason(value)
-                        }}
-                      >
-                        {JUSTIFY_REASONS.map((candidate) => (
-                          <option key={candidate} value={candidate}>
-                            {t(`parent.justify.reasons.${candidate}`)}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                    )}
-                  </Field>
-                  <Field label={t('parent.justify.comment')}>
                     {(control) => (
                       <Textarea
                         {...control}
                         rows={3}
-                        value={comment}
+                        required
+                        minLength={3}
+                        maxLength={300}
+                        placeholder={t('parent.justify.reasonPlaceholder')}
+                        value={reason}
                         onChange={(event) => {
-                          setComment(event.target.value)
+                          setReason(event.target.value)
                         }}
                       />
                     )}
                   </Field>
+                  <Field label={t('parent.justify.proof')} hint={t('parent.justify.proofHint')}>
+                    {(control) => (
+                      <Input
+                        {...control}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(event) => {
+                          setProof(event.target.files?.[0] ?? null)
+                        }}
+                      />
+                    )}
+                  </Field>
+                  {error !== null && (
+                    <p className="text-sm text-destructive-ink" role="alert">
+                      {error}
+                    </p>
+                  )}
                   <Button
                     type="submit"
-                    variant="accent"
                     size="lg"
-                    disabled={invalid || justify.isPending}
+                    variant="accent"
+                    disabled={justify.isPending || reason.trim().length < 3}
                   >
                     <Send aria-hidden />
                     {t('parent.justify.submit')}
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-          )
-        }}
-      </QueryState>
+              )
+            }}
+          </QueryState>
+        </>
+      )}
     </div>
   )
 }

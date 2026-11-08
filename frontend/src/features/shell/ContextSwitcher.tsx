@@ -10,9 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SPACE_PATHS, spacesOf, type Space } from '@/features/auth/access'
+import { SPACE_HOME, spacesOf, type Space } from '@/features/auth/access'
 import { useMe } from '@/features/auth/api'
 import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
+import { useSchoolProfile } from '@/features/school/api'
+import { SchoolLogo } from '@/features/school/components/SchoolLogo'
 import { cn } from '@/lib/utils'
 
 /**
@@ -32,18 +34,23 @@ export function ContextSwitcher({
   const navigate = useNavigate()
   const { data: profile } = useMe()
   const school = useCurrentSchool()
+  const identity = useSchoolProfile()
 
   if (school === null || profile === undefined) return null
 
   const spaces = spacesOf(school)
   const multipleSchools = profile.schools.length > 1
+  const logoUrl = identity.data?.logo_url ?? null
   const label = (
-    <span className="grid min-w-0 text-left leading-tight">
-      <span className="truncate text-sm font-semibold">{school.name}</span>
-      <span
-        className={cn('truncate text-xs', inverted ? 'text-white/75' : 'text-muted-foreground')}
-      >
-        {t(`spaces.${space}`)}
+    <span className="flex min-w-0 items-center gap-2.5">
+      {logoUrl !== null && <SchoolLogo url={logoUrl} name={school.name} className="size-9" />}
+      <span className="grid min-w-0 text-left leading-tight">
+        <span className="truncate text-sm font-semibold">{school.name}</span>
+        <span
+          className={cn('truncate text-xs', inverted ? 'text-white/75' : 'text-muted-foreground')}
+        >
+          {t(`spaces.${space}`)}
+        </span>
       </span>
     </span>
   )
@@ -76,7 +83,7 @@ export function ContextSwitcher({
               <DropdownMenuItem
                 key={candidate}
                 onSelect={() => {
-                  void navigate({ to: SPACE_PATHS[candidate] })
+                  void navigate({ to: SPACE_HOME[candidate], params: { school: school.slug } })
                 }}
               >
                 <ArrowLeftRight aria-hidden />

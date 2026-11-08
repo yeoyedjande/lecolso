@@ -10,12 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useMe } from '@/features/auth/api'
+import { distinctRoles, useRoleLabel } from '@/features/auth/roles'
 import { formatPhone } from '@/lib/format'
 import { setTheme, useTheme } from '@/lib/theme'
 
 /** Profil de l'utilisateur connecté (vraie API /me) et préférences d'affichage. */
 export function ProfilePage() {
   const { t } = useTranslation()
+  const roleLabel = useRoleLabel()
   const { data: profile } = useMe()
   const theme = useTheme()
 
@@ -23,11 +25,7 @@ export function ProfilePage() {
 
   return (
     <div className="grid gap-6">
-      <ScreenHeader
-        title={t('profile.title')}
-        description={t('profile.description')}
-        demo={false}
-      />
+      <ScreenHeader title={t('profile.title')} description={t('profile.description')} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -70,9 +68,9 @@ export function ProfilePage() {
                 >
                   <span className="font-semibold">{school.name}</span>
                   <span className="flex flex-wrap gap-1">
-                    {[...new Set(school.roles.map((role) => role.role))].map((role) => (
-                      <Badge key={role} variant="secondary">
-                        {t(`roles.${role}`)}
+                    {distinctRoles(school).map((role) => (
+                      <Badge key={role.role} variant="secondary">
+                        {roleLabel(role)}
                       </Badge>
                     ))}
                   </span>

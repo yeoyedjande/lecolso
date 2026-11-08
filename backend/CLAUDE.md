@@ -14,6 +14,7 @@ app/
 │   ├── Billing/      # FeeType, FeeSchedule, Invoice, Payment, CashSession, PaymentGateway
 │   ├── Grading/      # Subject, Assessment, Grade, Skill, ReportCard, GradingStrategy
 │   ├── Attendance/   # Attendance, Pickup, DailyLog
+│   ├── Family/       # Espace parent : lecture des enfants (notes, présences, bulletins, frais) depuis les autres domaines
 │   └── Messaging/    # Announcement, Message, Notifier, canaux
 │       └── <Domaine>/
 │           ├── Models/
@@ -52,19 +53,24 @@ dans le `routes.php` de son domaine, sans préfixe (`Route::get('health', …)` 
 
 ## Multi-tenant : comment ça marche
 
-1. Middleware `ResolveSchool` (alias `school`, après `auth:sanctum`) : lit l'en-tête `X-School-Id` (l'API a son propre domaine
-   `api.<domaine>`, le sous-domaine de l'école ne sert qu'au frontend). **400** si l'en-tête est absent ou n'est pas un UUID ;
+1. Middleware `ResolveSchool` (alias `school`, après `auth:sanctum`) : lit l'en-tête `X-School-Id` (UUID). L'URL du frontend
+   `app.<domaine>/{slug}/*` (ADR 0005) ne sert qu'au frontend, qui retrouve l'UUID dans `/me` : l'API ne lit jamais
+   ni le slug ni le nom d'hôte, et un slug n'autorise rien. **400** si l'en-tête est absent ou n'est pas un UUID ;
    **404** si l'école n'existe pas ou si l'utilisateur n'y a aucune affectation (même réponse : rien à deviner).
 2. Le contexte passe par `App\Support\Tenancy\TenantContext` : `CurrentSchool` côté PHP (liaison `scoped`) et, côté PostgreSQL,
    `set_config('app.school_id', …)` et `set_config('app.user_id', …)` (paramètres liés), lus par les politiques RLS.
    `TenantContext::run($school, fn)` exécute un bloc dans une école puis rétablit le contexte précédent.
 3. Remise à zéro : dans un `finally` et dans `terminate()` du middleware, et avant/après **chaque** job (écouteurs de file dans
-   `TenancyServiceProvider`). Si la connexion est en erreur, elle est fermée : une session neuve n'a aucun contexte.
+   `TenancyServiceProvider`, sauf file `sync` où le job tourne dans la requête et `SetTenantContext` rétablit son contexte). Si la connexion est en erreur, elle est fermée : une session neuve n'a aucun contexte.
 4. Le trait `BelongsToSchool` ajoute le scope global (aucune ligne sans école courante), remplit `school_id` à la création
    (exception `MissingTenantContext` sans contexte ou pour une autre école) et interdit de changer `school_id`.
 5. RLS en base, en mode fermé, bloque tout ce qui aurait échappé au scope (`App\Support\Database\Rls`).
 6. Jobs : implémenter `TenantAware` et utiliser le trait `RunsInSchool` (propriété publique `$schoolId`) ; le middleware de job
    `SetTenantContext` rétablit l'école le temps du job.
+
+Slugs : identifiants d'URL figés à la création (aucune route ne les modifie), hors segments réservés
+(`config/tenancy.php`, français et anglais). Tout lien envoyé à un utilisateur passe par
+`App\Support\Tenancy\SchoolUrl::to($school, 'chemin')` (`FRONTEND_URL/{slug}/chemin`), jamais par une URL construite à la main.
 
 Routes hors tenant (super-admin, pré-inscription publique, webhooks) : groupe de routes dédié, sans `ResolveSchool`,
 qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l'école depuis la transaction).
@@ -74,6 +80,9 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
 - Middleware `super_admin` (`EnsureSuperAdmin`, après `auth:sanctum`) : `users.is_super_admin` (jamais assignable en masse), sinon **404**.
 - Lecture et écriture hors RLS uniquement par `Platform::run(fn)` : bascule la connexion par défaut sur `pgsql_platform`
   (rôle de connexion séparé `app_platform`, `BYPASSRLS`), dans une transaction, et rétablit la connexion précédente dans un `finally`.
+- Premier super-administrateur d'une base vide : commande `platform:create-super-admin` (`Identity\Actions\CreateSuperAdmin`,
+  mot de passe saisi masqué, jamais en argument ; refus s'il en existe déjà un), seule autre Action autorisée à importer
+  `Platform`. Procédure : `docs/deploiement-railway.md`.
 - Seules les Actions des routes `/api/v1/platform/*` importent `Platform` (test d'architecture `tests/Unit/ArchitectureTest.php`).
   Les modèles chargés dans `Platform::run()` gardent la connexion `pgsql_platform` : ne pas les réutiliser pour écrire ensuite.
 - Identifiants `DB_PLATFORM_*` fournis au seul service `api` (ni `worker` ni `scheduler`).
@@ -92,14 +101,232 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   pilote `rls`) pose `app.user_id` avant de charger un utilisateur ; la recherche par identifiant passe par la fonction
   SQL `SECURITY DEFINER` `auth_user_id(login)`, qui ne renvoie qu'un identifiant. `ClearTenantContext` remet le contexte
   à zéro en fin de requête.
-- **Droits** : `config/permissions.php` (matrice du cahier) + `Authorizer::allows($user, $permission, $school, $cycle)`,
+- **Droits** : `config/permissions.php` (catalogue des permissions et permissions par défaut des rôles système)
+  + rôles de l'école (`RoleCatalog::rolesOf`, ADR 0006 : rôles système, ajustés pour ceux de `config/roles.php`, et rôles
+  personnalisés de `school_roles`) + `Authorizer::allows($user, $permission, $school, $cycle)`,
   appelé par les Policies (`Gate::policy` dans `IdentityServiceProvider`). Une affectation limitée à un cycle ne couvre pas
-  les ressources de toute l'école. Paramètres de route (`{cycle}`, `{user}`) liés après `ResolveSchool` (priorité des
-  middlewares), donc sous la RLS de l'école courante : modèle d'une autre école = 404.
-- `RoleAssignment::ofUser($user)` : seule exception autorisée au scope « école courante » (affectations de l'utilisateur
-  dans toutes ses écoles, garanties par la RLS).
-- SMS : interface `Messaging\Contracts\SmsSender` ; `FakeSmsSender` hors production (téléphone masqué, contenu jamais
-  journalisé), `UnconfiguredSmsSender` (refus) en production tant qu'aucun fournisseur n'est choisi.
+  les ressources de toute l'école. `role_assignments.role` : clé système ou UUID d'un rôle personnalisé de l'école.
+  Nouvelle permission : une ligne dans `config/permissions.php` et son libellé `permissions.<clé>` dans `frontend/src/i18n/fr.json`.
+  Conflit métier : lever `App\Support\Http\BusinessConflict($code, $message)` (409 `{ message, code }`).
+  Paramètres de route (`{cycle}`, `{user}`) liés après `ResolveSchool` (priorité des middlewares), donc sous la RLS
+  de l'école courante : modèle d'une autre école = 404.
+- `RoleAssignment::ofUser($user)` et `SchoolRole::ofSchool($schoolId)` : seules exceptions autorisées au scope
+  « école courante » (affectations de l'utilisateur, rôles de ses écoles : lecture garantie par la RLS).
+  `ofUser` exclut les écoles où le compte est désactivé (`member_deactivations`) ; `ResolveSchool` aussi (404).
+- **Comptes de l'école** (`/users`, `UserPolicy`) : `viewAny`/`view` (users.view ou users.reset_password, par cycle),
+  `create`, `manage` (users.manage sur chacune de ses affectations, jamais soi-même ni un super-admin, un promoteur
+  seulement par un promoteur), `grantRole` (cycle, Promoteur et Direction par le promoteur, pas d'élévation sauf
+  promoteur et permissions des parents), `revokeRole`. Un compte existant d'une autre école est retrouvé par
+  `auth_user_id(phone)` et rattaché. Suppression : affectations retirées, puis `forget_user(id)` (SECURITY DEFINER)
+  n'efface que les comptes sans aucune école et jamais un super-admin.
+- SMS : interface `Messaging\Contracts\SmsSender` (`send`, `available`) ; `FakeSmsSender` hors production (téléphone
+  masqué, contenu jamais journalisé, `available` vrai), `UnconfiguredSmsSender` (refus, `available` faux) en production
+  tant qu'aucun fournisseur n'est choisi. Sans fournisseur : `sms_available` faux dans `/me` et la page publique (aucun
+  écran ne promet de SMS), relances refusées (409 `sms_unavailable`, rien d'enregistré), aucun SMS de décision de
+  pré-inscription tenté, confirmation de paiement notée non envoyée sans tâche en file. Brancher un fournisseur = une
+  implémentation de `SmsSender` liée dans `IdentityServiceProvider` ; rien d'autre à changer.
+
+## Élèves, tuteurs et inscriptions (domaine Students)
+
+- `students` (suppression logique, matricule unique dans l'école), `guardians` (un par téléphone dans l'école),
+  `guardian_student` (modèle `GuardianLink` : parenté, un payeur et un contact principal par élève, index uniques
+  partiels), `enrollments` (une par élève et par année ; la classe appartient à l'année : clé composite
+  `(classroom_id, academic_year_id, school_id)`). Une classe qui a des inscriptions ne se supprime pas (409).
+- Matricule : `schools.code` + compteur `document_sequences` (`Support\Sequences\Sequence::next()`, à appeler
+  dans la transaction qui crée le document : incrément atomique, numéro rendu si la transaction échoue). Réutilisable
+  pour les reçus (`receipt:2026`).
+- Périmètre : `Students\Support\StudentAccess::constrain($query, $user, $school, $permission)` — rôle `teacher` :
+  élèves de ses classes (titulaire) de l'année en cours ; rôle `guardian` : élèves dont un tuteur a le téléphone du
+  compte ; tout autre rôle : son cycle ou toute l'école. Hors périmètre : 404 (`ShowStudentRequest`,
+  `ManageStudentRequest`). Gestion : `students.manage` sur le cycle de la classe la plus récente (`StudentPolicy`).
+- Données médicales (`blood_type`, `allergies`, `medical_notes`) : `students.medical.view` dans le même périmètre ;
+  `medical: null` dans la réponse sinon, et champs `prohibited` dans les requêtes. Jamais dans la liste.
+- Places : `ClassroomSeats::reserve()` (verrou sur la classe, année ouverte, capacité) avant toute inscription active.
+- Import Excel (lot 11b) : fichier lu par le navigateur, lignes envoyées à `POST students/import` (`dry_run`, 500
+  lignes au plus ; `ImportStudents`). Chaque ligne est vérifiée (champs, classe de l'année en cours par son nom et droit
+  `enrollIn`, places comptées sur le lot, doublon dans le lot) ; un élève déjà inscrit (nom, prénom, date de naissance)
+  est `skipped` : relancer le même fichier ne crée aucun doublon. Sans `dry_run`, chaque ligne valide est inscrite
+  comme une inscription manuelle (`EnrollStudent` + `CreateInvoice`, transaction par ligne). Erreurs par ligne
+  (codes), pas en 422.
+- Pré-inscriptions (lot 11a) : `pre_registrations` (enfant, niveau, famille, message jamais journalisé, statut
+  pending/refused/enrolled, numéro `PRE-AAAA-NNNNNN` par `Sequence`). Envoi public sans connexion
+  `POST public/schools/{slug}/pre-registrations` (`SubmitPreRegistration` : école par `public_school_id()` SECURITY
+  DEFINER puis `TenantContext::run` ; niveau par codes de cycle et de niveau ; demande renvoyée = même numéro ; 5 en
+  attente au plus par téléphone, 409 `too_many_pending` ; champ piège `website` ; limiteur `pre-registration` : 5/h
+  par IP et 3/h par téléphone). Secrétariat (`Support\PreRegistrationAccess` : `students.manage` au titre du
+  personnel, cycle du niveau ; sinon 404) : `GET pre-registrations[?status]`, `GET pre-registrations/{id}`,
+  `POST …/refuse` (motif) ; inscription pré-remplie par `POST enrollments` avec `pre_registration_id`
+  (`CompletePreRegistration` dans la transaction de l'inscription). SMS au parent après la décision
+  (`Jobs\SendPreRegistrationSms` : école, numéro, motif ; jamais le prénom de l'enfant ; `notification_status`).
+
+## Facturation (domaine Billing)
+
+- `fee_types` (catalogue `config/billing.php`, créés avec l'école par `ProvisionFeeTypes`), `fee_schedules` (montant
+  annuel par niveau et par année), `installment_dates` (calendrier par cycle et par année, créé par `BillingCalendar`
+  d'après `CycleSettings::billingPeriod`), `payers`, `invoices` (une par inscription), `invoice_lines` (remise négative)
+  et `installments` (somme des échéances d'une ligne = son montant). Montants `bigInteger`, FCFA entiers.
+- Facture : `CreateInvoice` (appelée par l'inscription, dans la même transaction, et par `GenerateInvoices`) ; prorata
+  par `InvoiceSchedule::remainingShares` ; remises réparties depuis la dernière échéance (`rebalanceDiscounts`, 409
+  `discount_exceeds`). La grille n'est jamais réappliquée à une facture émise (`ManageInvoiceLines` pour la modifier).
+- Solde : `Support\InvoiceBalance::of($invoice, $date)` — réglé = paiements non annulés + reports reçus −
+  remboursements − reports envoyés, imputé aux échéances par date (aucune répartition stockée) ; reste, retard,
+  trop-perçu (`credit`), prochaine échéance.
+- Encaissements (lot 5b) : `payments`, `payment_cancellations`, `refunds`, `credit_transfers` **immuables** (déclencheur
+  `forbid_ledger_update` + `REVOKE UPDATE, DELETE` pour `app_user` et `app_platform`) ; auteurs recopiés (id et nom),
+  sans clé étrangère vers `users`. `RecordPayment` : facture verrouillée (`FOR UPDATE`), reste dû vérifié, caisse du
+  jour (`CashRegister::openFor`, verrouillée), numéro `REC-AAAA-NNNNNN` par `Sequence` (`receipt:AAAA`). Annulation
+  (`CancelPayment`, `billing.cancel`), remboursement (`RefundCredit`, `RMB-…`) et report (`TransferCredit`, même payeur)
+  par la direction (`billing.refund`), motif obligatoire. `cash_sessions` : une par caissier et par jour (Africa/Abidjan),
+  clôture par son caissier (`CloseCashSession` : espèces attendues figées, compté, note si écart), puis figée
+  (déclencheur). Événement `PaymentReceived`.
+- Départ d'un élève : `Students\Events\StudentLeft` / `StudentReturned` (dans la transaction de `ChangeEnrollment`)
+  → `Listeners\ApplyDeparture` : ligne `departure` négative qui annule le net des échéances postérieures au départ,
+  retirée au retour. Politique de l'école : `schools.settings.billing_departure` (`FinancialPolicy`, `DeparturePolicy`),
+  écrite par `Tenancy\Actions\UpdateSchoolSettings`.
+- Impayés et relances (lot 5c) : `Support\InvoiceTotals` (montants de nombreuses factures en une requête,
+  sous-requêtes), `ListUnpaid` (`GET billing/unpaid`), `SendPaymentReminders` (`POST billing/reminders` : un SMS par
+  payeur, `MIN_DAYS_BETWEEN` = 7, table `payment_reminders` sans le texte) puis job `Jobs\SendPaymentReminderSms`
+  (`TenantAware`, `SmsSender`, texte composé à l'envoi, échec noté sans nouvel essai). `BuildDashboard`
+  (`GET billing/dashboard`) : effectifs (`students.view`) et finances (`billing.view`) de l'année en cours par cycle.
+- Mobile Money (lot 10a) : interface `Contracts\PaymentGateway` (`initiate`, `parseWebhook`, `status`) ;
+  `Gateways\FakePaymentGateway` hors production (numéro finissant par 99 refusé, signature HMAC `x-fake-signature`,
+  `services.payments.fake_secret`), `UnconfiguredPaymentGateway` (refus) en production tant qu'aucun prestataire n'est
+  choisi. `payment_intents` (montant crédité, `fee`, `charged`, `fee_payer`, numéro jamais journalisé, état
+  pending/succeeded/failed/expired, expiration 30 min) et `payment_webhook_events` (idempotence). Parent :
+  `POST guardian/children/{student}/payments` (`Family\Actions\PayForChild` → `StartMobilePayment` : plafond du reste
+  dû, une demande en attente par facture) et `GET guardian/payment-intents/{id}` (`RefreshMobilePayment` : interrogation
+  du prestataire, puis expiration). Webhook `POST webhooks/payments/{provider}` (hors établissement, sans session,
+  `HandlePaymentWebhook` : signature, école par `payment_intent_school()` SECURITY DEFINER, `TenantContext::run`).
+  `SettleMobilePayment` → `RecordPayment::online()` : paiement sans caisse (`cash_session_id` nul), reçu `REC-…`,
+  enregistré même si la facture a été réglée entre-temps (trop-perçu). Frais : `FinancialPolicy::mobileMoney()`
+  (`schools.settings.billing_mobile_money`, `GET/PUT billing/policy` ; `mobile_money.available` : un prestataire est
+  raccordé, sinon l'écran Frais l'indique et les parents voient « bientôt disponible »).
+- Tarifs publics (lot 11a) : `GET public/schools/{slug}/fees` (`ShowPublicFees`, sans connexion, sous la RLS de l'école
+  du slug) : grille de l'année en cours par niveau des cycles actifs, seulement si `schools.settings.public_fees`
+  (réglage `public_fees` de `PATCH school`, désactivé par défaut) ; sinon `data: null`.
+- Reçus PDF et confirmation SMS (lot 10b) : `Events\PaymentReceived` (guichet et Mobile Money, après la transaction)
+  et `Events\PaymentCancelled` (`CancelPayment`, après la transaction) → `Listeners\PrepareReceipt` (synchrone, école
+  courante). `receipt_files` : une fiche par paiement et par version (`cancelled` : reçu « ANNULÉ »), état
+  pending/ready/failed ; `Support\ReceiptRendering::request` (créée et rendu mis en file une fois, échec relancé sur
+  demande, rendu resté en attente plus de 5 minutes remis en file) → `Jobs\RenderReceipt` (`TenantAware`, `failed()` note l'échec, `Support\ReceiptDocument` : montant en lettres par `intl`, logo en
+  data URI) → gabarit `resources/views/receipts/receipt` → `PdfRenderer` → fichier privé `receipts/{uuid}.pdf`
+  (`Support\ReceiptPdf`, route signée `files.receipt`, 10 minutes). `GET payments/{payment}/receipt-pdf` (mêmes droits
+  que le reçu ; crée la fiche d'un paiement antérieur) et `POST` (relance d'un rendu en échec).
+  `payment_notifications` (une par paiement et par canal) → `Jobs\SendPaymentConfirmationSms` : SMS au tuteur payeur
+  de la facture (école, montant, date, numéro de reçu ; **aucune donnée sur l'enfant**, texte ni stocké ni
+  journalisé) ; `skipped` sans numéro, `failed` avec motif (fournisseur non configuré, refus), sans nouvel essai.
+- Droits : `billing.view` (périmètre `StudentAccess` pour une facture), `billing.manage` (modifier, encaisser, relancer),
+  `billing.discount`, `billing.cancel`, `billing.refund` sur le cycle de la classe (`InvoicePolicy`, `BillingScope`) ;
+  caisse : la sienne, toutes avec `billing.manage` sur toute l'école. Payeur suivi par l'événement
+  `Students\Events\StudentPayerChanged`.
+
+## Présences (domaine Attendance)
+
+- `roll_calls` (un appel par classe et par jour), `attendance_marks` (absents et retards seulement),
+  `attendance_corrections` (direction, motif), `absence_justifications` (motif, photo privée `absence-proofs/`,
+  source guardian ou school, statut pending/accepted/refused), `daycare_visits`, `daycare_logs` (note non journalisée),
+  `sync_operations` (idempotence de `POST /sync`). Identifiants UUID, éventuellement fournis par l'appareil.
+- Droits : `Support\AttendanceAccess` — faire l'appel : titulaire (`attendance.manage`) ou personnel du cycle
+  (`Identity\Authorization\StaffScope`, hors rôles Parent et Enseignant) ; voir : `attendance.view` ou titulaire ;
+  corriger une journée passée : `attendance.correct` ; décider d'une justification : personnel avec `attendance.manage`.
+  Classe non visible : 404.
+- `SaveRollCall` : mode du cycle `roll_call` (sinon 409 `wrong_mode`), année ouverte, jour ≤ aujourd'hui ;
+  `RollCallWindow::isClosed` (jour passé, sauf saisie hors connexion de moins de 72 h) → direction et motif ;
+  élèves inscrits ce jour-là (`ClassRoster::on`). Nouvelles absences : événement `Events\StudentMarkedAbsent`.
+- `ApplySyncOperations` (`POST /sync`) : `attendance.roll_call`, `daycare.check`, `daycare.log`, mêmes Actions et
+  droits qu'en ligne ; une opération déjà traitée renvoie son premier résultat (`replayed`).
+- Jour de l'école : `Support\Time\SchoolClock::date()` (Africa/Abidjan).
+
+## Notes et compétences (domaine Grading)
+
+- `terms` (périodes d'un cycle pour une année, nombre d'après `term_type` : `Support\DefaultTerms`), `subjects` (matières et
+  coefficients 1 à 20 par niveau et par année), `assessments` (évaluation d'une classe : matière, période, date dans la
+  période, barème `out_of` de 1 à 100), `grades` (`value` décimal à 2 chiffres au barème, ou `absent` ; pas de ligne :
+  non saisie), `skills` (référentiel par cycle et par année, rangé par domaine), `skill_evaluations` (A, EA, NA par
+  période). Périodes, matières et compétences créées à la première lecture par `Support\GradingCatalog`
+  (`config/grading.php`), sous un verrou consultatif (`Support\GradingLock`, aussi pour les notes d'une évaluation).
+- Calcul : interface `Contracts\GradingStrategy` choisie d'après `assessment_mode` (`Support\GradingStrategies`) —
+  `WeightedAverageStrategy` (notes ramenées sur `CycleSettings::gradeScale`, sur 10 par défaut ; moyennes de matière
+  arrondies puis pondérées ; rang de compétition 1, 1, 3 ; moyenne de classe, plus forte, plus faible) et
+  `CompetencyStrategy` (nombre de A, EA, NA). Calcul pur, lecture par `Support\GradingResults`.
+- Droits : `Support\GradingAccess` — saisir : titulaire (`grades.manage`) ou personnel du cycle avec `grades.manage` ;
+  voir : `grades.view` (personnel) ou titulaire ; classe non visible : 404 ; régler périodes, matières et compétences :
+  `school.settings.manage` sur le cycle. Année clôturée : 409 `year_closed` ; mode du cycle différent : 409 `wrong_mode` ;
+  matière ou compétence déjà utilisée retirée : 409 `subject_used`, `skill_used`.
+- Élèves d'une période : `Support\GradingRoster` (inscrits avant la fin, pas partis avant le début).
+- Hors connexion (`POST /sync`) : `grades.assessment` (UUID de l'appareil), `grades.save`, `skills.save` ; une saisie est
+  datée de son heure sur l'appareil (`updated_at`) et une saisie plus récente n'est jamais écrasée.
+- Bulletins (lot 7b) : `appreciations` (générale du titulaire, observation et mention de la direction, `mention_chosen`),
+  `subject_appreciations`, `mention_thresholds` (par cycle, sinon `config/grading.php` ramené sur l'échelle :
+  `Support\MentionPolicy`), `term_closures` (validation d'une classe pour une période ; une seule ouverte, déverrouillage
+  motivé gardé), `report_cards` (PDF par élève et par validation). `Support\TermLock` : période validée → 409
+  `term_closed` sur évaluations, notes, compétences et appréciations (en ligne et `/sync`), et sur les coefficients et
+  dates d'une période validée ; `TermLock::guard()` dans chaque transaction d'écriture prend le même verrou que la
+  validation (pas de saisie qui passe après). `CloseTerm` fige les mentions proposées et enregistre sur chaque bulletin
+  la copie de ses données (`report_cards.data`, `Support\ReportCardBuilder` : absences lues dans Attendance), puis met
+  en file `Jobs\RenderReportCards` (`TenantAware`) qui rend depuis cette copie (logo ajouté en data URI) → gabarit Blade `resources/views/report-cards/{report_card,skills_booklet}`
+  (d'après `report_document`) → `Support\Pdf\PdfRenderer` → fichier privé `report-cards/{uuid}.pdf`
+  (`Support\ReportCardFile`, route signée `files.report-card`, 10 minutes). Échec (rendu ou écriture) : `failed`, relance par
+  `POST classrooms/{classroom}/report-cards/retry`. Droits : appréciations du titulaire (`grades.manage`), observation,
+  mention, validation et déverrouillage (`grades.validate`, personnel du cycle).
+- PDF : interface `App\Support\Pdf\PdfRenderer` ; `GotenbergPdfRenderer` (`services.gotenberg.url`, toujours en
+  production, refus explicite sans URL) ; `FakePdfRenderer` en test (`GOTENBERG_URL` vide) et sans Docker.
+
+## Espace parent (domaine Family)
+
+- Lecture seule, depuis les autres domaines (lecture autorisée) : `GET guardian/children` (`ListGuardianChildren` :
+  classe, présence du jour, reste à payer et retard, absences à justifier) et `GET guardian/children/{student}`
+  (`ShowGuardianChild` : notes au fil de l'eau de la période — évaluations et moyenne de chaque matière, **jamais** de
+  moyenne générale, de rang ni de mention, réservés au bulletin validé —, compétences, bulletins validés en PDF,
+  absences et retards de l'année avec leur justification, facture `InvoiceBalance` et paiements).
+- Périmètre : `Support\GuardianChildren` — rôle Parent dans l'école courante et tuteur de même téléphone que le compte ;
+  un membre du personnel n'y voit que ses propres enfants. Autre enfant ou autre école : 404.
+- Écritures du parent par les endpoints existants : justification (`POST attendance/marks/{mark}/justification`,
+  source guardian, à valider par l'école), reçu (`GET payments/{payment}`, `InvoicePolicy::view`).
+
+## Messagerie (domaine Messaging)
+
+- `conversations` (un fil par enfant, tuteur et destinataire `channel` : `teacher` ou `office` ; classe et cycle de
+  l'enfant, mis à jour s'il change de classe), `messages` (immuables : `REVOKE UPDATE, DELETE` pour `app_user` et
+  `app_platform` ; auteur recopié ; texte jamais journalisé, aucun `Auditable`), `conversation_reads` (lecture par compte).
+- Droits : `Support\ConversationAccess` (permission `messaging.send`) — parent : ses fils (tuteur de même téléphone,
+  rôle Parent) ; titulaire de la classe du fil : fils `teacher` ; personnel du cycle (`StaffScope`) : fils `office`,
+  et lecture seule des fils `teacher`. Fil non lisible : 404 ; lecture seule : 403 sur l'envoi.
+- `StartConversation` (`POST conversations`) : ajoute au fil existant (enfant, tuteur, destinataire) ; classe sans
+  titulaire : 409 `no_teacher`. Non-lus : `ListConversations` (une requête groupée), `GET conversations/unread-count`.
+- Absences annoncées (domaine Attendance) : `planned_absences` ; `Family\Actions\PlanChildAbsence`
+  (`POST guardian/children/{student}/planned-absences`) appelle `Attendance\Actions\PlanAbsence` (aujourd'hui ou
+  plus tard, 30 jours au plus, pas de chevauchement : 409 `overlap`) et `StartConversation` (fil `office`) dans une
+  transaction. `Support\PlannedAbsences` : l'appel propose l'enfant absent (`planned` sur la ligne) et `SaveRollCall`
+  rattache la justification (`absence_justifications.planned_absence_id`, même statut) ; `DecidePlannedAbsence`
+  (`POST attendance/planned-absences/{id}/decision`, `attendance.manage`) décide aussi les justifications en attente.
+  Classe d'un élève un jour donné : `Students\Support\CurrentClassroom`. Changement de classe :
+  `Students\Events\StudentChangedClass` → `Messaging\Listeners\FollowStudentClass` (les fils suivent la classe).
+- Annonces (lot 9b) : `announcements` (public `school`, `cycle` ou `classroom`, `cycle_id` renseigné aussi pour une
+  classe, `reach` : élèves concernés à la publication). Publier ou retirer (`Support\AnnouncementAccess`) :
+  `messaging.announce` (personnel, hors Parent et Enseignant) sur toute l'école, le cycle ou le cycle de la classe ;
+  le titulaire pour sa classe (`messaging.send`). Publics possibles : `GET announcements/targets`. Dans l'appli
+  seulement : le SMS viendra avec le fournisseur (lot 10).
+- Qui lit annonces et calendrier : `Support\AudienceScope` — personnel de toute l'école (tout), personnel d'un cycle
+  (son cycle et ses classes), enseignant (cycle de son affectation, classes dont il est titulaire), parent (cycle et
+  classe de chaque enfant). Hors de portée : 404.
+- Calendrier (domaine Academic) : `school_events` (type, dates, `cycle_id` nul = toute l'école, lieu) ;
+  `GET calendar/events?from&to` (400 jours au plus), écriture par `school.settings.manage` sur toute l'école ou le
+  cycle de l'événement (`Academic\Support\CalendarAccess`).
+
+## Fichiers
+
+- Stockage privé (`FILESYSTEM_DISK` : MinIO en local, bucket Railway en production, `Storage::fake()` en test).
+  Jamais d'URL de bucket envoyée au client : l'API sert le fichier par une **URL signée relative** (`signed:relative`,
+  préfixée par `APP_URL`), courte, et sans identifiant d'école dans le chemin si elle apparaît sur une page publique.
+  Exemples : logo d'école (`Tenancy\Support\SchoolLogo`, route `files.school-logo`, 30 minutes, page publique) ;
+  photos d'élèves et de tuteurs (`Students\Support\PersonPhoto`, route `files.person-photo`, **10 minutes**, URL
+  mise seulement dans les réponses destinées à qui voit l'élève ; `Students\Actions\ManagePhotos`, fichier effacé
+  avec le dossier ou le tuteur).
+- Images envoyées par les utilisateurs : `Support\Images\WebpImage::fromBytes()` (GD, aucune dépendance) — JPEG, PNG
+  ou WebP seulement, redressement selon l'orientation EXIF (photos de téléphone), réduction, réencodage WebP qui
+  retire les métadonnées (EXIF, position GPS). Jamais de SVG.
+- Tests multipart : `SpaClient::upload($uri, ['champ' => $fichier], $entêtes)`.
 
 ## Journal d'audit
 
@@ -144,7 +371,8 @@ qui fixe explicitement le tenant après vérification (ex. le webhook retrouve l
   migrations seulement) et `pgsql_platform` (rôle `app_platform`, via `Platform::run()` uniquement).
   `tests/TestCase.php` surcharge `migrateFreshUsing()` pour migrer avec `--database=pgsql_owner` ; les requêtes des tests passent par `pgsql`.
 - Helpers (`tests/Pest.php`) : `makeSchool(['kindergarten'])` (`null` = tous les cycles), `inSchool($school, fn)`,
-  `assignRole($user, $school, Role::Director, $cycle)`, `makeUser()`, `superAdmin()`, `cycleOf($school, 'primary')`,
+  `assignRole($user, $school, Role::Director, $cycle)` (ou la clé d'un rôle personnalisé), `customRole($school, ['students.view'])`,
+  `makeUser()`, `superAdmin()`, `cycleOf($school, 'primary')`,
   `rows($sql)`, `distinctColumn(…)` ; `School::factory()->withCycles()`, `User::factory()->withProvisionalPassword()`.
 - Requêtes HTTP authentifiées : `actingAsRole(Role::Director, $school, cycle: $maternelle)` (vraie connexion par session),
   `login($user)`, puis `spa('GET', '/api/v1/cycles', [], $school)`. `Tests\Support\SpaClient` se comporte comme le navigateur

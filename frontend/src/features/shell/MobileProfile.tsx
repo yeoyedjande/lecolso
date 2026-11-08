@@ -7,11 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useLogout, useMe } from '@/features/auth/api'
+import { distinctRoles, useRoleLabel } from '@/features/auth/roles'
 import { formatPhone } from '@/lib/format'
 
 /** Profil des espaces mobiles (parent, enseignant) : identité, mot de passe, déconnexion. */
 export function MobileProfile() {
   const { t } = useTranslation()
+  const roleLabel = useRoleLabel()
   const { data: profile } = useMe()
   const logout = useLogout()
   const navigate = useNavigate()
@@ -44,9 +46,9 @@ export function MobileProfile() {
             >
               <span className="font-medium">{school.name}</span>
               <span className="flex flex-wrap gap-1">
-                {[...new Set(school.roles.map((role) => role.role))].map((role) => (
-                  <Badge key={role} variant="secondary">
-                    {t(`roles.${role}`)}
+                {distinctRoles(school).map((role) => (
+                  <Badge key={role.role} variant="secondary">
+                    {roleLabel(role)}
                   </Badge>
                 ))}
               </span>

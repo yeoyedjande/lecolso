@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next'
 import { z } from 'zod/mini'
 
 import { Logo } from '@/components/brand/Logo'
-import { DemoBanner } from '@/components/states/DemoBanner'
 import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { Button } from '@/components/ui/button'
@@ -18,11 +17,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
+import { FormAlert } from '@/features/auth/components/FormAlert'
+import { ConflictError, ValidationError } from '@/lib/api/errors'
 import { formatPhone } from '@/lib/format'
 import { normalizeCiPhone } from '@/lib/phone'
 
-import { usePreRegister, usePublicSchool } from '../api'
-import type { PreRegistration } from '../demo'
+import { TooManyPreRegistrations, usePreRegister, usePublicSchool } from '../api'
 
 const CODES = ['required', 'birthDate', 'phone', 'email', 'consent'] as const
 
@@ -30,6 +30,7 @@ const schema = z.object({
   childFirstName: z.string().check(z.trim(), z.minLength(1, 'required')),
   childLastName: z.string().check(z.trim(), z.minLength(1, 'required')),
   birthDate: z.string().check(z.regex(/^20\d{2}-\d{2}-\d{2}$/, 'birthDate')),
+  gender: z.enum(['F', 'M']),
   level: z.string().check(z.minLength(1, 'required')),
   guardianName: z.string().check(z.trim(), z.minLength(3, 'required')),
   guardianPhone: z.string().check(z.refine((value) => normalizeCiPhone(value) !== null, 'phone')),
@@ -43,28 +44,51 @@ const schema = z.object({
     ),
   message: z.string(),
   consent: z.boolean().check(z.refine((value) => value, 'consent')),
+  // Champ piège invisible : seuls les robots le remplissent
+  website: z.string(),
 })
 
 type Values = z.infer<typeof schema>
 
-/** Pré-inscription en ligne depuis la page publique (démonstration : rien n'est envoyé au serveur). */
+/** Champs du formulaire correspondant aux erreurs de l'API. */
+const API_FIELDS: Record<string, keyof Values> = {
+  child_last_name: 'childLastName',
+  child_first_name: 'childFirstName',
+  child_gender: 'gender',
+  child_birth_date: 'birthDate',
+  level_code: 'level',
+  cycle_code: 'level',
+  guardian_name: 'guardianName',
+  guardian_phone: 'guardianPhone',
+  guardian_email: 'guardianEmail',
+  message: 'message',
+  consent: 'consent',
+}
+
+/**
+ * Pré-inscription en ligne depuis la page publique (vraie API, sans connexion) : le secrétariat de l'école la reçoit
+ * et rappelle la famille ; la famille garde le numéro du dossier.
+ */
 export function PreRegistrationPage({ slug }: { slug: string }) {
   const { t } = useTranslation()
   const school = usePublicSchool(slug)
   const submitRequest = usePreRegister(slug)
-  const [done, setDone] = useState<PreRegistration | null>(null)
-  const { register, handleSubmit, control, formState } = useForm<Values>({
+  const [done, setDone] = useState<{ reference: string; phone: string } | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
+  const { register, handleSubmit, control, formState, setError } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: {
       childFirstName: '',
       childLastName: '',
       birthDate: '',
+      gender: 'F',
       level: '',
       guardianName: '',
       guardianPhone: '',
       guardianEmail: '',
       message: '',
       consent: false,
+      website: '',
     },
   })
 
@@ -75,17 +99,46 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
   }
 
   const submit = handleSubmit(async (values) => {
-    const created = await submitRequest.mutateAsync({
-      childFirstName: values.childFirstName.trim(),
-      childLastName: values.childLastName.trim(),
-      birthDate: values.birthDate,
-      level: values.level,
-      guardianName: values.guardianName.trim(),
-      guardianPhone: normalizeCiPhone(values.guardianPhone) ?? values.guardianPhone,
-      guardianEmail: values.guardianEmail.trim() === '' ? null : values.guardianEmail.trim(),
-      message: values.message.trim(),
-    })
-    setDone(created)
+    setFailure(null)
+    const [cycleCode = '', levelCode = ''] = values.level.split(':')
+    const phone = normalizeCiPhone(values.guardianPhone) ?? values.guardianPhone
+    try {
+      const reference = await submitRequest.mutateAsync({
+        cycle_code: cycleCode,
+        level_code: levelCode,
+        child_last_name: values.childLastName.trim(),
+        child_first_name: values.childFirstName.trim(),
+        child_gender: values.gender,
+        child_birth_date: values.birthDate,
+        guardian_name: values.guardianName.trim(),
+        guardian_phone: phone,
+        guardian_email: values.guardianEmail.trim() === '' ? null : values.guardianEmail.trim(),
+        message: values.message.trim() === '' ? null : values.message.trim(),
+        consent: true,
+        ...(values.website === '' ? {} : { website: values.website }),
+      })
+      setDone({ reference, phone })
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        let mapped = false
+        for (const [key, messages] of Object.entries(error.fields)) {
+          const field = API_FIELDS[key]
+          if (field !== undefined && messages[0] !== undefined) {
+            setError(field, { type: 'server', message: messages[0] })
+            mapped = true
+          }
+        }
+        if (!mapped) setFailure(t('publicSchool.pre.failed'))
+        return
+      }
+      setFailure(
+        error instanceof TooManyPreRegistrations
+          ? t('publicSchool.pre.tooMany')
+          : error instanceof ConflictError
+            ? error.message
+            : t('publicSchool.pre.failed'),
+      )
+    }
   })
 
   return (
@@ -93,7 +146,7 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
       <div className="flex items-center justify-between gap-3">
         <Logo />
         <Button asChild variant="ghost" size="sm">
-          <Link to="/ecole/$slug" params={{ slug }}>
+          <Link to="/$school" params={{ school: slug }}>
             <ArrowLeft aria-hidden />
             {t('publicSchool.pre.back')}
           </Link>
@@ -112,13 +165,18 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
                   {t('publicSchool.pre.doneTitle')}
                 </span>
               }
-              description={t('publicSchool.pre.doneDescription', {
-                reference: done.reference,
-                phone: formatPhone(done.guardianPhone),
-              })}
+              description={t(
+                data.sms_available
+                  ? 'publicSchool.pre.doneDescriptionSms'
+                  : 'publicSchool.pre.doneDescription',
+                {
+                  reference: done.reference,
+                  phone: formatPhone(done.phone),
+                },
+              )}
               action={
                 <Button asChild>
-                  <Link to="/ecole/$slug" params={{ slug }}>
+                  <Link to="/$school" params={{ school: slug }}>
                     {t('publicSchool.pre.back')}
                   </Link>
                 </Button>
@@ -127,13 +185,20 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
           ) : (
             <div className="grid gap-5">
               <div className="grid gap-2">
-                <DemoBanner />
                 <h1 className="font-display text-3xl font-bold">{t('publicSchool.pre.title')}</h1>
                 <p className="text-muted-foreground">
                   {data.name} — {t('publicSchool.pre.description')}
                 </p>
               </div>
               <form noValidate onSubmit={(event) => void submit(event)} className="grid gap-5">
+                {failure !== null && <FormAlert>{failure}</FormAlert>}
+                <div
+                  aria-hidden="true"
+                  className="absolute -left-[9999px] h-px w-px overflow-hidden"
+                >
+                  <label htmlFor="website">{t('publicSchool.pre.website')}</label>
+                  <input id="website" tabIndex={-1} autoComplete="off" {...register('website')} />
+                </div>
                 <Card>
                   <CardContent className="grid gap-4 pt-6 sm:grid-cols-2">
                     <h2 className="font-display text-lg font-semibold sm:col-span-2">
@@ -157,6 +222,14 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
                     >
                       {(c) => <Input {...c} type="date" {...register('birthDate')} />}
                     </Field>
+                    <Field label={t('publicSchool.pre.gender')}>
+                      {(c) => (
+                        <NativeSelect {...c} {...register('gender')}>
+                          <option value="F">{t('publicSchool.pre.girl')}</option>
+                          <option value="M">{t('publicSchool.pre.boy')}</option>
+                        </NativeSelect>
+                      )}
+                    </Field>
                     <Field
                       label={t('publicSchool.pre.level')}
                       error={message(formState.errors.level?.message)}
@@ -167,8 +240,8 @@ export function PreRegistrationPage({ slug }: { slug: string }) {
                           {data.cycles.map((cycle) => (
                             <optgroup key={cycle.code} label={cycle.name}>
                               {cycle.levels.map((level) => (
-                                <option key={level} value={level}>
-                                  {level}
+                                <option key={level.code} value={`${cycle.code}:${level.code}`}>
+                                  {level.name}
                                 </option>
                               ))}
                             </optgroup>

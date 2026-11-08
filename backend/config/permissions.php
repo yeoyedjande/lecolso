@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 /*
-| Permissions par rôle d'établissement (matrice du cahier des charges, section 2).
-| permission => rôles qui la détiennent. Une affectation limitée à un cycle ne donne la permission que sur
+| Catalogue des permissions et permissions par défaut des rôles système (matrice du cahier des charges, section 2).
+| permission => rôles système qui la détiennent. Une école peut ajuster les rôles système modifiables et créer
+| ses propres rôles (table school_roles, config/roles.php) : les permissions effectives d'une école sont données
+| par App\Domains\Identity\Authorization\RoleCatalog. Une affectation limitée à un cycle ne donne la permission que sur
 | les ressources de ce cycle ; les ressources de toute l'école exigent une affectation sans cycle.
 | Contrôle : App\Domains\Identity\Authorization\Authorizer, appelé par les Policies.
 |
@@ -12,7 +14,7 @@ declare(strict_types=1);
 | - teacher : élèves et présences de SES classes, notes de SES matières ;
 | - guardian : élèves, frais, notes et présences de SES enfants.
 | Le super-admin n'est pas un rôle d'établissement (users.is_super_admin, routes /api/v1/platform/*).
-| Le cahier prévoit des permissions modifiables par l'école : hors V1 (matrice fixe).
+| Groupe d'une permission (écran « Rôles et permissions ») : le préfixe avant le premier point.
 */
 
 return [
@@ -23,11 +25,20 @@ return [
     // Élèves et inscriptions
     'students.view' => ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],
     'students.manage' => ['director', 'secretary'],
+    // Données médicales des élèves (groupe sanguin, allergies, notes) : décision du 05/11/2026, pas la comptabilité.
+    // L'enseignant : élèves de ses classes ; le parent : ses enfants (même périmètre que students.view).
+    'students.medical.view' => ['director', 'secretary', 'teacher', 'guardian'],
 
     // Frais et paiements
     'billing.view' => ['promoter', 'director', 'secretary', 'accountant', 'guardian'],
     'billing.manage' => ['director', 'accountant'],
     'billing.pay' => ['guardian'],
+    // Remise sur la facture d'un élève (montant et motif) : la direction (décision du 05/11/2026)
+    'billing.discount' => ['director'],
+    // Annuler un paiement encaissé (motif obligatoire ; le reçu reste, marqué annulé) : la direction (05/11/2026)
+    'billing.cancel' => ['director'],
+    // Rembourser ou reporter un trop-perçu sur une autre facture du même payeur (validation) : la direction
+    'billing.refund' => ['director'],
 
     // Notes et bulletins
     'grades.view' => ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
@@ -38,9 +49,14 @@ return [
     'attendance.view' => ['promoter', 'director', 'secretary', 'teacher', 'guardian'],
     'attendance.manage' => ['director', 'secretary', 'teacher'],
     'attendance.justify' => ['guardian'],
+    // Corriger un appel après sa journée (motif obligatoire), ou le faire en retard : la direction (05/11/2026)
+    'attendance.correct' => ['director'],
 
     // Messagerie (comptable : relances ; parent : répondre)
     'messaging.send' => ['promoter', 'director', 'secretary', 'accountant', 'teacher', 'guardian'],
+    // Publier une annonce pour l'école, un cycle ou une classe de son cycle (06/11/2026 ; l'enseignant publie pour sa
+    // classe avec messaging.send)
+    'messaging.announce' => ['promoter', 'director', 'secretary'],
 
     // Abonnement SaaS de l'école
     'subscription.view' => ['promoter', 'director'],
@@ -48,4 +64,9 @@ return [
 
     // Comptes : réinitialiser le mot de passe provisoire d'un utilisateur de l'école (pas de lien par e-mail en V1)
     'users.reset_password' => ['director', 'secretary'],
+    // Comptes et rôles de l'école : lister, créer, modifier, désactiver et supprimer des utilisateurs
+    'users.view' => ['promoter', 'director'],
+    'users.manage' => ['promoter', 'director'],
+    // Créer des rôles personnalisés et ajuster les rôles système modifiables
+    'roles.manage' => ['promoter', 'director'],
 ];

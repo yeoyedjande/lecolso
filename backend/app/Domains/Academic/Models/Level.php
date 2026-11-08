@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $code
  * @property string $name
  * @property int $position
+ * @property-read Cycle $cycle cycle_id est obligatoire (clé étrangère non nulle)
  */
 final class Level extends Model
 {

@@ -1,10 +1,9 @@
-import { Outlet, useLocation } from '@tanstack/react-router'
+import { Outlet } from '@tanstack/react-router'
 import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Logo, LogoMark } from '@/components/brand/Logo'
-import { PageTransition } from '@/components/motion/Reveal'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
@@ -15,8 +14,11 @@ import { cn } from '@/lib/utils'
 
 import { ContextSwitcher } from './ContextSwitcher'
 import { BACK_OFFICE_NAV, visibleSections } from './nav'
+import { UnreadBadge } from '@/features/messaging/components/UnreadBadge'
+
 import { SpaceLink } from './SpaceLink'
 import { UserMenu } from './UserMenu'
+import { OutboxSync } from '@/features/sync/OutboxSync'
 
 /** Menu replié : préférence d'affichage conservée hors du préfixe des données (survit à la déconnexion). */
 const COLLAPSED_KEY = 'lecolso-ui.sidebar-collapsed'
@@ -82,6 +84,9 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                 >
                   <Icon aria-hidden className="size-5 shrink-0" />
                   {!collapsed && <span className="truncate">{t(`nav.${item.key}`)}</span>}
+                  {item.key === 'messages' && (
+                    <UnreadBadge className={collapsed ? 'absolute top-1 right-1' : 'ml-auto'} />
+                  )}
                 </SpaceLink>
               )
               return (
@@ -107,7 +112,6 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 /** Mise en page du back-office : menu latéral (repliable sur grand écran, tiroir sur tablette et téléphone). */
 export function BackOfficeLayout() {
   const { t } = useTranslation()
-  const location = useLocation()
   const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Mode sombre réservé au back-office
@@ -115,6 +119,7 @@ export function BackOfficeLayout() {
 
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
+      <OutboxSync />
       <a
         href="#contenu"
         className="sr-only z-50 rounded-xl bg-accent px-4 py-2 font-semibold text-accent-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -197,9 +202,10 @@ export function BackOfficeLayout() {
           tabIndex={-1}
           className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-10 lg:py-8 print:p-0"
         >
-          <PageTransition key={location.pathname} className="mx-auto w-full max-w-7xl">
+          {/* Pas de fondu entre deux écrans : le contenu s'affiche dès qu'il est prêt */}
+          <div className="mx-auto w-full max-w-7xl">
             <Outlet />
-          </PageTransition>
+          </div>
         </main>
       </div>
     </div>

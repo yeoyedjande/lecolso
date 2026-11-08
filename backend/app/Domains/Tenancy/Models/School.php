@@ -6,6 +6,7 @@ namespace App\Domains\Tenancy\Models;
 
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Tenancy\Enums\SchoolType;
+use App\Domains\Tenancy\Support\SchoolCode;
 use App\Support\Audit\Auditable;
 use Database\Factories\SchoolFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -25,8 +26,13 @@ use Illuminate\Support\Carbon;
  * @property string|null $organization_id
  * @property string $name
  * @property string $slug
+ * @property string $code préfixe des matricules (« LAU »)
  * @property SchoolType $type
  * @property string|null $city
+ * @property string|null $address
+ * @property string|null $phone
+ * @property string|null $email
+ * @property string|null $motto
  * @property string $currency
  * @property string|null $logo_path
  * @property array<string, mixed> $settings
@@ -42,7 +48,10 @@ final class School extends Model
     use HasFactory, HasUuids, SoftDeletes;
 
     /** @var list<string> */
-    protected $fillable = ['organization_id', 'name', 'slug', 'type', 'city', 'currency', 'logo_path', 'settings', 'features'];
+    protected $fillable = [
+        'organization_id', 'name', 'slug', 'code', 'type', 'city', 'address', 'phone', 'email', 'motto',
+        'currency', 'logo_path', 'settings', 'features',
+    ];
 
     /** @var array<string, string> */
     protected $attributes = [
@@ -50,6 +59,16 @@ final class School extends Model
         'features' => '{}',
         'currency' => 'XOF',
     ];
+
+    protected static function booted(): void
+    {
+        // Préfixe des matricules proposé d'après l'adresse, s'il n'est pas fourni
+        self::creating(static function (School $school): void {
+            if (($school->getAttribute('code') ?? '') === '') {
+                $school->code = SchoolCode::suggest($school->slug);
+            }
+        });
+    }
 
     /** Module activé pour l'établissement (schools.features). */
     public function hasFeature(string $feature): bool

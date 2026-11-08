@@ -26,8 +26,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         injectRegister: false,
         manifest: {
-          name: 'Lecolso',
-          short_name: 'Lecolso',
+          name: 'EKALEWA',
+          short_name: 'EKALEWA',
           lang: 'fr',
           start_url: '/',
           display: 'standalone',
@@ -73,7 +73,6 @@ export default defineConfig(({ mode }) => {
       env: {
         VITE_API_URL: 'http://api.test/api/v1',
         VITE_APP_ENV: 'local',
-        VITE_DEMO_MODULES: 'true',
       },
     },
   }

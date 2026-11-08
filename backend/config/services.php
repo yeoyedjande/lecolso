@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 return [
 
+    // Rendu PDF (bulletins, reçus) : conteneur Gotenberg sur le réseau privé ; vide hors Docker = rendu factice hors production
+    'gotenberg' => [
+        'url' => env('GOTENBERG_URL', ''),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -15,6 +20,11 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+
+    // Mobile Money : aucun prestataire réel choisi (lot 10a) ; factice hors production, refus en production
+    'payments' => [
+        'fake_secret' => env('PAYMENTS_FAKE_SECRET', 'fake-webhook-secret'),
+    ],
 
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),

@@ -9,6 +9,7 @@
    et `app/Domains/Tenancy` (middleware `ResolveSchool`, trait `BelongsToSchool`, helper `Rls`), plutôt qu'un paquet de tenancy.
 2. **Rôles et permissions maison** : rôles définis dans un enum, permissions dans `config/permissions.php`,
    affectations dans `role_assignments (user_id, school_id, role, cycle_id nullable)`, contrôles dans les Policies Laravel.
+   Depuis l'ADR 0006 : rôles système ajustables et rôles personnalisés par école (`school_roles`).
 
 ## Raisons
 

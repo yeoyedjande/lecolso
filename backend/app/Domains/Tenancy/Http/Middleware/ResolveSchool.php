@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Tenancy\Http\Middleware;
 
+use App\Domains\Identity\Models\MemberDeactivation;
 use App\Domains\Identity\Models\RoleAssignment;
 use App\Domains\Identity\Models\User;
 use App\Domains\Tenancy\Models\School;
@@ -54,7 +55,9 @@ final readonly class ResolveSchool
             $this->context->setSchool($schoolId);
 
             $school = School::query()->find($schoolId);
-            $isMember = RoleAssignment::query()->where('user_id', $user->id)->exists();
+            // Membre actif : au moins une affectation, et compte non désactivé dans cette école
+            $isMember = RoleAssignment::query()->where('user_id', $user->id)->exists()
+                && ! MemberDeactivation::isDeactivated($user->id);
 
             if ($school === null || ! $isMember) {
                 throw new NotFoundHttpException;

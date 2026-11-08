@@ -1,43 +1,53 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
-  CheckCircle2,
-  FileText,
+  ArrowRightLeft,
   HeartPulse,
+  LogOut,
+  Pencil,
   Phone,
-  Printer,
-  Wallet,
-  XCircle,
+  RotateCcw,
+  Trash2,
+  UserPlus,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CycleBadge } from '@/components/CycleBadge'
-import { MoneyAmount } from '@/components/MoneyAmount'
-import { DemoBanner } from '@/components/states/DemoBanner'
 import { EmptyState } from '@/components/states/EmptyState'
 import { QueryState } from '@/components/states/QueryState'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Can } from '@/features/auth/RequirePermission'
-import { demoToday, YEAR_LABEL } from '@/lib/demo/dates'
-import { formatAverage, formatDay, formatDateTime, formatPhone, formatRank } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { can } from '@/features/auth/access'
+import { useCurrentSchool } from '@/features/auth/useCurrentSchool'
+import { InvoicePanel } from '@/features/billing/components/InvoicePanel'
+import { ConflictError } from '@/lib/api/errors'
+import { formatDay, formatPhone } from '@/lib/format'
+import { toast } from '@/lib/toast'
 
-import { useStudent } from '../api'
-import { absenceCount, type StudentDetail } from '../demo'
+import { ageOf } from '../age'
+import {
+  useDeleteStudent,
+  useRemoveGuardian,
+  useStudentFile,
+  type StudentFile,
+  type StudentGuardian,
+} from '../api'
+import { EnrollmentDialog, type EnrollmentAction } from './EnrollmentDialog'
+import { PhotoControl } from './PhotoControl'
+import { GuardianSheet, StudentEditSheet } from './StudentSheets'
 
 function Info({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
@@ -48,74 +58,121 @@ function Info({ label, children }: { label: ReactNode; children: ReactNode }) {
   )
 }
 
-function ageOf(birthDate: string, today: string): number {
-  const [by, bm, bd] = birthDate.split('-').map(Number)
-  const [ty, tm, td] = today.split('-').map(Number)
-  if (
-    by === undefined ||
-    bm === undefined ||
-    bd === undefined ||
-    ty === undefined ||
-    tm === undefined ||
-    td === undefined
-  )
-    return 0
-  return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0)
-}
+type Panel =
+  | { kind: 'edit' }
+  | { kind: 'guardian'; guardian: StudentGuardian | null }
+  | { kind: 'enrollment'; action: EnrollmentAction }
+  | { kind: 'removeGuardian'; guardian: StudentGuardian }
+  | { kind: 'delete' }
 
-function Detail({ detail }: { detail: StudentDetail }) {
+const REMOVE_CONFLICTS = ['last_guardian', 'reassign_first'] as const
+
+function Detail({ file }: { file: StudentFile }) {
   const { t } = useTranslation()
-  const { student, classroom, balance } = detail
-  const today = demoToday()
-  const counts = absenceCount(detail)
-  const paidShare =
-    balance.expected === 0 ? 100 : Math.round((balance.paid / balance.expected) * 100)
+  const navigate = useNavigate()
+  const [panel, setPanel] = useState<Panel | null>(null)
+  const removeGuardian = useRemoveGuardian(file.id)
+  const deleteStudent = useDeleteStudent()
+  const enrollment = file.enrollments[0]
+  const today = new Date().toISOString().slice(0, 10)
+  const editable = enrollment?.academic_year.status !== 'closed'
+  const school = useCurrentSchool()
+  const tabs = can(school, 'billing.view')
+    ? (['identity', 'guardians', 'schooling', 'fees'] as const)
+    : (['identity', 'guardians', 'schooling'] as const)
+  const close = () => {
+    setPanel(null)
+  }
+
+  const confirmRemove = async (guardian: StudentGuardian) => {
+    try {
+      await removeGuardian.mutateAsync(guardian.id)
+      toast(t('students.guardians.removed', { name: guardian.name }), { tone: 'success' })
+    } catch (error) {
+      const code =
+        error instanceof ConflictError
+          ? REMOVE_CONFLICTS.find((candidate) => candidate === error.code)
+          : undefined
+      toast(code === undefined ? t('common.error') : t(`students.guardians.conflicts.${code}`), {
+        tone: 'error',
+      })
+    } finally {
+      close()
+    }
+  }
+
+  const confirmDelete = async () => {
+    try {
+      await deleteStudent.mutateAsync(file.id)
+      toast(t('students.detail.deleted', { name: file.full_name }), { tone: 'success' })
+      void navigate({ from: '/$school', to: '/$school/eleves' })
+    } catch {
+      toast(t('common.error'), { tone: 'error' })
+      close()
+    }
+  }
 
   return (
     <div className="grid gap-6">
       <section className="relative overflow-hidden rounded-3xl border bg-card p-5 shadow-soft sm:p-6">
         <div className="flex flex-wrap items-center gap-4">
-          <Avatar name={detail.name} size="lg" />
+          <PhotoControl
+            studentId={file.id}
+            guardianId={null}
+            name={file.full_name}
+            photoUrl={file.photo_url}
+            editable={file.can_manage}
+            size="xl"
+          />
           <div className="grid min-w-0 flex-1 gap-1">
             <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              {detail.name}
+              {file.full_name}
             </h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <CycleBadge code={classroom.cycle} label={classroom.name} />
-              <span>{student.matricule}</span>
+              {enrollment !== undefined && (
+                <CycleBadge
+                  code={enrollment.classroom.cycle_code}
+                  label={enrollment.classroom.name}
+                />
+              )}
+              <span>{file.matricule}</span>
               <span aria-hidden>·</span>
-              <span>{t('students.detail.age', { count: ageOf(student.birthDate, today) })}</span>
+              <span>{t('students.detail.age', { count: ageOf(file.birth_date, today) })}</span>
+              {enrollment?.status === 'left' && (
+                <Badge variant="outline">{t('students.statuses.left')}</Badge>
+              )}
             </div>
           </div>
-          <div className="grid gap-1 text-right">
-            <span className="text-xs font-medium text-muted-foreground uppercase">
-              {t('students.detail.remaining')}
-            </span>
-            <MoneyAmount
-              value={balance.remaining}
-              className={cn(
-                'font-display text-2xl font-bold',
-                balance.overdue > 0 && 'text-destructive-ink',
-              )}
-            />
-          </div>
+          {file.can_manage && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPanel({ kind: 'edit' })
+                }}
+              >
+                <Pencil aria-hidden />
+                {t('students.detail.edit')}
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-destructive-ink"
+                onClick={() => {
+                  setPanel({ kind: 'delete' })
+                }}
+              >
+                <Trash2 aria-hidden />
+                {t('students.detail.delete')}
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
       <Tabs defaultValue="identity">
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
           <TabsList className="w-max">
-            {(
-              [
-                'identity',
-                'guardians',
-                'schooling',
-                'payments',
-                'grades',
-                'attendance',
-                'documents',
-              ] as const
-            ).map((tab) => (
+            {tabs.map((tab) => (
               <TabsTrigger key={tab} value={tab}>
                 {t(`students.detail.tabs.${tab}`)}
               </TabsTrigger>
@@ -127,420 +184,355 @@ function Detail({ detail }: { detail: StudentDetail }) {
           <Card>
             <CardContent className="pt-6">
               <dl className="grid gap-4 sm:grid-cols-2">
-                <Info label={t('students.detail.matricule')}>{student.matricule}</Info>
-                <Info label={t('students.detail.born')}>{formatDay(student.birthDate)}</Info>
-                <Info label={t('students.detail.gender')}>
-                  {t(`students.detail.genders.${student.gender}`)}
+                <Info label={t('students.detail.matricule')}>{file.matricule}</Info>
+                <Info label={t('students.detail.born')}>
+                  {formatDay(file.birth_date)}
+                  {file.birth_place !== null && ` · ${file.birth_place}`}
                 </Info>
-                <Info label={t('students.detail.district')}>{student.district}</Info>
-                <Info label={t('students.detail.enrolledAt')}>{formatDay(student.enrolledAt)}</Info>
-                <Info label={t('students.detail.year')}>{YEAR_LABEL}</Info>
+                <Info label={t('students.detail.gender')}>
+                  {t(`students.detail.genders.${file.gender}`)}
+                </Info>
+                <Info label={t('students.detail.district')}>
+                  {file.address ?? t('students.detail.notProvided')}
+                </Info>
+                {enrollment !== undefined && (
+                  <Info label={t('students.detail.enrolledAt')}>
+                    {formatDay(enrollment.enrolled_on)}
+                  </Info>
+                )}
               </dl>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HeartPulse aria-hidden className="size-5 text-cycle-daycare-ink" />
-                {t('students.detail.medical')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <p>{student.medicalNote ?? t('students.detail.medicalNone')}</p>
-              <p className="text-xs text-muted-foreground">{t('students.detail.medicalHint')}</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="guardians" className="mt-4 grid gap-4 md:grid-cols-2">
-          {student.guardians.map((guardian) => (
-            <Card key={guardian.id}>
-              <CardContent className="flex items-start gap-4 pt-6">
-                <Avatar name={guardian.name} />
-                <div className="grid min-w-0 flex-1 gap-1">
-                  <p className="flex flex-wrap items-center gap-2 font-semibold">
-                    {guardian.name}
-                    {guardian.isPayer && (
-                      <Badge variant="accent">{t('students.detail.payerBadge')}</Badge>
-                    )}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {guardian.relation} · {guardian.profession}
-                  </p>
-                  <p className="tabular text-sm">{formatPhone(guardian.phone)}</p>
-                </div>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="icon"
-                  aria-label={t('students.detail.call', { name: guardian.name })}
-                >
-                  <a href={`tel:${guardian.phone}`}>
-                    <Phone aria-hidden />
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="schooling" className="mt-4 grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardContent className="pt-6">
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <Info label={t('students.classroom')}>{classroom.name}</Info>
-                <Info label={t('students.cycle')}>{t(`cycles.${classroom.cycle}`)}</Info>
-                <Info label={t('students.detail.teacher')}>{classroom.teacher}</Info>
-                <Info label={t('students.detail.room')}>{classroom.room}</Info>
-              </dl>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('students.detail.options')}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {student.options.length === 0 ? (
-                <p className="text-muted-foreground">{t('students.detail.noOptions')}</p>
-              ) : (
-                student.options.map((option) => (
-                  <Badge key={option} variant="secondary">
-                    {t(`fees.kinds.${option}`)}
-                  </Badge>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="payments" className="mt-4 grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {(
-              [
-                ['expected', balance.expected, ''],
-                ['paid', balance.paid, 'text-success-ink'],
-                ['remaining', balance.remaining, ''],
-                ['overdue', balance.overdue, balance.overdue > 0 ? 'text-destructive-ink' : ''],
-              ] as const
-            ).map(([key, value, tone]) => (
-              <Card key={key}>
-                <CardContent className="grid gap-1 pt-5">
-                  <span className="text-sm text-muted-foreground">
-                    {t(`students.detail.${key}`)}
-                  </span>
-                  <MoneyAmount
-                    value={value}
-                    className={cn('font-display text-xl font-bold', tone)}
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <Progress value={paidShare} aria-label={t('students.detail.paid')} />
-          <div className="flex justify-end">
-            <Can permission="billing.manage">
-              <Button asChild variant="accent">
-                <Link to="/gestion/encaissements" search={{ eleve: student.id }}>
-                  <Wallet aria-hidden />
-                  {t('students.detail.collect')}
-                </Link>
-              </Button>
-            </Can>
-          </div>
-          <Card className="overflow-hidden p-0">
-            <CardHeader className="px-5 pt-5">
-              <CardTitle>{t('students.detail.installments')}</CardTitle>
-            </CardHeader>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('students.detail.installments')}</TableHead>
-                  <TableHead>{t('students.detail.dueDate')}</TableHead>
-                  <TableHead className="text-right">{t('students.detail.amount')}</TableHead>
-                  <TableHead className="text-right">{t('students.detail.status')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {detail.installments.map((installment) => {
-                  const state =
-                    installment.paid >= installment.amount
-                      ? 'statusPaid'
-                      : installment.dueDate <= today
-                        ? installment.paid > 0
-                          ? 'statusPartial'
-                          : 'statusLate'
-                        : 'statusUpcoming'
-                  return (
-                    <TableRow key={installment.id}>
-                      <TableCell className="font-medium">{installment.label}</TableCell>
-                      <TableCell>{formatDay(installment.dueDate)}</TableCell>
-                      <TableCell className="text-right">
-                        <MoneyAmount value={installment.amount} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge
-                          variant={
-                            state === 'statusPaid'
-                              ? 'success'
-                              : state === 'statusUpcoming'
-                                ? 'secondary'
-                                : state === 'statusPartial'
-                                  ? 'accent'
-                                  : 'destructive'
-                          }
-                        >
-                          {t(`students.detail.${state}`)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </Card>
-          <Card className="overflow-hidden p-0">
-            <CardHeader className="px-5 pt-5">
-              <CardTitle>{t('students.detail.history')}</CardTitle>
-            </CardHeader>
-            {detail.payments.length === 0 ? (
-              <p className="px-5 pb-5 text-muted-foreground">{t('students.detail.noPayments')}</p>
-            ) : (
-              <Table>
-                <TableBody>
-                  {detail.payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>{formatDateTime(payment.paidAt)}</TableCell>
-                      <TableCell>{t(`paymentMethods.${payment.method}`)}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        <MoneyAmount value={payment.amount} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link to="/gestion/recus/$paymentId" params={{ paymentId: payment.id }}>
-                            <Printer aria-hidden />
-                            {payment.receiptNumber}
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="grades" className="mt-4 grid gap-4">
-          {detail.results !== null ? (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Card>
-                  <CardContent className="grid gap-1 pt-5">
-                    <span className="text-sm text-muted-foreground">
-                      {t('students.detail.average')}
-                    </span>
-                    <span className="font-display text-3xl font-bold tabular">
-                      {formatAverage(detail.results.average)}
-                    </span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="grid gap-1 pt-5">
-                    <span className="text-sm text-muted-foreground">
-                      {t('students.detail.rank')}
-                    </span>
-                    <span className="font-display text-3xl font-bold">
-                      {formatRank(detail.results.rank)}{' '}
-                      <span className="text-base font-medium text-muted-foreground">
-                        {t('students.detail.rankOf', { count: detail.results.size })}
-                      </span>
-                    </span>
-                  </CardContent>
-                </Card>
-              </div>
-              <Card className="overflow-hidden p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('students.detail.subject')}</TableHead>
-                      <TableHead className="text-center">
-                        {t('students.detail.coefficient')}
-                      </TableHead>
-                      <TableHead className="text-right">{t('students.detail.average')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {detail.results.bySubject.map((subject) => (
-                      <TableRow key={subject.name}>
-                        <TableCell className="font-medium">{subject.name}</TableCell>
-                        <TableCell className="text-center">{subject.coefficient}</TableCell>
-                        <TableCell
-                          className={cn(
-                            'tabular text-right font-semibold',
-                            subject.average !== null &&
-                              subject.average < 10 &&
-                              'text-destructive-ink',
-                          )}
-                        >
-                          {formatAverage(subject.average)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
-            </>
-          ) : classroom.cycle === 'kindergarten' ? (
+          {file.medical !== null && (
             <Card>
               <CardHeader>
-                <CardTitle>{t('students.detail.skills')}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <HeartPulse aria-hidden className="size-5 text-destructive-ink" />
+                  {t('students.detail.medical')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 text-sm">
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  <Info label={t('enrollment.bloodType')}>
+                    {file.medical.blood_type ?? t('students.detail.notProvided')}
+                  </Info>
+                  <Info label={t('enrollment.allergies')}>
+                    {file.medical.allergies ?? t('students.detail.medicalNone')}
+                  </Info>
+                </dl>
+                {file.medical.medical_notes !== null && <p>{file.medical.medical_notes}</p>}
+                <p className="text-xs text-muted-foreground">{t('students.detail.medicalHint')}</p>
+              </CardContent>
+            </Card>
+          )}
+          {file.siblings.length > 0 && (
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>{t('students.detail.siblings')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="grid gap-2">
-                  {detail.skills.map((skill) => (
-                    <li
-                      key={skill.label}
-                      className="flex items-center justify-between gap-3 border-b pb-2 last:border-0"
-                    >
-                      <span>
-                        <span className="text-xs text-muted-foreground">{skill.domain}</span>
-                        <br />
-                        {skill.label}
-                      </span>
-                      <Badge
-                        variant={
-                          skill.level === 'A'
-                            ? 'success'
-                            : skill.level === 'EA'
-                              ? 'accent'
-                              : skill.level === 'NA'
-                                ? 'destructive'
-                                : 'secondary'
-                        }
+                <ul className="flex flex-wrap gap-2">
+                  {file.siblings.map((sibling) => (
+                    <li key={sibling.id}>
+                      <Link
+                        from="/$school"
+                        to="/$school/eleves/$studentId"
+                        params={{ studentId: sibling.id }}
+                        className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium hover:bg-muted"
                       >
-                        {t(
-                          `skillLevels.${skill.level === 'A' || skill.level === 'EA' || skill.level === 'NA' ? skill.level : 'none'}`,
+                        <Avatar name={sibling.full_name} photoUrl={sibling.photo_url} size="sm" />
+                        {sibling.full_name}
+                        {sibling.classroom_name !== null && (
+                          <span className="text-muted-foreground">{sibling.classroom_name}</span>
                         )}
-                      </Badge>
+                      </Link>
                     </li>
                   ))}
                 </ul>
               </CardContent>
             </Card>
-          ) : (
-            <EmptyState title={t('students.detail.noGrades')} />
           )}
         </TabsContent>
 
-        <TabsContent value="attendance" className="mt-4 grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {(
-              [
-                ['absences', counts.absent],
-                ['lates', counts.late],
-                ['unjustified', counts.unjustified],
-              ] as const
-            ).map(([key, value]) => (
-              <Card key={key}>
-                <CardContent className="grid gap-1 pt-5">
-                  <span className="text-sm text-muted-foreground">
-                    {t(`students.detail.${key}`)}
-                  </span>
-                  <span className="font-display text-3xl font-bold tabular">{value}</span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          {detail.attendance.length === 0 ? (
-            <EmptyState title={t('students.detail.noAbsence')} />
-          ) : (
-            <Card className="overflow-hidden p-0">
-              <Table>
-                <TableBody>
-                  {detail.attendance.map((entry) => (
-                    <TableRow key={entry.date}>
-                      <TableCell>{formatDay(entry.date)}</TableCell>
-                      <TableCell>
-                        <Badge variant={entry.status === 'late' ? 'accent' : 'destructive'}>
-                          {t(`attendanceStatus.${entry.status}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground">
-                        {t(
-                          entry.justified
-                            ? 'students.detail.justified'
-                            : 'students.detail.notJustified',
+        <TabsContent value="guardians" className="mt-4 grid gap-4">
+          {file.can_manage && (
+            <Button
+              variant="outline"
+              className="justify-self-start"
+              onClick={() => {
+                setPanel({ kind: 'guardian', guardian: null })
+              }}
+            >
+              <UserPlus aria-hidden />
+              {t('students.guardians.add')}
+            </Button>
+          )}
+          <ul className="grid gap-4 md:grid-cols-2">
+            {file.guardians.map((guardian) => (
+              <li key={guardian.id}>
+                <Card>
+                  <CardContent className="flex items-start gap-4 pt-6">
+                    <Avatar name={guardian.name} photoUrl={guardian.photo_url} />
+                    <div className="grid min-w-0 flex-1 gap-1">
+                      <p className="flex flex-wrap items-center gap-2 font-semibold">
+                        {guardian.name}
+                        {guardian.is_payer && (
+                          <Badge variant="accent">{t('students.detail.payerBadge')}</Badge>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-4 grid gap-3">
-          <p className="text-sm text-muted-foreground">{t('students.detail.documentsHint')}</p>
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {(['birth', 'photo', 'vaccination', 'report'] as const).map((doc, index) => {
-              const provided =
-                classroom.cycle === 'primary' || doc !== 'report'
-                  ? (student.matricule.charCodeAt(student.matricule.length - 1) + index) % 4 !== 0
-                  : false
-              return (
-                <li key={doc} className="flex items-center gap-3 rounded-2xl border bg-card p-4">
-                  <FileText aria-hidden className="size-5 text-muted-foreground" />
-                  <span className="flex-1 font-medium">
-                    {t(`students.detail.documents.${doc}`)}
-                  </span>
-                  {provided ? (
-                    <Badge variant="success">
-                      <CheckCircle2 aria-hidden className="size-3.5" />
-                      {t('students.detail.provided')}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">
-                      <XCircle aria-hidden className="size-3.5" />
-                      {t('students.detail.missing')}
-                    </Badge>
-                  )}
-                </li>
-              )
-            })}
+                        {guardian.is_primary_contact && (
+                          <Badge variant="secondary">{t('students.guardians.primaryBadge')}</Badge>
+                        )}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {t(`enrollment.relations.${guardian.relation}`)}
+                        {guardian.profession !== null && ` · ${guardian.profession}`}
+                      </p>
+                      <p className="tabular text-sm">{formatPhone(guardian.phone)}</p>
+                      {!guardian.can_pick_up && (
+                        <p className="text-sm text-destructive-ink">
+                          {t('students.guardians.noPickUp')}
+                        </p>
+                      )}
+                      {file.can_manage && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            aria-label={t('students.guardians.editOf', { name: guardian.name })}
+                            onClick={() => {
+                              setPanel({ kind: 'guardian', guardian })
+                            }}
+                          >
+                            <Pencil aria-hidden />
+                            {t('students.detail.edit')}
+                          </Button>
+                          <PhotoControl
+                            studentId={file.id}
+                            guardianId={guardian.id}
+                            name={guardian.name}
+                            photoUrl={guardian.photo_url}
+                            editable
+                            showAvatar={false}
+                          />
+                          {file.guardians.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive-ink"
+                              aria-label={t('students.guardians.removeOf', { name: guardian.name })}
+                              onClick={() => {
+                                setPanel({ kind: 'removeGuardian', guardian })
+                              }}
+                            >
+                              <Trash2 aria-hidden />
+                              {t('students.guardians.remove')}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="icon"
+                      aria-label={t('students.detail.call', { name: guardian.name })}
+                    >
+                      <a href={`tel:${guardian.phone}`}>
+                        <Phone aria-hidden />
+                      </a>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
           </ul>
         </TabsContent>
+
+        <TabsContent value="schooling" className="mt-4 grid gap-4">
+          {file.can_manage && enrollment !== undefined && editable && (
+            <div className="flex flex-wrap gap-2">
+              {enrollment.status === 'active' ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPanel({ kind: 'enrollment', action: 'move' })
+                    }}
+                  >
+                    <ArrowRightLeft aria-hidden />
+                    {t('students.schooling.move')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-destructive-ink"
+                    onClick={() => {
+                      setPanel({ kind: 'enrollment', action: 'leave' })
+                    }}
+                  >
+                    <LogOut aria-hidden />
+                    {t('students.schooling.leave')}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPanel({ kind: 'enrollment', action: 'return' })
+                  }}
+                >
+                  <RotateCcw aria-hidden />
+                  {t('students.schooling.return')}
+                </Button>
+              )}
+            </div>
+          )}
+          <ul className="grid gap-3">
+            {file.enrollments.map((item) => (
+              <li key={item.id}>
+                <Card>
+                  <CardContent className="grid gap-3 pt-6 sm:grid-cols-[160px_minmax(0,1fr)]">
+                    <p className="font-display text-lg font-bold">{item.academic_year.label}</p>
+                    <dl className="grid gap-3 sm:grid-cols-3">
+                      <Info label={t('students.classroom')}>
+                        <CycleBadge code={item.classroom.cycle_code} label={item.classroom.name} />
+                      </Info>
+                      <Info label={t('students.detail.teacher')}>
+                        {item.classroom.homeroom_teacher ?? t('classes.noTeacher')}
+                      </Info>
+                      <Info label={t('students.status')}>
+                        {item.status === 'left' && item.left_on !== null
+                          ? t('students.schooling.leftSince', { date: formatDay(item.left_on) })
+                          : t('students.statuses.active')}
+                      </Info>
+                      {item.leave_reason !== null && (
+                        <div className="sm:col-span-3">
+                          <Info label={t('students.schooling.reason')}>{item.leave_reason}</Info>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </TabsContent>
+        {can(school, 'billing.view') && (
+          <TabsContent value="fees" className="mt-4">
+            <InvoicePanel studentId={file.id} />
+          </TabsContent>
+        )}
       </Tabs>
+
+      <Sheet
+        open={panel?.kind === 'edit' || panel?.kind === 'guardian'}
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
+      >
+        <SheetContent
+          side="right"
+          closeLabel={t('common.close')}
+          className="w-full max-w-xl gap-0 sm:w-[34rem]"
+        >
+          {panel?.kind === 'edit' && <StudentEditSheet file={file} onDone={close} />}
+          {panel?.kind === 'guardian' && (
+            <GuardianSheet file={file} guardian={panel.guardian} onDone={close} />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <Dialog
+        open={
+          panel?.kind === 'enrollment' ||
+          panel?.kind === 'removeGuardian' ||
+          panel?.kind === 'delete'
+        }
+        onOpenChange={(open) => {
+          if (!open) close()
+        }}
+      >
+        <DialogContent closeLabel={t('common.close')}>
+          {panel?.kind === 'enrollment' && enrollment !== undefined && (
+            <EnrollmentDialog
+              file={file}
+              enrollment={enrollment}
+              action={panel.action}
+              onDone={close}
+            />
+          )}
+          {panel?.kind === 'removeGuardian' && (
+            <>
+              <DialogTitle>
+                {t('students.guardians.removeTitle', { name: panel.guardian.name })}
+              </DialogTitle>
+              <DialogDescription>{t('students.guardians.removeDescription')}</DialogDescription>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="ghost">{t('common.cancel')}</Button>
+                </DialogClose>
+                <Button
+                  variant="destructive"
+                  disabled={removeGuardian.isPending}
+                  onClick={() => void confirmRemove(panel.guardian)}
+                >
+                  <Trash2 aria-hidden />
+                  {t('students.guardians.remove')}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+          {panel?.kind === 'delete' && (
+            <>
+              <DialogTitle>
+                {t('students.detail.deleteTitle', { name: file.full_name })}
+              </DialogTitle>
+              <DialogDescription>{t('students.detail.deleteDescription')}</DialogDescription>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="ghost">{t('common.cancel')}</Button>
+                </DialogClose>
+                <Button
+                  variant="destructive"
+                  disabled={deleteStudent.isPending}
+                  onClick={() => void confirmDelete()}
+                >
+                  <Trash2 aria-hidden />
+                  {t('students.detail.deleteConfirm')}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-/** Fiche élève à onglets. */
+/** Dossier d'un élève (vraie API) : identité, données médicales selon les droits, tuteurs, scolarité. */
 export function StudentDetailPage({ studentId }: { studentId: string }) {
   const { t } = useTranslation()
-  const query = useStudent(studentId)
+  const query = useStudentFile(studentId)
 
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button asChild variant="ghost" size="sm">
-          <Link to="/gestion/eleves">
+          <Link from="/$school" to="/$school/eleves">
             <ArrowLeft aria-hidden />
             {t('students.detail.back')}
           </Link>
         </Button>
-        <DemoBanner />
       </div>
       <QueryState query={query}>
-        {(detail) =>
-          detail === null ? (
+        {(file) =>
+          file === null ? (
             <EmptyState
               headingLevel={1}
               illustration="lost"
               title={t('students.detail.notFound')}
             />
           ) : (
-            <Detail detail={detail} />
+            <Detail file={file} />
           )
         }
       </QueryState>

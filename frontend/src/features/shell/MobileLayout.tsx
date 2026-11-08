@@ -1,14 +1,17 @@
-import { Outlet, useLocation } from '@tanstack/react-router'
+import { Outlet } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { LogoMark } from '@/components/brand/Logo'
 import { RibbonPattern } from '@/components/brand/Patterns'
-import { PageTransition } from '@/components/motion/Reveal'
 import type { Space } from '@/features/auth/access'
 import { cn } from '@/lib/utils'
 
+import { OutboxSync } from '@/features/sync/OutboxSync'
+
 import { ContextSwitcher } from './ContextSwitcher'
 import type { NavItem } from './nav'
+import { UnreadBadge } from '@/features/messaging/components/UnreadBadge'
+
 import { SpaceLink } from './SpaceLink'
 import { UserMenu } from './UserMenu'
 
@@ -24,7 +27,6 @@ export function MobileLayout({
   tabs: NavItem[]
 }) {
   const { t } = useTranslation()
-  const location = useLocation()
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -50,10 +52,11 @@ export function MobileLayout({
         tabIndex={-1}
         className="mx-auto w-full max-w-2xl flex-1 px-4 pt-5 pb-28 outline-none"
       >
-        <PageTransition key={location.pathname}>
-          <Outlet />
-        </PageTransition>
+        {/* Pas de fondu entre deux écrans : le contenu s'affiche dès qu'il est prêt */}
+        <Outlet />
       </main>
+      {/* Saisies faites hors connexion (appel, garderie, notes) envoyées au retour du réseau */}
+      <OutboxSync />
 
       <nav
         aria-label={t('common.menu')}
@@ -77,6 +80,9 @@ export function MobileLayout({
                   activeClassName="!text-navy after:absolute after:top-0 after:h-1 after:w-10 after:rounded-b-full after:bg-orange"
                 >
                   <Icon aria-hidden className="size-6" />
+                  {tab.key === 'messages' && (
+                    <UnreadBadge className="absolute top-1.5 right-[calc(50%-1.75rem)]" />
+                  )}
                   <span className="max-w-full truncate">{t(`nav.${tab.key}`)}</span>
                 </SpaceLink>
               </li>
