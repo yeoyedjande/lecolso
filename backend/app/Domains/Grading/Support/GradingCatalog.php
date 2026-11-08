@@ -7,11 +7,14 @@ namespace App\Domains\Grading\Support;
 use App\Domains\Academic\Models\AcademicYear;
 use App\Domains\Academic\Models\Cycle;
 use App\Domains\Academic\Models\Level;
+use App\Domains\Grading\Models\Appreciation;
 use App\Domains\Grading\Models\Assessment;
 use App\Domains\Grading\Models\Skill;
 use App\Domains\Grading\Models\SkillEvaluation;
 use App\Domains\Grading\Models\Subject;
+use App\Domains\Grading\Models\SubjectAppreciation;
 use App\Domains\Grading\Models\Term;
+use App\Domains\Grading\Models\TermClosure;
 use App\Support\Cycles\Enums\AssessmentMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,8 +23,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Périodes, matières et référentiel de compétences d'une année, créés à la première lecture :
- * - périodes d'après term_type du cycle (DefaultTerms), recréées si le type a changé et qu'aucune évaluation ne
- *   les utilise ;
+ * - périodes d'après term_type du cycle (DefaultTerms), recréées si le type a changé et que rien ne s'y rattache
+ *   (évaluation, compétence évaluée, appréciation, clôture et donc bulletin) ;
  * - matières des niveaux des cycles en moyenne pondérée et compétences des cycles en compétences, depuis
  *   config/grading.php (la direction les modifie ensuite).
  * Un verrou consultatif transactionnel évite qu'une double première lecture crée deux fois la liste.
@@ -119,12 +122,18 @@ final class GradingCatalog
     }
 
     /**
+     * Vrai si une saisie se rattache aux périodes. Appréciations et clôtures (puis bulletins) seraient effacées en
+     * cascade avec la période : elles la protègent autant que les évaluations.
+     *
      * @param  list<string>  $termIds
      */
     public function termsUsed(array $termIds): bool
     {
         return Assessment::query()->whereIn('term_id', $termIds)->exists()
-            || SkillEvaluation::query()->whereIn('term_id', $termIds)->whereNotNull('level')->exists();
+            || SkillEvaluation::query()->whereIn('term_id', $termIds)->whereNotNull('level')->exists()
+            || Appreciation::query()->whereIn('term_id', $termIds)->exists()
+            || SubjectAppreciation::query()->whereIn('term_id', $termIds)->exists()
+            || TermClosure::query()->whereIn('term_id', $termIds)->exists();
     }
 
     /**

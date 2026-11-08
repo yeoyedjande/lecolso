@@ -402,3 +402,23 @@ it('applique les notes saisies hors connexion une seule fois, sans écraser une 
         'assessment_id' => $assessmentId, 'recorded_at' => '2026-10-05T07:15:00Z', 'grades' => [],
     ]]]], $school)->assertOk()->assertJsonPath('data.0.status', 'rejected')->assertJsonPath('data.0.code', 'forbidden');
 });
+
+it('garde les périodes, appréciations et bulletins quand le type de période change après leur saisie', function (): void {
+    [$school, $classroom, $teacher, $awa] = gradingSchool();
+    $primary = cycleOf($school, 'primary');
+
+    // Appréciation saisie, aucune évaluation : la période porte déjà le bulletin en préparation
+    login($teacher);
+    ['term_id' => $termId] = gradeGrid($school, $classroom);
+    spa('PUT', '/api/v1/classrooms/'.$classroom->id.'/appreciations', ['term_id' => $termId, 'student_id' => $awa->id, 'teacher_comment' => 'Très bon trimestre.'], $school)->assertOk();
+
+    actingAsRole(Role::Director, $school, $primary);
+    spa('PATCH', '/api/v1/cycles/'.$primary->id, ['settings' => ['term_type' => 'semester']], $school)->assertOk();
+    spa('GET', '/api/v1/grading/settings?cycle_id='.$primary->id, [], $school)->assertOk()
+        ->assertJsonCount(3, 'data.terms')
+        ->assertJsonPath('data.terms.0.id', $termId);
+
+    login($teacher);
+    spa('GET', '/api/v1/classrooms/'.$classroom->id.'/report-cards?term_id='.$termId, [], $school)->assertOk()
+        ->assertJsonPath('data.rows.0.teacher_comment', 'Très bon trimestre.');
+});
